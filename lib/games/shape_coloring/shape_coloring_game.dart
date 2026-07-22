@@ -995,84 +995,95 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
                           ),
                           const SizedBox(height: 12),
 
-                          // 색상 팔레트 + 무지개 요술펜
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              // 🌈 무지개 요술펜
-                              GestureDetector(
-                                onTap: () {
-                                  AudioManager.instance.playColorSelect();
-                                  HapticFeedback.selectionClick();
-                                  setState(() {
-                                    _isRainbowMode = true;
-                                    _selectedColor = Colors.purple;
-                                  });
-                                },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  width: _isRainbowMode ? 48 : 40,
-                                  height: _isRainbowMode ? 48 : 40,
-                                  decoration: BoxDecoration(
-                                    gradient: const SweepGradient(
-                                      colors: [
-                                        Colors.red, Colors.orange, Colors.yellow,
-                                        Colors.green, Colors.blue, Colors.purple, Colors.red,
-                                      ],
+                          // 색상 팔레트 + 무지개 요술펜 (가로 스크롤 가능하여 절대 잘리지 않음)
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // 🌈 무지개 요술펜
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 3.0),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      AudioManager.instance.playColorSelect();
+                                      HapticFeedback.selectionClick();
+                                      setState(() {
+                                        _isRainbowMode = true;
+                                        _selectedColor = Colors.purple;
+                                      });
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      width: _isRainbowMode ? 44 : 36,
+                                      height: _isRainbowMode ? 44 : 36,
+                                      decoration: BoxDecoration(
+                                        gradient: const SweepGradient(
+                                          colors: [
+                                            Colors.red, Colors.orange, Colors.yellow,
+                                            Colors.green, Colors.blue, Colors.purple, Colors.red,
+                                          ],
+                                        ),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: _isRainbowMode ? Colors.white : Colors.white.withValues(alpha: 0.8),
+                                          width: _isRainbowMode ? 3.0 : 2.0,
+                                        ),
+                                        boxShadow: _isRainbowMode
+                                            ? [const BoxShadow(color: Colors.purple, blurRadius: 8, offset: Offset(0, 3))]
+                                            : [],
+                                      ),
+                                      child: const Center(
+                                        child: Text('🌈', style: TextStyle(fontSize: 16)),
+                                      ),
                                     ),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: _isRainbowMode ? Colors.white : Colors.white.withValues(alpha: 0.8),
-                                      width: _isRainbowMode ? 3.5 : 2.5,
-                                    ),
-                                    boxShadow: _isRainbowMode
-                                        ? [const BoxShadow(color: Colors.purple, blurRadius: 10, offset: Offset(0, 4))]
-                                        : [],
-                                  ),
-                                  child: const Center(
-                                    child: Text('🌈', style: TextStyle(fontSize: 18)),
                                   ),
                                 ),
-                              ),
 
-                              // 단색 팔레트들
-                              ..._paletteColors.map((color) {
-                                final isSelected = !_isRainbowMode && _selectedColor == color;
-                                final isEraser = color == Colors.white;
+                                // 단색 팔레트들
+                                ..._paletteColors.map((color) {
+                                  final isSelected = !_isRainbowMode && _selectedColor == color;
+                                  final isEraser = color == Colors.white;
 
-                                return GestureDetector(
-                                  onTap: () {
-                                    AudioManager.instance.playColorSelect();
-                                    HapticFeedback.selectionClick();
-                                    setState(() {
-                                      _isRainbowMode = false;
-                                      _selectedColor = color;
-                                    });
-                                  },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    width: isSelected ? 48 : 40,
-                                    height: isSelected ? 48 : 40,
-                                    decoration: BoxDecoration(
-                                      color: color,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: isSelected ? KidsTheme.purple : Colors.white,
-                                        width: isSelected ? 3.5 : 2.5,
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 3.0),
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        AudioManager.instance.playColorSelect();
+                                        HapticFeedback.selectionClick();
+                                        setState(() {
+                                          _isRainbowMode = false;
+                                          _selectedColor = color;
+                                        });
+                                      },
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 200),
+                                        width: isSelected ? 44 : 36,
+                                        height: isSelected ? 44 : 36,
+                                        decoration: BoxDecoration(
+                                          color: color,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: isSelected ? KidsTheme.purple : Colors.white,
+                                            width: isSelected ? 3.0 : 2.0,
+                                          ),
+                                          boxShadow: isSelected
+                                              ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 8, offset: const Offset(0, 3))]
+                                              : [],
+                                        ),
+                                        child: Center(
+                                          child: isEraser
+                                              ? const Icon(Icons.cleaning_services_rounded, size: 18, color: KidsTheme.textDark)
+                                              : null,
+                                        ),
                                       ),
-                                      boxShadow: isSelected
-                                          ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 10, offset: const Offset(0, 4))]
-                                          : [],
                                     ),
-                                    child: Center(
-                                      child: isEraser
-                                          ? const Icon(Icons.cleaning_services_rounded, size: 20, color: KidsTheme.textDark)
-                                          : null,
-                                    ),
-                                  ),
-                                );
-                              }),
-                            ],
+                                  );
+                                }),
+                              ],
+                            ),
                           ),
                         ],
                       ),
