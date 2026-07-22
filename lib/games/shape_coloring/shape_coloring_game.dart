@@ -6,31 +6,35 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive/hive.dart';
 import '../../core/audio/audio_manager.dart';
+import '../../core/data/player_data_manager.dart';
 import '../../core/theme/kids_theme.dart';
 
 enum ShapeType {
-  circle,
-  square,
-  triangle,
-  star,
-  heart,
-  cloud,
-  moon,
-  flower,
-  princess,
   bear,
+  cat,
+  bunny,
   fish,
+  whale,
+  unicorn,
+  princess,
+  rocket,
+  flower,
+  star,
+  car,
+  heart,
 }
 
 class Stroke {
   final List<Offset> points; // Relative points (0.0 to 1.0)
   final Color color;
   final double strokeWidth;
+  final bool isRainbow;
 
   Stroke({
     required this.points,
     required this.color,
     required this.strokeWidth,
+    this.isRainbow = false,
   });
 }
 
@@ -53,7 +57,7 @@ class Confetti {
 
 // Global helper to get Path for each shape (Centered and scaled down to 72% size)
 Path getShapePath(ShapeType shape, Size size) {
-  const double scale = 0.72; // Make shape smaller so kids can color it faster
+  const double scale = 0.72; // Scaled down for easy coloring
   final double targetWidth = size.width * scale;
   final double targetHeight = size.height * scale;
   final double dx = (size.width - targetWidth) / 2;
@@ -61,78 +65,105 @@ Path getShapePath(ShapeType shape, Size size) {
 
   final path = Path();
   final subSize = Size(targetWidth, targetHeight);
+  final w = subSize.width;
+  final h = subSize.height;
 
   switch (shape) {
-    case ShapeType.circle:
-      path.addOval(Rect.fromLTWH(dx, dy, subSize.width, subSize.height));
+    case ShapeType.bear:
+      // 귀여운 곰돌이
+      path.addOval(Rect.fromLTWH(dx + w * 0.15, dy + h * 0.25, w * 0.7, h * 0.7));
+      path.addOval(Rect.fromLTWH(dx + w * 0.12, dy + h * 0.1, w * 0.26, h * 0.26));
+      path.addOval(Rect.fromLTWH(dx + w * 0.62, dy + h * 0.1, w * 0.26, h * 0.26));
       break;
-    case ShapeType.square:
-      path.addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(dx, dy, subSize.width, subSize.height),
-        Radius.circular(subSize.width * 0.15),
-      ));
-      break;
-    case ShapeType.triangle:
-      path.moveTo(dx + subSize.width / 2, dy);
-      path.lineTo(dx + subSize.width, dy + subSize.height);
-      path.lineTo(dx, dy + subSize.height);
+
+    case ShapeType.cat:
+      // 아기 야옹이 (귀 뾰족)
+      path.moveTo(dx + w * 0.2, dy + h * 0.4);
+      path.lineTo(dx + w * 0.15, dy + h * 0.12);
+      path.lineTo(dx + w * 0.4, dy + h * 0.25);
+      path.lineTo(dx + w * 0.6, dy + h * 0.25);
+      path.lineTo(dx + w * 0.85, dy + h * 0.12);
+      path.lineTo(dx + w * 0.8, dy + h * 0.4);
+      path.quadraticBezierTo(dx + w * 0.95, dy + h * 0.7, dx + w * 0.5, dy + h * 0.95);
+      path.quadraticBezierTo(dx + w * 0.05, dy + h * 0.7, dx + w * 0.2, dy + h * 0.4);
       path.close();
       break;
-    case ShapeType.star:
-      final double cx = dx + subSize.width / 2;
-      final double cy = dy + subSize.height / 2;
-      final double rx = subSize.width / 2;
-      const int points = 5;
-      final double angle = pi / points;
-      for (int i = 0; i < 2 * points; i++) {
-        final double r = (i % 2 == 0) ? rx : rx * 0.45;
-        final double currX = cx + r * sin(i * angle);
-        final double currY = cy - r * cos(i * angle);
-        if (i == 0) path.moveTo(currX, currY);
-        else path.lineTo(currX, currY);
-      }
+
+    case ShapeType.bunny:
+      // 긴 귀 토끼
+      path.addOval(Rect.fromLTWH(dx + w * 0.2, dy + h * 0.4, w * 0.6, h * 0.55));
+      // 왼쪽 긴 귀
+      path.addOval(Rect.fromLTWH(dx + w * 0.22, dy + h * 0.05, w * 0.22, h * 0.42));
+      // 오른쪽 긴 귀
+      path.addOval(Rect.fromLTWH(dx + w * 0.56, dy + h * 0.05, w * 0.22, h * 0.42));
+      break;
+
+    case ShapeType.fish:
+      // 열대어
+      path.moveTo(dx + w * 0.08, dy + h * 0.5);
+      path.quadraticBezierTo(dx + w * 0.45, dy + h * 0.12, dx + w * 0.78, dy + h * 0.5);
+      path.lineTo(dx + w * 0.96, dy + h * 0.25);
+      path.lineTo(dx + w * 0.88, dy + h * 0.5);
+      path.lineTo(dx + w * 0.96, dy + h * 0.75);
+      path.lineTo(dx + w * 0.78, dy + h * 0.5);
+      path.quadraticBezierTo(dx + w * 0.45, dy + h * 0.88, dx + w * 0.08, dy + h * 0.5);
       path.close();
       break;
-    case ShapeType.heart:
-      final w = subSize.width;
-      final h = subSize.height;
-      path.moveTo(dx + w / 2, dy + h / 5);
-      path.cubicTo(dx + w * 5 / 6, dy - h / 10, dx + w * 1.1, dy + h * 2 / 5, dx + w / 2, dy + h * 9 / 10);
-      path.cubicTo(dx - w * 0.1, dy + h * 2 / 5, dx + w / 6, dy - h / 10, dx + w / 2, dy + h / 5);
+
+    case ShapeType.whale:
+      // 아기 고래
+      path.moveTo(dx + w * 0.1, dy + h * 0.6);
+      path.quadraticBezierTo(dx + w * 0.15, dy + h * 0.25, dx + w * 0.65, dy + h * 0.3);
+      path.quadraticBezierTo(dx + w * 0.85, dy + h * 0.3, dx + w * 0.95, dy + h * 0.55);
+      path.lineTo(dx + w * 1.05, dy + h * 0.4);
+      path.lineTo(dx + w * 0.95, dy + h * 0.65);
+      path.quadraticBezierTo(dx + w * 0.5, dy + h * 0.95, dx + w * 0.1, dy + h * 0.6);
       path.close();
       break;
-    case ShapeType.cloud:
-      final w = subSize.width;
-      final h = subSize.height;
-      path.moveTo(dx + w * 0.2, dy + h * 0.7);
-      path.lineTo(dx + w * 0.8, dy + h * 0.7);
-      path.cubicTo(dx + w * 0.95, dy + h * 0.7, dx + w * 0.95, dy + h * 0.45, dx + w * 0.8, dy + h * 0.45);
-      path.cubicTo(dx + w * 0.85, dy + h * 0.2, dx + w * 0.6, dy + h * 0.2, dx + w * 0.55, dy + h * 0.3);
-      path.cubicTo(dx + w * 0.45, dy + h * 0.15, dx + w * 0.25, dy + h * 0.2, dx + w * 0.25, dy + h * 0.4);
-      path.cubicTo(dx + w * 0.05, dy + h * 0.4, dx + w * 0.05, dy + h * 0.7, dx + w * 0.2, dy + h * 0.7);
+
+    case ShapeType.unicorn:
+      // 유니콘 뿔 & 머리
+      path.addOval(Rect.fromLTWH(dx + w * 0.25, dy + h * 0.35, w * 0.5, h * 0.55));
+      // 뿔 (Triangle top)
+      path.moveTo(dx + w * 0.5, dy + h * 0.05);
+      path.lineTo(dx + w * 0.38, dy + h * 0.38);
+      path.lineTo(dx + w * 0.62, dy + h * 0.38);
       path.close();
       break;
-    case ShapeType.moon:
-      final w = subSize.width;
-      final h = subSize.height;
-      path.moveTo(dx + w * 0.75, dy + h * 0.1);
-      path.arcToPoint(
-        Offset(dx + w * 0.75, dy + h * 0.9),
-        radius: Radius.circular(w * 0.45),
-        clockwise: true,
-      );
-      path.arcToPoint(
-        Offset(dx + w * 0.75, dy + h * 0.1),
-        radius: Radius.circular(w * 0.35),
-        clockwise: false,
-      );
+
+    case ShapeType.princess:
+      // 공주 왕관
+      path.addOval(Rect.fromLTWH(dx + w * 0.2, dy + h * 0.45, w * 0.6, h * 0.5));
+      path.moveTo(dx + w * 0.25, dy + h * 0.5);
+      path.lineTo(dx + w * 0.15, dy + h * 0.15); 
+      path.lineTo(dx + w * 0.38, dy + h * 0.32);
+      path.lineTo(dx + w * 0.5, dy + h * 0.08); 
+      path.lineTo(dx + w * 0.62, dy + h * 0.32);
+      path.lineTo(dx + w * 0.85, dy + h * 0.15); 
+      path.lineTo(dx + w * 0.75, dy + h * 0.5);
       path.close();
       break;
+
+    case ShapeType.rocket:
+      // 우주 로켓
+      path.moveTo(dx + w * 0.5, dy + h * 0.08);
+      path.quadraticBezierTo(dx + w * 0.8, dy + h * 0.3, dx + w * 0.7, dy + h * 0.75);
+      path.lineTo(dx + w * 0.88, dy + h * 0.9);
+      path.lineTo(dx + w * 0.65, dy + h * 0.85);
+      path.lineTo(dx + w * 0.5, dy + h * 0.78);
+      path.lineTo(dx + w * 0.35, dy + h * 0.85);
+      path.lineTo(dx + w * 0.12, dy + h * 0.9);
+      path.lineTo(dx + w * 0.3, dy + h * 0.75);
+      path.quadraticBezierTo(dx + w * 0.2, dy + h * 0.3, dx + w * 0.5, dy + h * 0.08);
+      path.close();
+      break;
+
     case ShapeType.flower:
-      final double cx = dx + subSize.width / 2;
-      final double cy = dy + subSize.height / 2;
-      final double rx = subSize.width / 2;
-      const int petals = 6;
+      // 꽃송이
+      final double cx = dx + w / 2;
+      final double cy = dy + h / 2;
+      final double rx = w / 2;
+      const int petals = 5;
       for (int i = 0; i <= 360; i += 2) {
         final angle = i * pi / 180;
         final double r = rx * (0.65 + 0.32 * cos(petals * angle).abs());
@@ -146,38 +177,45 @@ Path getShapePath(ShapeType shape, Size size) {
       }
       path.close();
       break;
-    case ShapeType.princess:
-      final w = subSize.width;
-      final h = subSize.height;
-      path.addOval(Rect.fromLTWH(dx + w * 0.2, dy + h * 0.35, w * 0.6, h * 0.6));
-      path.moveTo(dx + w * 0.3, dy + h * 0.4);
-      path.lineTo(dx + w * 0.18, dy + h * 0.15); 
-      path.lineTo(dx + w * 0.38, dy + h * 0.28);
-      path.lineTo(dx + w * 0.5, dy + h * 0.05); 
-      path.lineTo(dx + w * 0.62, dy + h * 0.28);
-      path.lineTo(dx + w * 0.82, dy + h * 0.15); 
-      path.lineTo(dx + w * 0.7, dy + h * 0.4);
+
+    case ShapeType.star:
+      // 반짝 별
+      final double cx = dx + w / 2;
+      final double cy = dy + h / 2;
+      final double rx = w / 2;
+      const int points = 5;
+      final double angle = pi / points;
+      for (int i = 0; i < 2 * points; i++) {
+        final double r = (i % 2 == 0) ? rx : rx * 0.45;
+        final double currX = cx + r * sin(i * angle);
+        final double currY = cy - r * cos(i * angle);
+        if (i == 0) path.moveTo(currX, currY);
+        else path.lineTo(currX, currY);
+      }
       path.close();
       break;
-    case ShapeType.bear:
-      final w = subSize.width;
-      final h = subSize.height;
-      path.addOval(Rect.fromLTWH(dx + w * 0.15, dy + h * 0.25, w * 0.7, h * 0.7));
-      path.addOval(Rect.fromLTWH(dx + w * 0.12, dy + h * 0.1, w * 0.26, h * 0.26));
-      path.addOval(Rect.fromLTWH(dx + w * 0.62, dy + h * 0.1, w * 0.26, h * 0.26));
+
+    case ShapeType.car:
+      // 붕붕이 자동차
+      path.addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTWH(dx + w * 0.1, dy + h * 0.45, w * 0.8, h * 0.35),
+        Radius.circular(w * 0.12),
+      ));
+      // 루프/창문
+      path.addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTWH(dx + w * 0.25, dy + h * 0.2, w * 0.5, h * 0.32),
+        Radius.circular(w * 0.1),
+      ));
+      // 바퀴 2개
+      path.addOval(Rect.fromLTWH(dx + w * 0.2, dy + h * 0.7, w * 0.22, h * 0.22));
+      path.addOval(Rect.fromLTWH(dx + w * 0.58, dy + h * 0.7, w * 0.22, h * 0.22));
       break;
-    case ShapeType.fish:
-      final w = subSize.width;
-      final h = subSize.height;
-      path.moveTo(dx + w * 0.08, dy + h * 0.5);
-      path.quadraticBezierTo(dx + w * 0.45, dy + h * 0.12, dx + w * 0.78, dy + h * 0.5);
-      path.lineTo(dx + w * 0.94, dy + h * 0.28);
-      path.lineTo(dx + w * 0.88, dy + h * 0.5);
-      path.lineTo(dx + w * 0.94, dy + h * 0.72);
-      path.lineTo(dx + w * 0.78, dy + h * 0.5);
-      path.quadraticBezierTo(dx + w * 0.45, dy + h * 0.88, dx + w * 0.08, dy + h * 0.5);
-      path.moveTo(dx + w * 0.4, dy + h * 0.32);
-      path.quadraticBezierTo(dx + w * 0.5, dy + h * 0.2, dx + w * 0.6, dy + h * 0.35);
+
+    case ShapeType.heart:
+      // 사랑스러운 하트
+      path.moveTo(dx + w / 2, dy + h / 5);
+      path.cubicTo(dx + w * 5 / 6, dy - h / 10, dx + w * 1.1, dy + h * 2 / 5, dx + w / 2, dy + h * 9 / 10);
+      path.cubicTo(dx - w * 0.1, dy + h * 2 / 5, dx + w / 6, dy - h / 10, dx + w / 2, dy + h / 5);
       path.close();
       break;
   }
@@ -191,7 +229,7 @@ class DrawingEngine extends ChangeNotifier {
   final Map<ShapeType, bool> shapeCompleted = {};
   
   final List<Confetti> confettiParticles = [];
-  final List<Confetti> canvasSparkles = []; // NEW: Sparkles drawn inside canvas
+  final List<Confetti> canvasSparkles = [];
   
   final Random random = Random();
 
@@ -199,6 +237,7 @@ class DrawingEngine extends ChangeNotifier {
   VoidCallback? onShapeCompleted;
   static const int gridSize = 45;
   int selectedBackgroundIndex = 0;
+  double rainbowHue = 0.0;
 
   DrawingEngine() {
     for (var shape in ShapeType.values) {
@@ -227,16 +266,23 @@ class DrawingEngine extends ChangeNotifier {
     return mask;
   }
 
-  void startStroke(ShapeType shape, Offset relativePoint, Color color, double canvasSize, double strokeWidth) {
+  void startStroke(ShapeType shape, Offset relativePoint, Color color, double canvasSize, double strokeWidth, {bool isRainbow = false}) {
     if (shapeCompleted[shape]!) return;
+
+    Color strokeColor = color;
+    if (isRainbow) {
+      rainbowHue = (rainbowHue + 15) % 360;
+      strokeColor = HSVColor.fromAHSV(1.0, rainbowHue, 0.9, 1.0).toColor();
+    }
 
     shapeStrokes[shape]!.add(Stroke(
       points: [relativePoint],
-      color: color,
+      color: strokeColor,
       strokeWidth: strokeWidth,
+      isRainbow: isRainbow,
     ));
-    _updateGrid(shape, relativePoint, color, canvasSize, strokeWidth);
-    _spawnSparkles(relativePoint, color);
+    _updateGrid(shape, relativePoint, strokeColor, canvasSize, strokeWidth);
+    _spawnSparkles(relativePoint, strokeColor);
     notifyListeners();
   }
 
@@ -245,22 +291,29 @@ class DrawingEngine extends ChangeNotifier {
 
     final strokes = shapeStrokes[shape]!;
     if (strokes.isNotEmpty) {
-      strokes.last.points.add(relativePoint);
-      _updateGrid(shape, relativePoint, strokes.last.color, canvasSize, strokes.last.strokeWidth);
-      _spawnSparkles(relativePoint, strokes.last.color);
+      final lastStroke = strokes.last;
+      Color pointColor = lastStroke.color;
+      if (lastStroke.isRainbow) {
+        rainbowHue = (rainbowHue + 8) % 360;
+        pointColor = HSVColor.fromAHSV(1.0, rainbowHue, 0.9, 1.0).toColor();
+      }
+
+      lastStroke.points.add(relativePoint);
+      _updateGrid(shape, relativePoint, pointColor, canvasSize, lastStroke.strokeWidth);
+      _spawnSparkles(relativePoint, pointColor);
       notifyListeners();
     }
   }
 
   void _spawnSparkles(Offset rel, Color color) {
     if (color == Colors.white) return;
-    if (random.nextDouble() > 0.4) return; // Randomly spawn
+    if (random.nextDouble() > 0.45) return;
     canvasSparkles.add(Confetti(
       x: rel.dx,
       y: rel.dy,
       vx: (random.nextDouble() - 0.5) * 0.02,
       vy: (random.nextDouble() - 0.5) * 0.02,
-      color: Colors.white, // Sparkles are white/glowy
+      color: Colors.white,
       size: 3 + random.nextDouble() * 5,
     ));
   }
@@ -304,22 +357,24 @@ class DrawingEngine extends ChangeNotifier {
     final targetMask = _shapeTargetMask[shape]!;
     final colored = shapeColoredGrid[shape]!;
     
-    if (colored.length >= targetMask.length * 0.97) {
+    if (colored.length >= targetMask.length * 0.85) {
       shapeCompleted[shape] = true;
       _triggerConfetti();
       _saveState();
+      // Award Star Coins
+      PlayerDataManager.instance.addStarCoin(3);
       onShapeCompleted?.call();
     }
   }
 
   void _triggerConfetti() {
-    for (int i = 0; i < 60; i++) {
+    for (int i = 0; i < 70; i++) {
       confettiParticles.add(Confetti(
         x: 0.5, y: 0.5,
-        vx: (random.nextDouble() - 0.5) * 0.04,
-        vy: (random.nextDouble() - 0.5) * 0.04 - 0.02,
+        vx: (random.nextDouble() - 0.5) * 0.05,
+        vy: (random.nextDouble() - 0.5) * 0.05 - 0.02,
         color: KidsTheme.getRandomColor(),
-        size: random.nextDouble() * 8 + 6,
+        size: random.nextDouble() * 9 + 6,
       ));
     }
   }
@@ -341,22 +396,12 @@ class DrawingEngine extends ChangeNotifier {
       for (var p in canvasSparkles) {
         p.x += p.vx;
         p.y += p.vy;
-        p.life -= 0.05; // Fade out quickly
+        p.life -= 0.05;
       }
       canvasSparkles.removeWhere((p) => p.life <= 0);
 
       notifyListeners();
     }
-  }
-
-  void clearAll() {
-    for (var shape in ShapeType.values) {
-      shapeStrokes[shape]?.clear();
-      shapeColoredGrid[shape]?.clear();
-      shapeCompleted[shape] = false;
-    }
-    saveState();
-    notifyListeners();
   }
 
   void clear(ShapeType shape) {
@@ -373,12 +418,6 @@ class DrawingEngine extends ChangeNotifier {
     return shapeStrokes[shape]!.any((stroke) => stroke.color != Colors.white);
   }
 
-  void selectBackground(int index) {
-    selectedBackgroundIndex = index;
-    _saveState();
-    notifyListeners();
-  }
-
   void saveState() {
     _saveState();
   }
@@ -392,6 +431,7 @@ class DrawingEngine extends ChangeNotifier {
           'points': s.points.map((p) => {'x': p.dx, 'y': p.dy}).toList(),
           'color': s.color.value,
           'strokeWidth': s.strokeWidth,
+          'isRainbow': s.isRainbow,
         }).toList();
       });
 
@@ -408,7 +448,6 @@ class DrawingEngine extends ChangeNotifier {
       box.put('shape_strokes', strokesMap);
       box.put('shape_grid', gridMap);
       box.put('shape_completed', completedMap);
-      box.put('selected_background', selectedBackgroundIndex);
     } catch (e) {
       debugPrint('Error saving drawing state: $e');
     }
@@ -421,7 +460,7 @@ class DrawingEngine extends ChangeNotifier {
       final rawCompleted = box.get('shape_completed');
       if (rawCompleted is Map) {
         rawCompleted.forEach((key, value) {
-          final shape = ShapeType.values.firstWhere((e) => e.name == key, orElse: () => ShapeType.circle);
+          final shape = ShapeType.values.firstWhere((e) => e.name == key, orElse: () => ShapeType.bear);
           shapeCompleted[shape] = value as bool;
         });
       }
@@ -429,7 +468,7 @@ class DrawingEngine extends ChangeNotifier {
       final rawStrokes = box.get('shape_strokes');
       if (rawStrokes is Map) {
         rawStrokes.forEach((key, value) {
-          final shape = ShapeType.values.firstWhere((e) => e.name == key, orElse: () => ShapeType.circle);
+          final shape = ShapeType.values.firstWhere((e) => e.name == key, orElse: () => ShapeType.bear);
           final List<dynamic> list = value as List<dynamic>;
           shapeStrokes[shape] = list.map((item) {
             final m = item as Map;
@@ -442,6 +481,7 @@ class DrawingEngine extends ChangeNotifier {
               points: points,
               color: Color(m['color'] as int),
               strokeWidth: (m['strokeWidth'] as num).toDouble(),
+              isRainbow: (m['isRainbow'] as bool?) ?? false,
             );
           }).toList();
         });
@@ -450,15 +490,10 @@ class DrawingEngine extends ChangeNotifier {
       final rawGrid = box.get('shape_grid');
       if (rawGrid is Map) {
         rawGrid.forEach((key, value) {
-          final shape = ShapeType.values.firstWhere((e) => e.name == key, orElse: () => ShapeType.circle);
+          final shape = ShapeType.values.firstWhere((e) => e.name == key, orElse: () => ShapeType.bear);
           final List<dynamic> list = value as List<dynamic>;
           shapeColoredGrid[shape] = list.map((i) => i as int).toSet();
         });
-      }
-
-      final rawBg = box.get('selected_background');
-      if (rawBg is int) {
-        selectedBackgroundIndex = rawBg;
       }
       notifyListeners();
     } catch (e) {
@@ -475,24 +510,26 @@ class ShapeColoringGame extends StatefulWidget {
 }
 
 class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProviderStateMixin {
-  ShapeType _selectedShape = ShapeType.star;
-  Color _selectedColor = KidsTheme.yellow;
-  double _selectedWidth = 18.0; 
+  ShapeType _selectedShape = ShapeType.bear;
+  Color _selectedColor = const Color(0xFFFF6B8B); // Cute Strawberry Pink
+  bool _isRainbowMode = false;
+  double _selectedWidth = 20.0; 
   late DrawingEngine _engine;
   late Ticker _ticker;
+  late AnimationController _bgAnimCtrl;
 
   final List<Color> _paletteColors = [
-    KidsTheme.red,
-    KidsTheme.orange,
-    KidsTheme.yellow,
-    KidsTheme.green,
-    KidsTheme.blue,
-    KidsTheme.purple,
-    KidsTheme.pink,
-    Colors.white, // Eraser
+    const Color(0xFFFF6B8B), // 🍓 Strawberry Pink
+    const Color(0xFFFF9F43), // 🍊 Juicy Orange
+    const Color(0xFFFECA57), // 🌟 Sun Yellow
+    const Color(0xFF1DD1A1), // 🌿 Mint Green
+    const Color(0xFF48DBFB), // 🐳 Sky Blue
+    const Color(0xFF9C88FF), // 🍇 Purple Grape
+    const Color(0xFF8395A7), // 🍫 Chocolate
+    Colors.white,            // 🧹 Eraser
   ];
 
-  final List<double> _brushSizes = [8.0, 18.0, 32.0];
+  final List<double> _brushSizes = [10.0, 20.0, 36.0];
 
   late AnimationController _bounceController;
   late Animation<double> _bounceAnimation;
@@ -504,6 +541,11 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
     super.initState();
     _engine = DrawingEngine();
     _engine.onShapeCompleted = _onShapeCompleted;
+
+    _bgAnimCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat(reverse: true);
 
     _ticker = createTicker((elapsed) {
       _engine.update(0.016);
@@ -526,7 +568,7 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
   }
 
   void _onShapeCompleted() {
-    AudioManager.instance.playPop();
+    AudioManager.instance.playSuccess();
     HapticFeedback.heavyImpact();
     setState(() => _showSuccessText = true);
     _bounceController.forward(from: 0.0);
@@ -536,13 +578,9 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
   void dispose() {
     _ticker.dispose();
     _bounceController.dispose();
+    _bgAnimCtrl.dispose();
     _engine.dispose();
     super.dispose();
-  }
-
-  void _resetAllColoring() {
-    AudioManager.instance.playPop();
-    _engine.clearAll();
   }
 
   void _resetColoring() {
@@ -553,353 +591,162 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
 
   String _getShapeNameKo(ShapeType type) {
     switch (type) {
-      case ShapeType.circle: return '동그라미';
-      case ShapeType.square: return '네모';
-      case ShapeType.triangle: return '세모';
-      case ShapeType.star: return '별';
-      case ShapeType.heart: return '하트';
-      case ShapeType.moon: return '달';
-      case ShapeType.cloud: return '구름';
-      case ShapeType.bear: return '곰돌이';
-      case ShapeType.flower: return '꽃';
-      case ShapeType.princess: return '공주님';
-      case ShapeType.fish: return '물고기';
+      case ShapeType.bear: return '🐻 곰돌이';
+      case ShapeType.cat: return '🐱 야옹이';
+      case ShapeType.bunny: return '🐰 토끼';
+      case ShapeType.fish: return '🐠 물고기';
+      case ShapeType.whale: return '🐳 아기고래';
+      case ShapeType.unicorn: return '🦄 유니콘';
+      case ShapeType.princess: return '👑 왕관';
+      case ShapeType.rocket: return '🚀 로켓';
+      case ShapeType.flower: return '🌸 예쁜꽃';
+      case ShapeType.star: return '⭐ 반짝별';
+      case ShapeType.car: return '🚗 붕붕이';
+      case ShapeType.heart: return '💖 하트';
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          // 프리미엄 패턴을 연상시키는 파스텔톤 부드러운 그라데이션
-          gradient: RadialGradient(
-            center: Alignment.topCenter,
-            radius: 1.5,
-            colors: [Color(0xFFFFF3E0), Color(0xFFFCE4EC), Color(0xFFE8EAF6)],
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 🌈 동화속 무지개 파스텔 배경
+          AnimatedBuilder(
+            animation: _bgAnimCtrl,
+            builder: (context, child) {
+              return Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      const Color(0xFFE0F7FA), // Mint cyan sky
+                      Color.lerp(const Color(0xFFFFF9C4), const Color(0xFFFFE0B2), _bgAnimCtrl.value)!, // Cream yellow
+                      const Color(0xFFFCE4EC), // Soft pink
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
-        ),
-        child: Stack(
-          children: [
-            // 배경 은은한 격자 무늬 추가
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.05,
-                child: GridPaper(
-                  color: Colors.black,
-                  divisions: 2,
-                  subdivisions: 2,
-                  interval: 60,
-                ),
-              ),
-            ),
-            
-            // 메인 UI 영역
-            Column(
-              children: [
-                // 투명한 플로팅 헤더 (Glassmorphism)
-                SafeArea(
-                  bottom: false,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(32),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                        child: Container(
-                          height: 64,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(32),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 2),
-                            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))],
-                          ),
-                          child: Row(
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  AudioManager.instance.playClick();
-                                  Navigator.of(context).pop();
-                                },
-                                child: Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.8),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(Icons.arrow_back, color: KidsTheme.textDark, size: 28),
-                                ),
-                              ),
-                              
-                              Expanded(
-                                child: Center(
-                                  child: Text(
-                                    '모양 색칠하기 🎨',
-                                    style: GoogleFonts.jua(fontSize: 22, color: KidsTheme.textDark),
-                                  ),
-                                ),
-                              ),
 
-                              const SizedBox(width: 48), // Balance left back button for perfect centering
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+          // ☁️ 둥둥 떠다니는 귀여운 구름 & 별무리 배경 요소
+          AnimatedBuilder(
+            animation: _bgAnimCtrl,
+            builder: (context, child) {
+              final val = _bgAnimCtrl.value;
+              return Stack(
+                children: [
+                  Positioned(
+                    left: 20 + val * 30,
+                    top: 70,
+                    child: const Opacity(opacity: 0.6, child: Text('☁️', style: TextStyle(fontSize: 48))),
                   ),
-                ),
-
-                // Shape Selector (Floating Style)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: ListenableBuilder(
-                      listenable: _engine,
-                      builder: (context, child) {
-                        return Row(
-                          children: ShapeType.values.map((shape) {
-                            final isSelected = _selectedShape == shape;
-                            final isColored = _engine.isShapeColored(shape);
-                            final isCompleted = _engine.shapeCompleted[shape] ?? false;
-
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 12.0),
-                              child: GestureDetector(
-                                onTap: () {
-                                  AudioManager.instance.playClick();
-                                  HapticFeedback.selectionClick();
-                                  setState(() => _selectedShape = shape);
-                                },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 250),
-                                  curve: Curves.easeOutBack,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: isSelected ? KidsTheme.orange : Colors.white.withValues(alpha: 0.7),
-                                    borderRadius: BorderRadius.circular(24),
-                                    border: Border.all(color: isSelected ? KidsTheme.orange : Colors.white, width: 3),
-                                    boxShadow: isSelected ? [const BoxShadow(color: KidsTheme.orange, blurRadius: 10, offset: Offset(0, 4))] : [const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      CustomPaint(
-                                        size: const Size(24, 24),
-                                        painter: _ShapeItemPainter(
-                                          shape: shape,
-                                          isColored: isColored,
-                                          coloredColor: isColored ? KidsTheme.pink : Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        isCompleted ? '${_getShapeNameKo(shape)} ✨' : _getShapeNameKo(shape),
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 16,
-                                          color: isSelected ? Colors.white : KidsTheme.textDark,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        );
-                      }
-                    ),
+                  Positioned(
+                    right: 30 + val * 40,
+                    top: 140,
+                    child: const Opacity(opacity: 0.5, child: Text('☁️', style: TextStyle(fontSize: 40))),
                   ),
-                ),
-
-                // Canvas 영역
-                Expanded(
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-                      child: AspectRatio(
-                        aspectRatio: 1.0,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(40),
-                            border: Border.all(color: Colors.white, width: 8),
-                            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, 10))],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(32),
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    final canvasWidth = constraints.maxWidth;
-                                    final canvasHeight = constraints.maxHeight;
-
-                                    return GestureDetector(
-                                      onPanStart: (details) {
-                                        AudioManager.instance.playTraceDraw(rate: 1.2);
-                                        HapticFeedback.lightImpact();
-                                        final relX = details.localPosition.dx / canvasWidth;
-                                        final relY = details.localPosition.dy / canvasHeight;
-                                        _engine.startStroke(_selectedShape, Offset(relX, relY), _selectedColor, canvasWidth, _selectedWidth);
-                                      },
-                                      onPanUpdate: (details) {
-                                        final relX = details.localPosition.dx / canvasWidth;
-                                        final relY = details.localPosition.dy / canvasHeight;
-                                        _engine.addPointToLastStroke(_selectedShape, Offset(relX, relY), canvasWidth);
-                                      },
-                                      onPanEnd: (details) => _engine.saveState(),
-                                      onPanCancel: () => _engine.saveState(),
-                                      child: ScaleTransition(
-                                        scale: _bounceAnimation,
-                                        child: CustomPaint(
-                                          size: Size(canvasWidth, canvasHeight),
-                                          painter: _MainShapePainter(
-                                            shape: _selectedShape,
-                                            engine: _engine,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                                // 캔버스 내부 파티클 (Sparkles)
-                                ListenableBuilder(
-                                  listenable: _engine,
-                                  builder: (context, child) {
-                                    return IgnorePointer(
-                                      child: CustomPaint(
-                                        painter: _CanvasSparklePainter(_engine.canvasSparkles),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                  Positioned(
+                    left: 240 - val * 20,
+                    top: 110,
+                    child: const Opacity(opacity: 0.7, child: Text('🎈', style: TextStyle(fontSize: 32))),
                   ),
-                ),
-
-                // 둥둥 떠있는 형태의 Bottom Palette
-                Padding(
-                  padding: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
+                  Positioned(
+                    right: 180 + val * 20,
+                    top: 80,
+                    child: const Opacity(opacity: 0.65, child: Text('✨', style: TextStyle(fontSize: 28))),
+                  ),
+                ],
+              );
+            },
+          ),
+          
+          // 메인 UI 영역
+          Column(
+            children: [
+              // 3D Glassmorphic 프리미엄 헤더
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(32),
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        height: 64,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: Colors.white.withValues(alpha: 0.65),
                           borderRadius: BorderRadius.circular(32),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 2),
-                          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 15, offset: Offset(0, 5))],
+                          border: Border.all(color: Colors.white, width: 2.5),
+                          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))],
                         ),
-                        child: Column(
+                        child: Row(
                           children: [
-                            // Width Selector
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  '두께:',
-                                  style: GoogleFonts.jua(fontSize: 18, color: KidsTheme.textDark),
+                            // 🏠 뒤로가기 버튼
+                            GestureDetector(
+                              onTap: () {
+                                AudioManager.instance.playClick();
+                                Navigator.of(context).pop();
+                              },
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: const Color(0xFFFFB74D), width: 2),
+                                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                                 ),
-                                const SizedBox(width: 8),
-                                ..._brushSizes.map((size) {
-                                  final isSelected = _selectedWidth == size;
-                                  double dotSize = size == 8.0 ? 6.0 : (size == 18.0 ? 12.0 : 18.0);
-                                  String sizeLabel = size == 8.0 ? '얇게' : (size == 18.0 ? '보통' : '두껍게');
-
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        AudioManager.instance.playClick();
-                                        HapticFeedback.selectionClick();
-                                        setState(() => _selectedWidth = size);
-                                      },
-                                      child: AnimatedContainer(
-                                        duration: const Duration(milliseconds: 200),
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                        decoration: BoxDecoration(
-                                          color: isSelected ? KidsTheme.orange : Colors.white,
-                                          borderRadius: BorderRadius.circular(20),
-                                          boxShadow: isSelected ? [const BoxShadow(color: KidsTheme.orange, blurRadius: 6)] : [],
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Container(
-                                              width: 20, height: 20,
-                                              alignment: Alignment.center,
-                                              decoration: BoxDecoration(
-                                                color: isSelected ? Colors.white.withValues(alpha: 0.3) : Colors.grey.shade200,
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: Container(
-                                                width: dotSize, height: dotSize,
-                                                decoration: BoxDecoration(
-                                                  color: isSelected ? Colors.white : KidsTheme.textDark,
-                                                  shape: BoxShape.circle,
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              sizeLabel,
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w900,
-                                                color: isSelected ? Colors.white : KidsTheme.textDark,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ],
+                                child: const Icon(Icons.arrow_back, color: KidsTheme.textDark, size: 26),
+                              ),
                             ),
-                            const SizedBox(height: 16),
-
-                            // Colors (Cute rounded squares)
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: _paletteColors.map((color) {
-                                final isSelected = _selectedColor == color;
-                                final isEraser = color == Colors.white;
-
-                                return GestureDetector(
-                                  onTap: () {
-                                    AudioManager.instance.playColorSelect();
-                                    HapticFeedback.selectionClick();
-                                    setState(() => _selectedColor = color);
-                                  },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    curve: Curves.easeOutBack,
-                                    width: isSelected ? 52 : 44,
-                                    height: isSelected ? 52 : 44,
-                                    decoration: BoxDecoration(
-                                      color: color,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: KidsTheme.borderDark, width: 3),
-                                      boxShadow: isSelected ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 10, offset: const Offset(0, 4))] : [],
-                                    ),
-                                    child: Center(
-                                      child: isEraser ? const Icon(Icons.cleaning_services, size: 20, color: KidsTheme.textDark) : null,
-                                    ),
+                            
+                            // 🎨 메인 타이틀
+                            Expanded(
+                              child: Center(
+                                child: Text(
+                                  '아기자기 색칠공부 🎨',
+                                  style: GoogleFonts.jua(
+                                    fontSize: 22,
+                                    foreground: Paint()
+                                      ..style = PaintingStyle.fill
+                                      ..color = KidsTheme.purple,
+                                    shadows: const [
+                                      Shadow(color: Colors.white, offset: Offset(1.5, 1.5)),
+                                    ],
                                   ),
-                                );
-                              }).toList(),
+                                ),
+                              ),
+                            ),
+
+                            // 🧹 현재 그림 지우기 버튼
+                            GestureDetector(
+                              onTap: _resetColoring,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFF6B6B),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: Colors.white, width: 2),
+                                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.cleaning_services_rounded, color: Colors.white, size: 18),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '지우기',
+                                      style: GoogleFonts.jua(fontSize: 14, color: Colors.white),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -907,30 +754,154 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
                     ),
                   ),
                 ),
-              ],
-            ),
-            
-            // "참 잘했어요!" 성공 팝업 애니메이션
-            if (_showSuccessText)
-              Positioned(
-                top: MediaQuery.of(context).size.height * 0.4,
-                left: 0,
-                right: 0,
+              ),
+
+              // 귀여운 동물/모양 선택 카루셀
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: ListenableBuilder(
+                    listenable: _engine,
+                    builder: (context, child) {
+                      return Row(
+                        children: ShapeType.values.map((shape) {
+                          final isSelected = _selectedShape == shape;
+                          final isColored = _engine.isShapeColored(shape);
+                          final isCompleted = _engine.shapeCompleted[shape] ?? false;
+
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 10.0),
+                            child: GestureDetector(
+                              onTap: () {
+                                AudioManager.instance.playClick();
+                                HapticFeedback.selectionClick();
+                                setState(() => _selectedShape = shape);
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 250),
+                                curve: Curves.easeOutBack,
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? const Color(0xFFFF9F43) : Colors.white.withValues(alpha: 0.85),
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(
+                                    color: isSelected ? Colors.white : const Color(0xFFFFCC80),
+                                    width: 3,
+                                  ),
+                                  boxShadow: isSelected
+                                      ? [const BoxShadow(color: Color(0xFFFF9F43), blurRadius: 10, offset: Offset(0, 4))]
+                                      : [const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+                                ),
+                                child: Row(
+                                  children: [
+                                    CustomPaint(
+                                      size: const Size(24, 24),
+                                      painter: _ShapeItemPainter(
+                                        shape: shape,
+                                        isColored: isColored,
+                                        coloredColor: isColored ? const Color(0xFFFF6B8B) : Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      isCompleted ? '${_getShapeNameKo(shape)} ✨' : _getShapeNameKo(shape),
+                                      style: GoogleFonts.jua(
+                                        fontSize: 16,
+                                        color: isSelected ? Colors.white : KidsTheme.textDark,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    }
+                  ),
+                ),
+              ),
+
+              // 🎨 메인 캔버스 카드
+              Expanded(
                 child: Center(
-                  child: IgnorePointer(
-                    child: ScaleTransition(
-                      scale: _bounceAnimation,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6.0),
+                    child: AspectRatio(
+                      aspectRatio: 1.0,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                         decoration: BoxDecoration(
-                          color: KidsTheme.red,
-                          borderRadius: BorderRadius.circular(40),
-                          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 5))],
-                          border: Border.all(color: Colors.white, width: 4),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(36),
+                          border: Border.all(color: Colors.white, width: 6),
+                          boxShadow: [
+                            BoxShadow(
+                              color: KidsTheme.orange.withValues(alpha: 0.2),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
                         ),
-                        child: Text(
-                          '참 잘했어요! 💖',
-                          style: GoogleFonts.jua(fontSize: 40, color: Colors.white),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(30),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final canvasWidth = constraints.maxWidth;
+                                  final canvasHeight = constraints.maxHeight;
+
+                                  return GestureDetector(
+                                    onPanStart: (details) {
+                                      AudioManager.instance.playTraceDraw(rate: 1.2);
+                                      HapticFeedback.lightImpact();
+                                      final relX = details.localPosition.dx / canvasWidth;
+                                      final relY = details.localPosition.dy / canvasHeight;
+                                      _engine.startStroke(
+                                        _selectedShape,
+                                        Offset(relX, relY),
+                                        _selectedColor,
+                                        canvasWidth,
+                                        _selectedWidth,
+                                        isRainbow: _isRainbowMode,
+                                      );
+                                    },
+                                    onPanUpdate: (details) {
+                                      final relX = details.localPosition.dx / canvasWidth;
+                                      final relY = details.localPosition.dy / canvasHeight;
+                                      _engine.addPointToLastStroke(_selectedShape, Offset(relX, relY), canvasWidth);
+                                    },
+                                    onPanEnd: (details) => _engine.saveState(),
+                                    onPanCancel: () => _engine.saveState(),
+                                    child: ScaleTransition(
+                                      scale: _bounceAnimation,
+                                      child: CustomPaint(
+                                        size: Size(canvasWidth, canvasHeight),
+                                        painter: _MainShapePainter(
+                                          shape: _selectedShape,
+                                          engine: _engine,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              // 캔버스 반짝이 파티클
+                              ListenableBuilder(
+                                listenable: _engine,
+                                builder: (context, child) {
+                                  return IgnorePointer(
+                                    child: CustomPaint(
+                                      painter: _CanvasSparklePainter(_engine.canvasSparkles),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -938,22 +909,227 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
                 ),
               ),
 
-            // 폭죽 이펙트 (스크린 전체)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: ListenableBuilder(
-                  listenable: _engine,
-                  builder: (context, child) {
-                    if (_engine.confettiParticles.isEmpty) return const SizedBox.shrink();
-                    return CustomPaint(
-                      painter: _ConfettiPainter(_engine.confettiParticles),
-                    );
-                  }
+              // 🖌️ 3D 하단 팔레트 및 도구 선택바
+              Padding(
+                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(32),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.75),
+                        borderRadius: BorderRadius.circular(32),
+                        border: Border.all(color: Colors.white, width: 2.5),
+                        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 15, offset: Offset(0, 5))],
+                      ),
+                      child: Column(
+                        children: [
+                          // 붓 두께 선택바
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '붓 두께:',
+                                style: GoogleFonts.jua(fontSize: 16, color: KidsTheme.textDark),
+                              ),
+                              const SizedBox(width: 8),
+                              ..._brushSizes.map((size) {
+                                final isSelected = _selectedWidth == size;
+                                double dotSize = size == 10.0 ? 6.0 : (size == 20.0 ? 12.0 : 18.0);
+                                String sizeLabel = size == 10.0 ? '✏️ 얇게' : (size == 20.0 ? '🖌️ 보통' : '🎨 두껍게');
+
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      AudioManager.instance.playClick();
+                                      HapticFeedback.selectionClick();
+                                      setState(() => _selectedWidth = size);
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: isSelected ? const Color(0xFFFF9F43) : Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(color: isSelected ? Colors.white : Colors.grey.shade300, width: 2),
+                                        boxShadow: isSelected ? [const BoxShadow(color: Color(0xFFFF9F43), blurRadius: 6)] : [],
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 18, height: 18,
+                                            alignment: Alignment.center,
+                                            decoration: BoxDecoration(
+                                              color: isSelected ? Colors.white.withValues(alpha: 0.3) : Colors.grey.shade200,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Container(
+                                              width: dotSize, height: dotSize,
+                                              decoration: BoxDecoration(
+                                                color: isSelected ? Colors.white : KidsTheme.textDark,
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            sizeLabel,
+                                            style: GoogleFonts.jua(
+                                              fontSize: 13,
+                                              color: isSelected ? Colors.white : KidsTheme.textDark,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+
+                          // 색상 팔레트 + 무지개 요술펜
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              // 🌈 무지개 요술펜
+                              GestureDetector(
+                                onTap: () {
+                                  AudioManager.instance.playColorSelect();
+                                  HapticFeedback.selectionClick();
+                                  setState(() {
+                                    _isRainbowMode = true;
+                                    _selectedColor = Colors.purple;
+                                  });
+                                },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: _isRainbowMode ? 48 : 40,
+                                  height: _isRainbowMode ? 48 : 40,
+                                  decoration: BoxDecoration(
+                                    gradient: const SweepGradient(
+                                      colors: [
+                                        Colors.red, Colors.orange, Colors.yellow,
+                                        Colors.green, Colors.blue, Colors.purple, Colors.red,
+                                      ],
+                                    ),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: _isRainbowMode ? Colors.white : Colors.white.withValues(alpha: 0.8),
+                                      width: _isRainbowMode ? 3.5 : 2.5,
+                                    ),
+                                    boxShadow: _isRainbowMode
+                                        ? [const BoxShadow(color: Colors.purple, blurRadius: 10, offset: Offset(0, 4))]
+                                        : [],
+                                  ),
+                                  child: const Center(
+                                    child: Text('🌈', style: TextStyle(fontSize: 18)),
+                                  ),
+                                ),
+                              ),
+
+                              // 단색 팔레트들
+                              ..._paletteColors.map((color) {
+                                final isSelected = !_isRainbowMode && _selectedColor == color;
+                                final isEraser = color == Colors.white;
+
+                                return GestureDetector(
+                                  onTap: () {
+                                    AudioManager.instance.playColorSelect();
+                                    HapticFeedback.selectionClick();
+                                    setState(() {
+                                      _isRainbowMode = false;
+                                      _selectedColor = color;
+                                    });
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    width: isSelected ? 48 : 40,
+                                    height: isSelected ? 48 : 40,
+                                    decoration: BoxDecoration(
+                                      color: color,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: isSelected ? KidsTheme.purple : Colors.white,
+                                        width: isSelected ? 3.5 : 2.5,
+                                      ),
+                                      boxShadow: isSelected
+                                          ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 10, offset: const Offset(0, 4))]
+                                          : [],
+                                    ),
+                                    child: Center(
+                                      child: isEraser
+                                          ? const Icon(Icons.cleaning_services_rounded, size: 20, color: KidsTheme.textDark)
+                                          : null,
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          // "참 잘했어요!" 성공 팝업 애니메이션
+          if (_showSuccessText)
+            Positioned(
+              top: MediaQuery.of(context).size.height * 0.38,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: IgnorePointer(
+                  child: ScaleTransition(
+                    scale: _bounceAnimation,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF6B8B), Color(0xFFFF8E53)],
+                        ),
+                        borderRadius: BorderRadius.circular(40),
+                        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 15, offset: Offset(0, 8))],
+                        border: Border.all(color: Colors.white, width: 4),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '참 잘했어요! 💖 ⭐+3',
+                            style: GoogleFonts.jua(fontSize: 32, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-          ],
-        ),
+
+          // 폭죽 이펙트 (스크린 전체)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: ListenableBuilder(
+                listenable: _engine,
+                builder: (context, child) {
+                  if (_engine.confettiParticles.isEmpty) return const SizedBox.shrink();
+                  return CustomPaint(
+                    painter: _ConfettiPainter(_engine.confettiParticles),
+                  );
+                }
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -969,7 +1145,7 @@ class _CanvasSparklePainter extends CustomPainter {
       final paint = Paint()
         ..color = p.color.withValues(alpha: p.life.clamp(0.0, 1.0))
         ..style = PaintingStyle.fill
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3); // Glow effect
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
       canvas.drawCircle(Offset(p.x * size.width, p.y * size.height), p.size, paint);
     }
   }
@@ -977,7 +1153,6 @@ class _CanvasSparklePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
-
 
 class _ConfettiPainter extends CustomPainter {
   final List<Confetti> particles;
@@ -996,7 +1171,6 @@ class _ConfettiPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
-
 
 class _ShapeItemPainter extends CustomPainter {
   final ShapeType shape;
@@ -1045,13 +1219,6 @@ class _MainShapePainter extends CustomPainter {
     final double dy = (size.height - h) / 2;
 
     Offset faceCenter = Offset(dx + w / 2, dy + h / 2);
-    if (shape == ShapeType.triangle) {
-      faceCenter = Offset(dx + w / 2, dy + h * 0.58);
-    } else if (shape == ShapeType.star) {
-      faceCenter = Offset(dx + w / 2, dy + h * 0.52);
-    } else if (shape == ShapeType.moon) {
-      faceCenter = Offset(dx + w * 0.42, dy + h * 0.5);
-    }
 
     if (isCompleted) {
       final limbPaint = Paint()
@@ -1102,7 +1269,7 @@ class _MainShapePainter extends CustomPainter {
     
     final bgPaint = Paint()
       ..shader = RadialGradient(
-        colors: const [Colors.white, Color(0xFFF5F5F5), Color(0xFFE0E0E0)],
+        colors: const [Colors.white, Color(0xFFFAFAFA), Color(0xFFE8E8E8)],
         stops: const [0.0, 0.8, 1.0],
         center: const Alignment(-0.3, -0.3),
         radius: 1.0,
@@ -1110,11 +1277,11 @@ class _MainShapePainter extends CustomPainter {
       ..style = PaintingStyle.fill;
     canvas.drawRect(rect, bgPaint);
     
-    final dotPaint = Paint()..color = Colors.grey.withValues(alpha: 0.15)..style = PaintingStyle.fill;
+    final dotPaint = Paint()..color = Colors.grey.withValues(alpha: 0.12)..style = PaintingStyle.fill;
     for (double y = 0; y < size.height; y += 20) {
       for (double x = 0; x < size.width; x += 20) {
         final offsetX = (y / 20) % 2 == 0 ? x : x + 10;
-        canvas.drawCircle(Offset(offsetX, y), 3, dotPaint);
+        canvas.drawCircle(Offset(offsetX, y), 2.5, dotPaint);
       }
     }
     canvas.restore();
@@ -1184,27 +1351,8 @@ class _MainShapePainter extends CustomPainter {
       canvas.drawPath(mouthPath, mouthOutlinePaint);
     }
 
-    final highlightPaint = Paint()..color = Colors.white.withValues(alpha: 0.35)..style = PaintingStyle.fill;
-    if (shape == ShapeType.circle) {
-      canvas.drawOval(Rect.fromLTWH(dx + w * 0.15, dy + h * 0.15, w * 0.25, h * 0.15), highlightPaint);
-    } else if (shape == ShapeType.square) {
-      canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(dx + w * 0.15, dy + h * 0.15, w * 0.3, h * 0.15), const Radius.circular(12)), highlightPaint);
-    } else if (shape == ShapeType.triangle) {
-      canvas.drawPath(Path()..moveTo(dx + w / 2, dy + h * 0.15)..lineTo(dx + w * 0.68, dy + h * 0.32)..lineTo(dx + w * 0.32, dy + h * 0.32)..close(), highlightPaint);
-    } else if (shape == ShapeType.star) {
-      canvas.drawPath(Path()..moveTo(dx + w / 2, dy + h * 0.18)..lineTo(dx + w * 0.58, dy + h * 0.35)..lineTo(dx + w * 0.42, dy + h * 0.35)..close(), highlightPaint);
-    } else if (shape == ShapeType.heart) {
-      canvas.drawPath(Path()..moveTo(dx + w * 0.35, dy + h * 0.22)..cubicTo(dx + w * 0.4, dy + h * 0.15, dx + w * 0.48, dy + h * 0.2, dx + w * 0.35, dy + h * 0.35)..close(), highlightPaint);
-    } else if (shape == ShapeType.cloud) {
-      canvas.drawOval(Rect.fromLTWH(dx + w * 0.25, dy + h * 0.25, w * 0.25, h * 0.12), highlightPaint);
-    } else if (shape == ShapeType.moon) {
-      canvas.drawOval(Rect.fromLTWH(dx + w * 0.35, dy + h * 0.25, w * 0.15, h * 0.12), highlightPaint);
-    } else if (shape == ShapeType.flower) {
-      canvas.drawCircle(Offset(faceCenter.dx - 8, faceCenter.dy - 8), w * 0.08, highlightPaint);
-    }
-
     final strokePaint = Paint()
-      ..color = isCompleted ? KidsTheme.orange : KidsTheme.borderDark
+      ..color = isCompleted ? const Color(0xFFFF9F43) : KidsTheme.borderDark
       ..style = PaintingStyle.stroke
       ..strokeWidth = isCompleted ? 8 : 6;
     canvas.drawPath(shapePath, strokePaint);
