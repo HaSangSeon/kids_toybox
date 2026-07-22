@@ -306,131 +306,61 @@ class _LobbyScreenState extends State<LobbyScreen>
     );
   }
 
-  // ── Gacha Machine Widget ──────────────────────────────────────────────────
+  // ── Gacha Machine Widget (Compact & Sleek) ─────────────────────────────────
   Widget _buildGachaMachineWidget() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      child: StatefulBuilder(
-        builder: (context, setState) {
-          bool isPressed = false;
-          return GestureDetector(
-            onTapDown: (_) => setState(() => isPressed = true),
-            onTapUp: (_) {
-              setState(() => isPressed = false);
-              AudioManager.instance.playClick();
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GachaShopScreen()));
-            },
-            onTapCancel: () => setState(() => isPressed = false),
-            child: AnimatedScale(
-              scale: isPressed ? 0.95 : 1.0,
-              duration: const Duration(milliseconds: 150),
-              curve: Curves.easeOutBack,
-              child: Container(
-                padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: GestureDetector(
+        onTap: () {
+          AudioManager.instance.playClick();
+          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GachaShopScreen()));
+        },
+        child: Container(
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFF3E5FF), Color(0xFFE1BEE7)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFBA68C8), width: 2.5),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFCE93D8).withValues(alpha: 0.4),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              const Text('🎁', style: TextStyle(fontSize: 22)),
+              const SizedBox(width: 8),
+              Text(
+                '장난감 뽑기방',
+                style: GoogleFonts.jua(fontSize: 17, color: const Color(0xFF6A1B9A)),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF3E5FF),
-                  borderRadius: BorderRadius.circular(32),
-                  border: Border.all(color: const Color(0xFFBA68C8), width: 4),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFCE93D8).withValues(alpha: 0.6),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFFD700), Color(0xFFFF8C00)],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Globe part
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                        border: Border.all(color: const Color(0xFF9C27B0), width: 3),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF9C27B0).withValues(alpha: 0.2),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          )
-                        ],
-                      ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          const Text('⚽🦄🎁', style: TextStyle(fontSize: 22)),
-                          Positioned(
-                            top: 10,
-                            left: 15,
-                            child: Container(
-                              width: 30,
-                              height: 14,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.8),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    // Base part / Text
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '장난감 뽑기방',
-                            style: GoogleFonts.jua(fontSize: 26, color: const Color(0xFF6A1B9A)),
-                          ),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFFFD700), Color(0xFFFF8C00)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFFFD700).withValues(alpha: 0.5),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 3),
-                                )
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Text('⭐', style: TextStyle(fontSize: 16)),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '별 모아서 팡팡!',
-                                  style: GoogleFonts.nunito(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFBA68C8), size: 28),
-                  ],
+                child: Text(
+                  '별 모아서 팡팡!',
+                  style: GoogleFonts.jua(fontSize: 11, color: Colors.white),
                 ),
               ),
-            ),
-          );
-        }
+              const Spacer(),
+              const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF8E24AA), size: 16),
+            ],
+          ),
+        ),
       ),
     );
   }
