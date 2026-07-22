@@ -62,9 +62,9 @@ class Confetti {
   });
 }
 
-// Global helper to get Path for each shape (Centered and scaled down to 72% size)
+// Global helper to get Path for each shape (Scaled up to 86% size for larger drawing canvas)
 Path getShapePath(ShapeType shape, Size size) {
-  const double scale = 0.72; // Scaled down for easy coloring
+  const double scale = 0.86; 
   final double targetWidth = size.width * scale;
   final double targetHeight = size.height * scale;
   final double dx = (size.width - targetWidth) / 2;
@@ -77,153 +77,166 @@ Path getShapePath(ShapeType shape, Size size) {
 
   switch (shape) {
     case ShapeType.bear:
-      // 🐻 곰돌이
-      path.addOval(Rect.fromLTWH(dx + w * 0.15, dy + h * 0.25, w * 0.7, h * 0.7));
-      path.addOval(Rect.fromLTWH(dx + w * 0.12, dy + h * 0.1, w * 0.26, h * 0.26));
-      path.addOval(Rect.fromLTWH(dx + w * 0.62, dy + h * 0.1, w * 0.26, h * 0.26));
+      // 🐻 귀여운 곰돌이 (얼굴 + 주둥이 + 귀)
+      path.addOval(Rect.fromLTWH(dx + w * 0.15, dy + h * 0.22, w * 0.7, h * 0.68)); // 얼굴
+      path.addOval(Rect.fromLTWH(dx + w * 0.1, dy + h * 0.1, w * 0.28, h * 0.28));  // 왼쪽 귀
+      path.addOval(Rect.fromLTWH(dx + w * 0.62, dy + h * 0.1, w * 0.28, h * 0.28)); // 오른쪽 귀
+      path.addOval(Rect.fromLTWH(dx + w * 0.32, dy + h * 0.48, w * 0.36, h * 0.3)); // 주둥이
       break;
 
     case ShapeType.cat:
-      // 🐱 야옹이 (귀 뾰족)
-      path.moveTo(dx + w * 0.2, dy + h * 0.4);
-      path.lineTo(dx + w * 0.15, dy + h * 0.12);
-      path.lineTo(dx + w * 0.4, dy + h * 0.25);
-      path.lineTo(dx + w * 0.6, dy + h * 0.25);
-      path.lineTo(dx + w * 0.85, dy + h * 0.12);
-      path.lineTo(dx + w * 0.8, dy + h * 0.4);
-      path.quadraticBezierTo(dx + w * 0.95, dy + h * 0.7, dx + w * 0.5, dy + h * 0.95);
-      path.quadraticBezierTo(dx + w * 0.05, dy + h * 0.7, dx + w * 0.2, dy + h * 0.4);
+      // 🐱 아기 야옹이 (뾰족한 귀 + 귀여운 볼)
+      path.moveTo(dx + w * 0.22, dy + h * 0.35);
+      path.lineTo(dx + w * 0.12, dy + h * 0.08); // 왼쪽 귀 팁
+      path.lineTo(dx + w * 0.38, dy + h * 0.25);
+      path.lineTo(dx + w * 0.62, dy + h * 0.25);
+      path.lineTo(dx + w * 0.88, dy + h * 0.08); // 오른쪽 귀 팁
+      path.lineTo(dx + w * 0.78, dy + h * 0.35);
+      path.cubicTo(dx + w * 0.98, dy + h * 0.65, dx + w * 0.85, dy + h * 0.95, dx + w * 0.5, dy + h * 0.95); // 볼 & 턱
+      path.cubicTo(dx + w * 0.15, dy + h * 0.95, dx + w * 0.02, dy + h * 0.65, dx + w * 0.22, dy + h * 0.35);
       path.close();
       break;
 
     case ShapeType.bunny:
-      // 🐰 토끼
-      path.addOval(Rect.fromLTWH(dx + w * 0.2, dy + h * 0.4, w * 0.6, h * 0.55));
-      path.addOval(Rect.fromLTWH(dx + w * 0.22, dy + h * 0.05, w * 0.22, h * 0.42));
-      path.addOval(Rect.fromLTWH(dx + w * 0.56, dy + h * 0.05, w * 0.22, h * 0.42));
+      // 🐰 긴 귀 토끼 (얼굴 + 기다란 토끼 귀)
+      path.addOval(Rect.fromLTWH(dx + w * 0.18, dy + h * 0.38, w * 0.64, h * 0.58)); // 얼굴
+      path.addOval(Rect.fromLTWH(dx + w * 0.2, dy + h * 0.02, w * 0.24, h * 0.46));   // 왼쪽 귀
+      path.addOval(Rect.fromLTWH(dx + w * 0.56, dy + h * 0.02, w * 0.24, h * 0.46));  // 오른쪽 귀
       break;
 
     case ShapeType.dog:
-      // 🐶 강아지 (늘어진 귀)
-      path.addOval(Rect.fromLTWH(dx + w * 0.25, dy + h * 0.25, w * 0.5, h * 0.6));
-      // 왼쪽 귀
-      path.addOval(Rect.fromLTWH(dx + w * 0.05, dy + h * 0.2, w * 0.25, h * 0.55));
-      // 오른쪽 귀
-      path.addOval(Rect.fromLTWH(dx + w * 0.7, dy + h * 0.2, w * 0.25, h * 0.55));
+      // 🐶 귀여운 강아지 (얼굴 + 덮인 귀)
+      path.addOval(Rect.fromLTWH(dx + w * 0.22, dy + h * 0.2, w * 0.56, h * 0.65)); // 머리
+      path.addOval(Rect.fromLTWH(dx + w * 0.04, dy + h * 0.22, w * 0.28, h * 0.55)); // 왼쪽 덮인 귀
+      path.addOval(Rect.fromLTWH(dx + w * 0.68, dy + h * 0.22, w * 0.28, h * 0.55)); // 오른쪽 덮인 귀
+      path.addOval(Rect.fromLTWH(dx + w * 0.3, dy + h * 0.52, w * 0.4, h * 0.28));  // 코 주둥이
       break;
 
     case ShapeType.elephant:
-      // 🐘 코끼리 (큰 귀 & 코)
-      path.addOval(Rect.fromLTWH(dx + w * 0.25, dy + h * 0.25, w * 0.5, h * 0.5));
-      path.addOval(Rect.fromLTWH(dx + w * 0.05, dy + h * 0.2, w * 0.3, h * 0.45)); // 귀1
-      path.addOval(Rect.fromLTWH(dx + w * 0.65, dy + h * 0.2, w * 0.3, h * 0.45)); // 귀2
-      // 코
-      path.moveTo(dx + w * 0.45, dy + h * 0.65);
-      path.quadraticBezierTo(dx + w * 0.5, dy + h * 0.95, dx + w * 0.65, dy + h * 0.85);
-      path.lineTo(dx + w * 0.55, dy + h * 0.65);
+      // 🐘 아기 코끼리 (얼굴 + 커다란 귀 + 구부러진 코)
+      path.addOval(Rect.fromLTWH(dx + w * 0.25, dy + h * 0.2, w * 0.5, h * 0.55)); // 머리
+      path.addOval(Rect.fromLTWH(dx + w * 0.02, dy + h * 0.15, w * 0.35, h * 0.5)); // 대형 왼쪽 귀
+      path.addOval(Rect.fromLTWH(dx + w * 0.63, dy + h * 0.15, w * 0.35, h * 0.5)); // 대형 오른쪽 귀
+      // 길쭉한 코
+      path.moveTo(dx + w * 0.42, dy + h * 0.55);
+      path.cubicTo(dx + w * 0.4, dy + h * 0.95, dx + w * 0.72, dy + h * 0.92, dx + w * 0.68, dy + h * 0.75);
+      path.cubicTo(dx + w * 0.6, dy + h * 0.8, dx + w * 0.52, dy + h * 0.75, dx + w * 0.54, dy + h * 0.55);
+      path.close();
       break;
 
     case ShapeType.lion:
-      // 🦁 사자 (갈기 & 얼굴)
+      // 🦁 사자 (풍성한 갈기 + 얼굴)
       final cx = dx + w / 2;
       final cy = dy + h / 2;
       final rx = w / 2;
-      const int manePoints = 12;
+      const int manePoints = 14;
       for (int i = 0; i <= manePoints; i++) {
         final angle = i * 2 * pi / manePoints;
-        final r = (i % 2 == 0) ? rx : rx * 0.7;
+        final r = (i % 2 == 0) ? rx : rx * 0.72;
         final currX = cx + r * cos(angle);
         final currY = cy + r * sin(angle);
         if (i == 0) path.moveTo(currX, currY);
         else path.lineTo(currX, currY);
       }
       path.close();
+      path.addOval(Rect.fromLTWH(dx + w * 0.22, dy + h * 0.22, w * 0.56, h * 0.56)); // 안쪽 얼굴
       break;
 
     case ShapeType.giraffe:
-      // 🦒 기린 (긴 목 & 뿔)
-      path.addOval(Rect.fromLTWH(dx + w * 0.3, dy + h * 0.2, w * 0.4, h * 0.45));
-      path.addRect(Rect.fromLTWH(dx + w * 0.38, dy + h * 0.55, w * 0.24, h * 0.4));
-      path.addOval(Rect.fromLTWH(dx + w * 0.32, dy + h * 0.05, w * 0.12, h * 0.18)); // 뿔1
-      path.addOval(Rect.fromLTWH(dx + w * 0.56, dy + h * 0.05, w * 0.12, h * 0.18)); // 뿔2
+      // 🦒 기린 (긴 목 + 얼굴 + 뿔)
+      path.addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTWH(dx + w * 0.35, dy + h * 0.35, w * 0.3, h * 0.6),
+        Radius.circular(w * 0.12),
+      )); // 목
+      path.addOval(Rect.fromLTWH(dx + w * 0.25, dy + h * 0.15, w * 0.5, h * 0.35)); // 머리
+      path.addOval(Rect.fromLTWH(dx + w * 0.28, dy + h * 0.02, w * 0.14, h * 0.2));  // 뿔1
+      path.addOval(Rect.fromLTWH(dx + w * 0.58, dy + h * 0.02, w * 0.14, h * 0.2));  // 뿔2
       break;
 
     case ShapeType.dolphin:
-      // 🐬 돌고래
-      path.moveTo(dx + w * 0.1, dy + h * 0.5);
-      path.quadraticBezierTo(dx + w * 0.4, dy + h * 0.08, dx + w * 0.9, dy + h * 0.5);
-      path.lineTo(dx + w * 1.0, dy + h * 0.38);
-      path.lineTo(dx + w * 0.92, dy + h * 0.5);
-      path.lineTo(dx + w * 1.0, dy + h * 0.62);
-      path.quadraticBezierTo(dx + w * 0.5, dy + h * 0.92, dx + w * 0.1, dy + h * 0.5);
+      // 🐬 돌고래 (유선형 몸통 + 등지느러미 + 꼬리)
+      path.moveTo(dx + w * 0.05, dy + h * 0.52);
+      path.cubicTo(dx + w * 0.2, dy + h * 0.1, dx + w * 0.75, dy + h * 0.15, dx + w * 0.9, dy + h * 0.48);
+      // 꼬리 지느러미
+      path.lineTo(dx + w * 1.02, dy + h * 0.32);
+      path.lineTo(dx + w * 0.94, dy + h * 0.52);
+      path.lineTo(dx + w * 1.02, dy + h * 0.7);
+      path.cubicTo(dx + w * 0.65, dy + h * 0.92, dx + w * 0.25, dy + h * 0.85, dx + w * 0.05, dy + h * 0.52);
+      path.close();
+      // 등 지느러미
+      path.moveTo(dx + w * 0.45, dy + h * 0.22);
+      path.quadraticBezierTo(dx + w * 0.55, dy + h * 0.02, dx + w * 0.68, dy + h * 0.24);
       path.close();
       break;
 
     case ShapeType.fish:
-      // 🐠 물고기
-      path.moveTo(dx + w * 0.08, dy + h * 0.5);
-      path.quadraticBezierTo(dx + w * 0.45, dy + h * 0.12, dx + w * 0.78, dy + h * 0.5);
-      path.lineTo(dx + w * 0.96, dy + h * 0.25);
+      // 🐠 열대어 (유선형 몸체 + 지느러미)
+      path.moveTo(dx + w * 0.05, dy + h * 0.5);
+      path.quadraticBezierTo(dx + w * 0.45, dy + h * 0.08, dx + w * 0.78, dy + h * 0.5);
+      path.lineTo(dx + w * 0.98, dy + h * 0.22); // 꼬리 위
       path.lineTo(dx + w * 0.88, dy + h * 0.5);
-      path.lineTo(dx + w * 0.96, dy + h * 0.75);
+      path.lineTo(dx + w * 0.98, dy + h * 0.78); // 꼬리 아래
       path.lineTo(dx + w * 0.78, dy + h * 0.5);
-      path.quadraticBezierTo(dx + w * 0.45, dy + h * 0.88, dx + w * 0.08, dy + h * 0.5);
+      path.quadraticBezierTo(dx + w * 0.45, dy + h * 0.92, dx + w * 0.05, dy + h * 0.5);
       path.close();
       break;
 
     case ShapeType.whale:
-      // 🐳 아기 고래
-      path.moveTo(dx + w * 0.1, dy + h * 0.6);
-      path.quadraticBezierTo(dx + w * 0.15, dy + h * 0.25, dx + w * 0.65, dy + h * 0.3);
-      path.quadraticBezierTo(dx + w * 0.85, dy + h * 0.3, dx + w * 0.95, dy + h * 0.55);
-      path.lineTo(dx + w * 1.05, dy + h * 0.4);
-      path.lineTo(dx + w * 0.95, dy + h * 0.65);
-      path.quadraticBezierTo(dx + w * 0.5, dy + h * 0.95, dx + w * 0.1, dy + h * 0.6);
+      // 🐳 아기 고래 (둥근 몸통 + 물분수)
+      path.moveTo(dx + w * 0.08, dy + h * 0.58);
+      path.quadraticBezierTo(dx + w * 0.15, dy + h * 0.2, dx + w * 0.68, dy + h * 0.25);
+      path.quadraticBezierTo(dx + w * 0.88, dy + h * 0.28, dx + w * 0.95, dy + h * 0.5);
+      path.lineTo(dx + w * 1.06, dy + h * 0.35); // 꼬리 위
+      path.lineTo(dx + w * 0.96, dy + h * 0.62);
+      path.quadraticBezierTo(dx + w * 0.5, dy + h * 0.95, dx + w * 0.08, dy + h * 0.58);
       path.close();
+      // 물분수
+      path.addOval(Rect.fromLTWH(dx + w * 0.38, dy + h * 0.02, w * 0.14, h * 0.2));
       break;
 
     case ShapeType.unicorn:
-      // 🦄 유니콘 뿔 & 머리
-      path.addOval(Rect.fromLTWH(dx + w * 0.25, dy + h * 0.35, w * 0.5, h * 0.55));
-      path.moveTo(dx + w * 0.5, dy + h * 0.05);
-      path.lineTo(dx + w * 0.38, dy + h * 0.38);
-      path.lineTo(dx + w * 0.62, dy + h * 0.38);
+      // 🦄 유니콘 (머리 + 나선형 뿔)
+      path.addOval(Rect.fromLTWH(dx + w * 0.22, dy + h * 0.3, w * 0.56, h * 0.6)); // 머리
+      // 뿔
+      path.moveTo(dx + w * 0.5, dy + h * 0.02);
+      path.lineTo(dx + w * 0.36, dy + h * 0.32);
+      path.lineTo(dx + w * 0.64, dy + h * 0.32);
       path.close();
       break;
 
     case ShapeType.princess:
-      // 👑 공주 왕관
-      path.addOval(Rect.fromLTWH(dx + w * 0.2, dy + h * 0.45, w * 0.6, h * 0.5));
-      path.moveTo(dx + w * 0.25, dy + h * 0.5);
-      path.lineTo(dx + w * 0.15, dy + h * 0.15); 
-      path.lineTo(dx + w * 0.38, dy + h * 0.32);
-      path.lineTo(dx + w * 0.5, dy + h * 0.08); 
-      path.lineTo(dx + w * 0.62, dy + h * 0.32);
-      path.lineTo(dx + w * 0.85, dy + h * 0.15); 
-      path.lineTo(dx + w * 0.75, dy + h * 0.5);
+      // 👑 왕관 (3개 봉우리 왕관)
+      path.moveTo(dx + w * 0.1, dy + h * 0.85);
+      path.lineTo(dx + w * 0.04, dy + h * 0.25);
+      path.lineTo(dx + w * 0.32, dy + h * 0.52);
+      path.lineTo(dx + w * 0.5, dy + h * 0.1);
+      path.lineTo(dx + w * 0.68, dy + h * 0.52);
+      path.lineTo(dx + w * 0.96, dy + h * 0.25);
+      path.lineTo(dx + w * 0.9, dy + h * 0.85);
       path.close();
       break;
 
     case ShapeType.rocket:
-      // 🚀 로켓
-      path.moveTo(dx + w * 0.5, dy + h * 0.08);
-      path.quadraticBezierTo(dx + w * 0.8, dy + h * 0.3, dx + w * 0.7, dy + h * 0.75);
-      path.lineTo(dx + w * 0.88, dy + h * 0.9);
-      path.lineTo(dx + w * 0.65, dy + h * 0.85);
-      path.lineTo(dx + w * 0.5, dy + h * 0.78);
-      path.lineTo(dx + w * 0.35, dy + h * 0.85);
-      path.lineTo(dx + w * 0.12, dy + h * 0.9);
-      path.lineTo(dx + w * 0.3, dy + h * 0.75);
-      path.quadraticBezierTo(dx + w * 0.2, dy + h * 0.3, dx + w * 0.5, dy + h * 0.08);
+      // 🚀 우주 로켓 (유선형 로켓 + 날개 2개)
+      path.moveTo(dx + w * 0.5, dy + h * 0.04);
+      path.quadraticBezierTo(dx + w * 0.82, dy + h * 0.3, dx + w * 0.72, dy + h * 0.76);
+      path.lineTo(dx + w * 0.92, dy + h * 0.92); // 오른쪽 날개
+      path.lineTo(dx + w * 0.68, dy + h * 0.86);
+      path.lineTo(dx + w * 0.5, dy + h * 0.8);
+      path.lineTo(dx + w * 0.32, dy + h * 0.86);
+      path.lineTo(dx + w * 0.08, dy + h * 0.92); // 왼쪽 날개
+      path.lineTo(dx + w * 0.28, dy + h * 0.76);
+      path.quadraticBezierTo(dx + w * 0.18, dy + h * 0.3, dx + w * 0.5, dy + h * 0.04);
       path.close();
+      path.addOval(Rect.fromLTWH(dx + w * 0.38, dy + h * 0.32, w * 0.24, h * 0.24)); // 창문
       break;
 
     case ShapeType.flower:
-      // 🌸 꽃
+      // 🌸 꽃 (꽃잎 6개 + 중앙 원)
       final cx = dx + w / 2;
       final cy = dy + h / 2;
       final rx = w / 2;
-      const int petals = 5;
+      const int petals = 6;
       for (int i = 0; i <= 360; i += 2) {
         final angle = i * pi / 180;
         final r = rx * (0.65 + 0.32 * cos(petals * angle).abs());
@@ -233,10 +246,11 @@ Path getShapePath(ShapeType shape, Size size) {
         else path.lineTo(currX, currY);
       }
       path.close();
+      path.addOval(Rect.fromLTWH(dx + w * 0.32, dy + h * 0.32, w * 0.36, h * 0.36)); // 꽃심
       break;
 
     case ShapeType.star:
-      // ⭐ 별
+      // ⭐ 오각 별
       final cx = dx + w / 2;
       final cy = dy + h / 2;
       final rx = w / 2;
@@ -253,56 +267,56 @@ Path getShapePath(ShapeType shape, Size size) {
       break;
 
     case ShapeType.car:
-      // 🚗 붕붕이
+      // 🚗 붕붕이 (차체 + 차루프 + 바퀴 2개)
       path.addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(dx + w * 0.1, dy + h * 0.45, w * 0.8, h * 0.35),
+        Rect.fromLTWH(dx + w * 0.06, dy + h * 0.42, w * 0.88, h * 0.36),
         Radius.circular(w * 0.12),
-      ));
+      )); // 차체
       path.addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(dx + w * 0.25, dy + h * 0.2, w * 0.5, h * 0.32),
-        Radius.circular(w * 0.1),
-      ));
-      path.addOval(Rect.fromLTWH(dx + w * 0.2, dy + h * 0.7, w * 0.22, h * 0.22));
-      path.addOval(Rect.fromLTWH(dx + w * 0.58, dy + h * 0.7, w * 0.22, h * 0.22));
+        Rect.fromLTWH(dx + w * 0.22, dy + h * 0.15, w * 0.56, h * 0.34),
+        Radius.circular(w * 0.12),
+      )); // 지붕
+      path.addOval(Rect.fromLTWH(dx + w * 0.16, dy + h * 0.68, w * 0.24, h * 0.24)); // 앞바퀴
+      path.addOval(Rect.fromLTWH(dx + w * 0.6, dy + h * 0.68, w * 0.24, h * 0.24));  // 뒷바퀴
       break;
 
     case ShapeType.heart:
-      // 💖 하트
-      path.moveTo(dx + w / 2, dy + h / 5);
-      path.cubicTo(dx + w * 5 / 6, dy - h / 10, dx + w * 1.1, dy + h * 2 / 5, dx + w / 2, dy + h * 9 / 10);
-      path.cubicTo(dx - w * 0.1, dy + h * 2 / 5, dx + w / 6, dy - h / 10, dx + w / 2, dy + h / 5);
+      // 💖 통통한 하트
+      path.moveTo(dx + w / 2, dy + h * 0.22);
+      path.cubicTo(dx + w * 5 / 6, dy - h / 12, dx + w * 1.08, dy + h * 0.42, dx + w / 2, dy + h * 0.94);
+      path.cubicTo(dx - w * 0.08, dy + h * 0.42, dx + w / 6, dy - h / 12, dx + w / 2, dy + h * 0.22);
       path.close();
       break;
 
     case ShapeType.icecream:
-      // 🍦 아이스크림 콘
-      path.moveTo(dx + w * 0.2, dy + h * 0.45);
-      path.lineTo(dx + w * 0.5, dy + h * 0.95);
-      path.lineTo(dx + w * 0.8, dy + h * 0.45);
+      // 🍦 무지개 아이스크림 (콘 + 2단 스쿱)
+      path.moveTo(dx + w * 0.22, dy + h * 0.5);
+      path.lineTo(dx + w * 0.5, dy + h * 0.96);
+      path.lineTo(dx + w * 0.78, dy + h * 0.5);
       path.close();
-      // 스쿱
-      path.addOval(Rect.fromLTWH(dx + w * 0.15, dy + h * 0.1, w * 0.7, h * 0.45));
+      path.addOval(Rect.fromLTWH(dx + w * 0.16, dy + h * 0.26, w * 0.68, h * 0.32)); // 하단 스쿱
+      path.addOval(Rect.fromLTWH(dx + w * 0.24, dy + h * 0.04, w * 0.52, h * 0.32)); // 상단 스쿱
       break;
 
     case ShapeType.cake:
-      // 🎂 케이크 & 초
+      // 🎂 케이크 (2단 생일 케이크 + 촛불)
       path.addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(dx + w * 0.15, dy + h * 0.45, w * 0.7, h * 0.45),
+        Rect.fromLTWH(dx + w * 0.1, dy + h * 0.52, w * 0.8, h * 0.42),
+        Radius.circular(14),
+      )); // 하단 시트
+      path.addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTWH(dx + w * 0.22, dy + h * 0.26, w * 0.56, h * 0.3),
         Radius.circular(12),
-      ));
-      path.addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(dx + w * 0.25, dy + h * 0.25, w * 0.5, h * 0.25),
-        Radius.circular(10),
-      ));
-      // 초
-      path.addRect(Rect.fromLTWH(dx + w * 0.45, dy + h * 0.08, w * 0.1, h * 0.18));
+      )); // 상단 시트
+      path.addRect(Rect.fromLTWH(dx + w * 0.45, dy + h * 0.1, w * 0.1, h * 0.18)); // 초
+      path.addOval(Rect.fromLTWH(dx + w * 0.43, dy + h * 0.01, w * 0.14, h * 0.12)); // 촛불
       break;
 
     case ShapeType.apple:
-      // 🍎 사과
-      path.addOval(Rect.fromLTWH(dx + w * 0.15, dy + h * 0.2, w * 0.7, h * 0.7));
-      // 잎사귀
-      path.addOval(Rect.fromLTWH(dx + w * 0.48, dy + h * 0.08, w * 0.25, h * 0.15));
+      // 🍎 탐스러운 사과 (과육 + 꼭지 + 잎사귀)
+      path.addOval(Rect.fromLTWH(dx + w * 0.12, dy + h * 0.2, w * 0.76, h * 0.74)); // 사과 몸통
+      path.addRect(Rect.fromLTWH(dx + w * 0.47, dy + h * 0.06, w * 0.06, h * 0.18)); // 꼭지
+      path.addOval(Rect.fromLTWH(dx + w * 0.5, dy + h * 0.04, w * 0.3, h * 0.16));   // 잎사귀
       break;
   }
   return path;
@@ -684,7 +698,7 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
 
               // 20종 동물/모양 선택 카루셀 (깔끔한 텍스트 뱃지)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                padding: const EdgeInsets.symmetric(vertical: 6.0),
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   physics: const BouncingScrollPhysics(),
@@ -736,82 +750,77 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
                 ),
               ),
 
-              // 🎨 메인 캔버스 카드
+              // 🎨 세로로 더욱 큼직해진 메인 캔버스 카드 (Expanded)
               Expanded(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6.0),
-                    child: AspectRatio(
-                      aspectRatio: 1.0,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(36),
-                          border: Border.all(color: Colors.white, width: 6),
-                          boxShadow: [
-                            BoxShadow(
-                              color: KidsTheme.orange.withValues(alpha: 0.2),
-                              blurRadius: 20,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(36),
+                      border: Border.all(color: Colors.white, width: 6),
+                      boxShadow: [
+                        BoxShadow(
+                          color: KidsTheme.orange.withValues(alpha: 0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(30),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final canvasWidth = constraints.maxWidth;
-                                  final canvasHeight = constraints.maxHeight;
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final canvasWidth = constraints.maxWidth;
+                              final canvasHeight = constraints.maxHeight;
 
-                                  return GestureDetector(
-                                    onPanStart: (details) {
-                                      AudioManager.instance.playTraceDraw(rate: 1.2);
-                                      HapticFeedback.lightImpact();
-                                      final relX = details.localPosition.dx / canvasWidth;
-                                      final relY = details.localPosition.dy / canvasHeight;
-                                      _engine.startStroke(
-                                        _selectedShape,
-                                        Offset(relX, relY),
-                                        _selectedColor,
-                                        canvasWidth,
-                                        _selectedWidth,
-                                        isRainbow: _isRainbowMode,
-                                      );
-                                    },
-                                    onPanUpdate: (details) {
-                                      final relX = details.localPosition.dx / canvasWidth;
-                                      final relY = details.localPosition.dy / canvasHeight;
-                                      _engine.addPointToLastStroke(_selectedShape, Offset(relX, relY), canvasWidth);
-                                    },
-                                    onPanEnd: (details) => _engine.saveState(),
-                                    onPanCancel: () => _engine.saveState(),
-                                    child: CustomPaint(
-                                      size: Size(canvasWidth, canvasHeight),
-                                      painter: _MainShapePainter(
-                                        shape: _selectedShape,
-                                        engine: _engine,
-                                      ),
-                                    ),
+                              return GestureDetector(
+                                onPanStart: (details) {
+                                  AudioManager.instance.playTraceDraw(rate: 1.2);
+                                  HapticFeedback.lightImpact();
+                                  final relX = details.localPosition.dx / canvasWidth;
+                                  final relY = details.localPosition.dy / canvasHeight;
+                                  _engine.startStroke(
+                                    _selectedShape,
+                                    Offset(relX, relY),
+                                    _selectedColor,
+                                    canvasWidth,
+                                    _selectedWidth,
+                                    isRainbow: _isRainbowMode,
                                   );
                                 },
-                              ),
-                              // 캔버스 반짝이 파티클
-                              ListenableBuilder(
-                                listenable: _engine,
-                                builder: (context, child) {
-                                  return IgnorePointer(
-                                    child: CustomPaint(
-                                      painter: _CanvasSparklePainter(_engine.canvasSparkles),
-                                    ),
-                                  );
+                                onPanUpdate: (details) {
+                                  final relX = details.localPosition.dx / canvasWidth;
+                                  final relY = details.localPosition.dy / canvasHeight;
+                                  _engine.addPointToLastStroke(_selectedShape, Offset(relX, relY), canvasWidth);
                                 },
-                              ),
-                            ],
+                                onPanEnd: (details) => _engine.saveState(),
+                                onPanCancel: () => _engine.saveState(),
+                                child: CustomPaint(
+                                  size: Size(canvasWidth, canvasHeight),
+                                  painter: _MainShapePainter(
+                                    shape: _selectedShape,
+                                    engine: _engine,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                        ),
+                          // 캔버스 반짝이 파티클
+                          ListenableBuilder(
+                            listenable: _engine,
+                            builder: (context, child) {
+                              return IgnorePointer(
+                                child: CustomPaint(
+                                  painter: _CanvasSparklePainter(_engine.canvasSparkles),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -820,13 +829,13 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
 
               // 🖌️ 3D 하단 팔레트 및 도구 선택바
               Padding(
-                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
+                padding: const EdgeInsets.only(left: 16, right: 16, top: 4, bottom: 16),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(32),
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.75),
                         borderRadius: BorderRadius.circular(32),
@@ -903,7 +912,7 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
                               ],
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10),
 
                           // 색상 팔레트 + 무지개 요술펜 (가로 스크롤 가능하여 절대 잘리지 않음)
                           SingleChildScrollView(
