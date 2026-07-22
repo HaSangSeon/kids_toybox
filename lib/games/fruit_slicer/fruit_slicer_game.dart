@@ -107,8 +107,9 @@ class FloatingText {
   });
 }
 
-class _FruitSlicerGameState extends State<FruitSlicerGame> with SingleTickerProviderStateMixin {
+class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderStateMixin {
   late Ticker _ticker;
+  late AnimationController _bgAnimCtrl;
   final Random _random = Random();
 
   final List<String> _fruitPool = ['🍉', '🍎', '🍌', '🍇', '🍓', '🥝', '🥭', '🍍'];
@@ -142,11 +143,16 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with SingleTickerProv
   void initState() {
     super.initState();
     _ticker = createTicker(_onTick)..start();
+    _bgAnimCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 20),
+    )..repeat();
   }
 
   @override
   void dispose() {
     _ticker.dispose();
+    _bgAnimCtrl.dispose();
     super.dispose();
   }
 
@@ -321,12 +327,12 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with SingleTickerProv
       fruit.hitCooldown = 0.12; // 연속 베기 쿨타임
       fruit.size *= 0.92; // 살짝 축소
       _score += 5;
-      AudioManager.instance.playPop();
+      AudioManager.instance.playSwordSlice(rate: 1.1);
       HapticFeedback.mediumImpact();
 
       _floatingTexts.add(FloatingText(
         x: fruit.x, y: fruit.y,
-        text: '탁! (${fruit.hp}번 남음)',
+        text: '싹둑! (${fruit.hp}번 남음)',
         color: Colors.redAccent,
         size: 26,
       ));
@@ -366,7 +372,7 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with SingleTickerProv
         gainedScore = 10;
         _score += gainedScore;
         color = _fruitColors[fruit.emoji] ?? Colors.orange;
-        AudioManager.instance.playPop();
+        AudioManager.instance.playSwordSlice(rate: 0.95 + _random.nextDouble() * 0.25);
         HapticFeedback.lightImpact();
         break;
       case FruitType.golden:
@@ -377,7 +383,7 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with SingleTickerProv
         floatColor = Colors.yellow;
         isGolden = true;
         pCount = 25;
-        AudioManager.instance.playPop();
+        AudioManager.instance.playSwordSlice(rate: 1.25);
         HapticFeedback.lightImpact();
         break;
       case FruitType.freeze:
@@ -387,7 +393,7 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with SingleTickerProv
         floatTextStr = '빙결 ❄️';
         floatColor = const Color(0xFF00B0FF);
         _freezeTimer = 4.0;
-        AudioManager.instance.playPop();
+        AudioManager.instance.playSwordSlice(rate: 0.85);
         HapticFeedback.mediumImpact();
         break;
       case FruitType.heart:
@@ -406,7 +412,7 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with SingleTickerProv
         floatTextStr = 'GREAT! +30 🍉';
         floatColor = Colors.redAccent;
         pCount = 45; // 거대한 파티클 분수
-        AudioManager.instance.playPop();
+        AudioManager.instance.playSwordSlice(rate: 0.8);
         HapticFeedback.heavyImpact();
         break;
     }
@@ -505,44 +511,269 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with SingleTickerProv
     });
   }
 
+  Widget _buildWhimsicalBackground() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFFFFF3E0), // Soft cream sunrise
+            Color(0xFFFFCC80), // Warm peach
+            Color(0xFFFFAB91), // Coral sunset
+            Color(0xFFE64A19), // Deep orchard orange
+          ],
+          stops: [0.0, 0.35, 0.7, 1.0],
+        ),
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Rotating Sunburst Rays
+          AnimatedBuilder(
+            animation: _bgAnimCtrl,
+            builder: (context, child) {
+              return CustomPaint(
+                painter: _SunburstPainter(animationValue: _bgAnimCtrl.value),
+              );
+            },
+          ),
+
+          // Floating Whimsical Clouds & Sky Particles
+          AnimatedBuilder(
+            animation: _bgAnimCtrl,
+            builder: (context, child) {
+              final val = _bgAnimCtrl.value;
+              return Stack(
+                children: [
+                  Positioned(
+                    left: (val * 400) % 450 - 80,
+                    top: 60,
+                    child: const Opacity(opacity: 0.7, child: Text('☁️', style: TextStyle(fontSize: 54))),
+                  ),
+                  Positioned(
+                    right: (val * 350) % 420 - 60,
+                    top: 130,
+                    child: const Opacity(opacity: 0.6, child: Text('☁️', style: TextStyle(fontSize: 42))),
+                  ),
+                  Positioned(
+                    left: 40 + sin(val * 2 * pi) * 20,
+                    top: 200,
+                    child: const Opacity(opacity: 0.8, child: Text('✨', style: TextStyle(fontSize: 28))),
+                  ),
+                  Positioned(
+                    right: 50 + cos(val * 2 * pi) * 25,
+                    top: 240,
+                    child: const Opacity(opacity: 0.7, child: Text('⭐', style: TextStyle(fontSize: 24))),
+                  ),
+                  Positioned(
+                    left: 180 + sin(val * 4 * pi) * 30,
+                    top: 110,
+                    child: const Opacity(opacity: 0.75, child: Text('🌸', style: TextStyle(fontSize: 22))),
+                  ),
+                  Positioned(
+                    right: 140 + cos(val * 3 * pi) * 20,
+                    top: 170,
+                    child: const Opacity(opacity: 0.7, child: Text('🍃', style: TextStyle(fontSize: 26))),
+                  ),
+                ],
+              );
+            },
+          ),
+
+          // Bottom Orchard Hills Silhouette
+          Positioned(
+            bottom: -10,
+            left: -20,
+            right: -20,
+            height: 80,
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF4CAF50).withValues(alpha: 0.35),
+                borderRadius: const BorderRadius.vertical(top: Radius.elliptical(300, 60)),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Text('🌱', style: TextStyle(fontSize: 24)),
+                  Text('🌸', style: TextStyle(fontSize: 22)),
+                  Text('🌾', style: TextStyle(fontSize: 26)),
+                  Text('🍓', style: TextStyle(fontSize: 24)),
+                  Text('🌱', style: TextStyle(fontSize: 22)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumHeader() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.85),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: Colors.white, width: 2.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              // Glossy 3D Exit Button
+              GestureDetector(
+                onTap: () {
+                  AudioManager.instance.playClick();
+                  Navigator.of(context).pop();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFF6B6B), Color(0xFFEE5253)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFF6B6B).withValues(alpha: 0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.home_rounded, color: Colors.white, size: 20),
+                      const SizedBox(width: 4),
+                      Text(
+                        '메인',
+                        style: GoogleFonts.jua(
+                          fontSize: 15,
+                          color: Colors.white,
+                          shadows: const [Shadow(color: Colors.black26, offset: Offset(0, 1), blurRadius: 2)],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // Title Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3E0),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFFFB74D), width: 1.5),
+                ),
+                child: Text(
+                  '🍉 과일 싹둑',
+                  style: GoogleFonts.jua(
+                    fontSize: 16,
+                    color: const Color(0xFFE65100),
+                    shadows: const [Shadow(color: Colors.black12, offset: Offset(0, 1), blurRadius: 2)],
+                  ),
+                ),
+              ),
+
+              const Spacer(),
+
+              // 3D Star Score Pill
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFFD54F), Color(0xFFFFB300)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFFB300).withValues(alpha: 0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Text('⭐', style: TextStyle(fontSize: 17)),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$_score',
+                      style: GoogleFonts.jua(
+                        fontSize: 18,
+                        color: Colors.white,
+                        shadows: const [Shadow(color: Colors.black26, offset: Offset(0, 1), blurRadius: 2)],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // 3D Glowing Hearts Container
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFEBEE),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFFF8A80), width: 1.5),
+                ),
+                child: Row(
+                  children: List.generate(3, (index) {
+                    final isActive = index < _lives;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: AnimatedScale(
+                        scale: isActive ? 1.0 : 0.7,
+                        duration: const Duration(milliseconds: 300),
+                        child: Text(
+                          isActive ? '❤️' : '🖤',
+                          style: TextStyle(
+                            fontSize: 18,
+                            shadows: isActive
+                                ? [Shadow(color: Colors.red.withValues(alpha: 0.5), blurRadius: 6, offset: const Offset(0, 2))]
+                                : [],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 고급스러운 배경
+          // 동화 속 과일 동산 배경
           Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment.center,
-                  radius: 1.2,
-                  colors: [
-                    Colors.orange.shade100,
-                    Colors.orange.shade300,
-                    Colors.deepOrange.shade400,
-                  ],
-                  stops: const [0.0, 0.5, 1.0],
-                ),
-              ),
-              child: Stack(
-                children: [
-                  // 희미한 빗살무늬나 파티클을 배경에 깔아 깊이감 추가
-                  Positioned.fill(
-                    child: Opacity(
-                      opacity: 0.05,
-                      child: GridPaper(
-                        color: Colors.white,
-                        divisions: 2,
-                        subdivisions: 2,
-                        interval: 100,
-                      ),
-                    ),
-                  )
-                ],
-              ),
-            ),
+            child: _buildWhimsicalBackground(),
           ),
           
           // 게임 영역
@@ -663,72 +894,13 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with SingleTickerProv
             ),
           ),
 
-          // 프리미엄 헤더 (Glassmorphism)
+          // 프리미엄 3D 헤더 (Glassmorphism)
           Positioned(
-            top: 16,
-            left: 16,
-            right: 16,
+            top: 12,
+            left: 12,
+            right: 12,
             child: SafeArea(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1.5),
-                    ),
-                    child: Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () { AudioManager.instance.playClick(); Navigator.of(context).pop(); },
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.8), shape: BoxShape.circle),
-                            child: const Icon(Icons.close, color: KidsTheme.textDark, size: 28),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        
-                        // 점수 뱃지
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: KidsTheme.orange,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
-                          ),
-                          child: Text('점수: $_score', style: GoogleFonts.jua(fontSize: 24, color: Colors.white)),
-                        ),
-                        
-                        const Spacer(),
-                        
-                        // 아기자기한 하트(목숨)
-                        Row(
-                          children: List.generate(3, (index) {
-                            final isActive = index < _lives;
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
-                              child: AnimatedScale(
-                                scale: isActive ? 1.0 : 0.6,
-                                duration: const Duration(milliseconds: 300),
-                                child: Icon(
-                                  isActive ? Icons.favorite : Icons.favorite_border,
-                                  color: isActive ? KidsTheme.red : Colors.white.withValues(alpha: 0.8),
-                                  size: 32,
-                                  shadows: isActive ? const [Shadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))] : [],
-                                ),
-                              ),
-                            );
-                          }),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+              child: _buildPremiumHeader(),
             ),
           ),
 
@@ -769,48 +941,232 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with SingleTickerProv
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
                   child: Container(
-                    color: Colors.black.withValues(alpha: 0.6),
+                    color: Colors.black.withValues(alpha: 0.55),
                     child: Center(
                       child: Container(
-                        padding: const EdgeInsets.all(32),
+                        margin: const EdgeInsets.symmetric(horizontal: 24),
+                        padding: const EdgeInsets.fromLTRB(24, 28, 24, 26),
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(32),
-                          border: Border.all(color: KidsTheme.orange, width: 4),
-                          boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 20)],
+                          color: Colors.white.withValues(alpha: 0.96),
+                          borderRadius: BorderRadius.circular(36),
+                          border: Border.all(color: Colors.white, width: 3.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFF5964).withValues(alpha: 0.25),
+                              blurRadius: 30,
+                              offset: const Offset(0, 10),
+                            ),
+                            BoxShadow(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              blurRadius: 6,
+                              offset: const Offset(0, -2),
+                            ),
+                          ],
                         ),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text('😭', style: TextStyle(fontSize: 64)),
-                            Text('게임 오버!', style: GoogleFonts.jua(fontSize: 48, color: KidsTheme.orange)),
-                            const SizedBox(height: 16),
-                            Text('최종 점수: $_score ⭐', style: GoogleFonts.jua(fontSize: 32, color: KidsTheme.textDark)),
-                            const SizedBox(height: 32),
-                            GestureDetector(
-                              onTap: () {
-                                AudioManager.instance.playClick();
-                                setState(() {
-                                  _score = 0;
-                                  _lives = 3;
-                                  _fruits.clear();
-                                  _slicedPieces.clear();
-                                  _particles.clear();
-                                  _floatingTexts.clear();
-                                  _freezeTimer = 0.0;
-                                  _isGameOver = false;
-                                });
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                                decoration: BoxDecoration(
-                                  color: KidsTheme.green,
-                                  borderRadius: BorderRadius.circular(24),
-                                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))],
-                                ),
-                                child: Text('다시 하기 🔄', style: GoogleFonts.jua(fontSize: 28, color: Colors.white)),
+                            // Fruity Header Avatar Badge
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFEBEE),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: const Color(0xFFFF8A80), width: 2.5),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFFF5964).withValues(alpha: 0.2),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
-                            )
+                              child: const Text('🍉', style: TextStyle(fontSize: 46)),
+                            ),
+                            const SizedBox(height: 12),
+
+                            // 3D Title Text
+                            Text(
+                              '아쉬워요! 과일 싹둑!',
+                              style: GoogleFonts.jua(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                foreground: Paint()
+                                  ..style = PaintingStyle.fill
+                                  ..color = const Color(0xFFFF5964),
+                                shadows: const [
+                                  Shadow(
+                                    color: Color(0xFFFFB74D),
+                                    offset: Offset(1.5, 1.5),
+                                    blurRadius: 0,
+                                  ),
+                                  Shadow(
+                                    color: Colors.black12,
+                                    offset: Offset(0, 4),
+                                    blurRadius: 8,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Score Card Box
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF7ED),
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(color: const Color(0xFFFFE0B2), width: 2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFFF9F1C).withValues(alpha: 0.1),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFE082),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      '최종 득점',
+                                      style: GoogleFonts.jua(fontSize: 13, color: const Color(0xFFE65100)),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text('⭐', style: TextStyle(fontSize: 26)),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        '$_score',
+                                        style: GoogleFonts.jua(
+                                          fontSize: 42,
+                                          color: const Color(0xFF2D3748),
+                                          shadows: const [
+                                            Shadow(color: Colors.black12, offset: Offset(0, 2), blurRadius: 4),
+                                          ],
+                                        ),
+                                      ),
+                                      Text(
+                                        ' 점',
+                                        style: GoogleFonts.jua(fontSize: 22, color: const Color(0xFF718096)),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+
+                            // 3D Glossy Action Buttons
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Exit Button
+                                GestureDetector(
+                                  onTap: () {
+                                    AudioManager.instance.playClick();
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFFFF6B6B), Color(0xFFEE5253)],
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                      ),
+                                      borderRadius: BorderRadius.circular(22),
+                                      border: Border.all(color: Colors.white, width: 2.5),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFFFF6B6B).withValues(alpha: 0.4),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 5),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.home_rounded, color: Colors.white, size: 22),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '메인으로',
+                                          style: GoogleFonts.jua(
+                                            fontSize: 17,
+                                            color: Colors.white,
+                                            shadows: const [
+                                              Shadow(color: Colors.black26, offset: Offset(0, 1), blurRadius: 2),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+
+                                // Restart Button
+                                GestureDetector(
+                                  onTap: () {
+                                    AudioManager.instance.playClick();
+                                    setState(() {
+                                      _score = 0;
+                                      _lives = 3;
+                                      _fruits.clear();
+                                      _slicedPieces.clear();
+                                      _particles.clear();
+                                      _floatingTexts.clear();
+                                      _freezeTimer = 0.0;
+                                      _isGameOver = false;
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFF10B981), Color(0xFF059669)],
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                      ),
+                                      borderRadius: BorderRadius.circular(22),
+                                      border: Border.all(color: Colors.white, width: 2.5),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFF10B981).withValues(alpha: 0.4),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 5),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          '다시 하기 🔄',
+                                          style: GoogleFonts.jua(
+                                            fontSize: 17,
+                                            color: Colors.white,
+                                            shadows: const [
+                                              Shadow(color: Colors.black26, offset: Offset(0, 1), blurRadius: 2),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
@@ -901,4 +1257,38 @@ class HalfClipper extends CustomClipper<Rect> {
 
   @override
   bool shouldReclip(covariant HalfClipper oldClipper) => oldClipper.isLeft != isLeft;
+}
+
+class _SunburstPainter extends CustomPainter {
+  final double animationValue;
+  _SunburstPainter({required this.animationValue});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height * 0.4);
+    final radius = max(size.width, size.height) * 1.2;
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.12)
+      ..style = PaintingStyle.fill;
+
+    const numRays = 16;
+    final angleStep = (2 * pi) / numRays;
+    final rotation = animationValue * 2 * pi;
+
+    for (int i = 0; i < numRays; i += 2) {
+      final startAngle = rotation + i * angleStep;
+      final sweepAngle = angleStep;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepAngle,
+        true,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SunburstPainter oldDelegate) =>
+      oldDelegate.animationValue != animationValue;
 }

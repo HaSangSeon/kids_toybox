@@ -85,6 +85,7 @@ class AudioManager {
   Future<void> playBoing() => playEffect('audio/boing.wav');
   Future<void> playChime() => playEffect('audio/chime.wav');
   Future<void> playCardFlip() => playEffect('audio/jigsaw_pickup.wav');
+  Future<void> playSwordSlice({double rate = 1.0}) => playEffect('audio/sword_slice.wav', rate: rate);
 
   // 낚시 전용 사운드
   Future<void> playFishPlunge() => playEffect('audio/fish_plunge.wav');   // 찌가 물속으로 첨벙!
