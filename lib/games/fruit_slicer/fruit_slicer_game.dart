@@ -615,9 +615,9 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.85),
+            color: Colors.white.withValues(alpha: 0.88),
             borderRadius: BorderRadius.circular(28),
             border: Border.all(color: Colors.white, width: 2.5),
             boxShadow: [
@@ -629,6 +629,7 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
             ],
           ),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               // Glossy 3D Exit Button
               GestureDetector(
@@ -637,7 +638,7 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
                   Navigator.of(context).pop();
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFFFF6B6B), Color(0xFFEE5253)],
@@ -655,6 +656,7 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
                     ],
                   ),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.home_rounded, color: Colors.white, size: 20),
                       const SizedBox(width: 4),
@@ -670,29 +672,8 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
 
-              // Title Badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3E0),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFFFB74D), width: 1.5),
-                ),
-                child: Text(
-                  '🍉 과일 싹둑',
-                  style: GoogleFonts.jua(
-                    fontSize: 16,
-                    color: const Color(0xFFE65100),
-                    shadows: const [Shadow(color: Colors.black12, offset: Offset(0, 1), blurRadius: 2)],
-                  ),
-                ),
-              ),
-
-              const Spacer(),
-
-              // 3D Star Score Pill
+              // 3D Star Score Pill (Center)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                 decoration: BoxDecoration(
@@ -712,6 +693,7 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
                   ],
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text('⭐', style: TextStyle(fontSize: 17)),
                     const SizedBox(width: 4),
@@ -726,17 +708,17 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
 
-              // 3D Glowing Hearts Container
+              // 3D Glowing Hearts Container (Right)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFEBEE),
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: const Color(0xFFFF8A80), width: 1.5),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: List.generate(3, (index) {
                     final isActive = index < _lives;
                     return Padding(
@@ -747,7 +729,7 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
                         child: Text(
                           isActive ? '❤️' : '🖤',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 17,
                             shadows: isActive
                                 ? [Shadow(color: Colors.red.withValues(alpha: 0.5), blurRadius: 6, offset: const Offset(0, 2))]
                                 : [],
