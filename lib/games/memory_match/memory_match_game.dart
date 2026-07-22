@@ -16,16 +16,20 @@ class _LevelTheme {
   final String name;
   final String icon;
   final List<String> emojis;
-  final Color backgroundColor;
+  final List<Color> bgGradient;
   final Color cardBackColor;
+  final Color cardBorderColor;
+  final String cardBackEmoji;
   final String bgEmoji;
 
   const _LevelTheme({
     required this.name,
     required this.icon,
     required this.emojis,
-    required this.backgroundColor,
+    required this.bgGradient,
     required this.cardBackColor,
+    required this.cardBorderColor,
+    required this.cardBackEmoji,
     required this.bgEmoji,
   });
 }
@@ -62,42 +66,51 @@ const List<_LevelTheme> _themes = [
     name: '바다 친구들',
     icon: '🌊',
     emojis: ['🐙', '🦀', '🐠', '🐳', '🦈', '🐚', '🦑', '🐬'],
-    backgroundColor: Color(0xFFE3F2FD),
-    cardBackColor: Color(0xFF42A5F5),
+    bgGradient: [Color(0xFFE0F7FA), Color(0xFF80DEEA), Color(0xFF4DD0E1)],
+    cardBackColor: Color(0xFF29B6F6),
+    cardBorderColor: Color(0xFFB3E5FC),
+    cardBackEmoji: '🎁', // 마법 보물상자
     bgEmoji: '🫧',
   ),
   _LevelTheme(
     name: '우주 탐험',
     icon: '🚀',
     emojis: ['🌍', '🌙', '⭐', '🛸', '👽', '🪐', '🌟', '☄️'],
-    backgroundColor: Color(0xFF1A237E),
-    cardBackColor: Color(0xFF7C4DFF),
-    bgEmoji: '⭐',
+    bgGradient: [Color(0xFF1A237E), Color(0xFF311B92), Color(0xFF4A148C)],
+    cardBackColor: Color(0xFF7E57C2),
+    cardBorderColor: Color(0xFFD1C4E9),
+    cardBackEmoji: '🛸', // 유쾌한 UFO
+    bgEmoji: '✨',
   ),
   _LevelTheme(
     name: '봄 동산',
     icon: '🌸',
     emojis: ['🌻', '🌷', '🦋', '🐝', '🌈', '🍀', '🐞', '🍓', '🌺', '🎀', '🐣', '🌼'],
-    backgroundColor: Color(0xFFFCE4EC),
+    bgGradient: [Color(0xFFFCE4EC), Color(0xFFF8BBD0), Color(0xFFF48FB1)],
     cardBackColor: Color(0xFFEC407A),
+    cardBorderColor: Color(0xFFFFCDD2),
+    cardBackEmoji: '🧸', // 아기 곰돌이
     bgEmoji: '🌸',
   ),
-
   _LevelTheme(
     name: '동물 농장',
     icon: '🐶',
     emojis: ['🐶', '🐱', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮'],
-    backgroundColor: Color(0xFFFFF8E1),
-    cardBackColor: Color(0xFFFFCA28),
+    bgGradient: [Color(0xFFFFF8E1), Color(0xFFFFECB3), Color(0xFFFFE082)],
+    cardBackColor: Color(0xFFFFB300),
+    cardBorderColor: Color(0xFFFFF59D),
+    cardBackEmoji: '🎁', // 신나는 선물상자
     bgEmoji: '🐾',
   ),
   _LevelTheme(
     name: '맛있는 간식',
     icon: '🍓',
     emojis: ['🍔', '🍟', '🍕', '🌭', '🍿', '🍩', '🍪', '🍰', '🧁', '🍫', '🍬', '🍭'],
-    backgroundColor: Color(0xFFFBE9E7),
+    bgGradient: [Color(0xFFFBE9E7), Color(0xFFFFCCBC), Color(0xFFFFAB91)],
     cardBackColor: Color(0xFFFF7043),
-    bgEmoji: '✨',
+    cardBorderColor: Color(0xFFFFD180),
+    cardBackEmoji: '🍬', // 새콤달콤 사탕
+    bgEmoji: '🎈',
   ),
 ];
 
@@ -115,6 +128,7 @@ class MemoryMatchGame extends StatefulWidget {
 class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderStateMixin {
   late ConfettiController _confettiController;
   late AnimationController _ambientCtrl;
+  late AnimationController _bgAnimCtrl;
   final Random _random = Random();
 
   int _currentLevel = 1;
@@ -141,13 +155,15 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
   // Match celebration: indices of cards currently flying away
   Set<int> _flyingIndices = {};
 
-  _LevelTheme get _currentTheme => _themes[_currentLevel - 1];
+  _LevelTheme get _currentTheme => _themes[(_currentLevel - 1) % _themes.length];
 
   @override
   void initState() {
     super.initState();
     _confettiController = ConfettiController(duration: const Duration(seconds: 3));
     _ambientCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 3))
+      ..repeat(reverse: true);
+    _bgAnimCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 8))
       ..repeat(reverse: true);
     _startLevel(_currentLevel);
   }
@@ -156,6 +172,7 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
   void dispose() {
     _confettiController.dispose();
     _ambientCtrl.dispose();
+    _bgAnimCtrl.dispose();
     _gameTimer?.cancel();
     super.dispose();
   }
@@ -203,7 +220,7 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
       _earnedStars = null;
       _flyingIndices = {};
 
-      final theme = _themes[level - 1];
+      final theme = _themes[(level - 1) % _themes.length];
       int numCards = 4;
       if (level == 2) numCards = 8;
       if (level == 3) numCards = 12;
@@ -250,60 +267,79 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
       _flippedIndices.add(index);
     });
 
-    AudioManager.instance.playClick();
+    AudioManager.instance.playCardFlip();
     HapticFeedback.lightImpact();
 
     if (_flippedIndices.length == 2) {
       _isProcessing = true;
-      final int firstIdx = _flippedIndices[0];
-      final int secondIdx = _flippedIndices[1];
+      int idx1 = _flippedIndices[0];
+      int idx2 = _flippedIndices[1];
 
-      if (_cards[firstIdx].emoji == _cards[secondIdx].emoji) {
-        // ── Match Success ──
-        AudioManager.instance.playSuccess();
+      if (_cards[idx1].emoji == _cards[idx2].emoji) {
+        // MATCH!
+        _currentCombo++;
+        _triggerComboAnimation(_currentCombo);
+        AudioManager.instance.playPop();
         HapticFeedback.mediumImpact();
 
-        _currentCombo++;
-        if (_currentCombo >= 2) {
-          final combos = ['$_currentCombo연속!', '퍼펙트! 🤩', '최고야! 🔥', '대단해! 💫'];
-          setState(() => _comboMessage = combos[_random.nextInt(combos.length)]);
-          AudioManager.instance.playChime();
-          Future.delayed(const Duration(milliseconds: 1200), () {
-            if (mounted) setState(() => _comboMessage = null);
-          });
-        }
-
-        // Trigger fly-away celebration
+        // Flying card animation
         setState(() {
-          _flyingIndices.add(firstIdx);
-          _flyingIndices.add(secondIdx);
+          _flyingIndices.addAll([idx1, idx2]);
         });
 
-        await Future.delayed(const Duration(milliseconds: 800));
+        await Future.delayed(const Duration(milliseconds: 500));
 
         if (!mounted) return;
         setState(() {
-          _cards[firstIdx] = _cards[firstIdx].copyWith(isMatched: true);
-          _cards[secondIdx] = _cards[secondIdx].copyWith(isMatched: true);
-          _flyingIndices.remove(firstIdx);
-          _flyingIndices.remove(secondIdx);
+          _cards[idx1] = _cards[idx1].copyWith(isMatched: true);
+          _cards[idx2] = _cards[idx2].copyWith(isMatched: true);
+          _flyingIndices.removeAll([idx1, idx2]);
           _flippedIndices.clear();
           _isProcessing = false;
         });
 
-        _checkLevelComplete();
+        // Check level completion
+        if (_cards.every((c) => c.isMatched)) {
+          _gameTimer?.cancel();
+          int stars = _getStarCount();
+          PlayerDataManager.instance.addStarCoin(stars);
+
+          setState(() {
+            _earnedStars = stars;
+          });
+
+          _confettiController.play();
+          AudioManager.instance.playSuccess();
+
+          Future.delayed(const Duration(seconds: 3), () {
+            if (!mounted) return;
+            if (_currentLevel < 5) {
+              int nextLvl = _currentLevel + 1;
+              setState(() {
+                _earnedStars = null;
+                _showLevelUp = true;
+                _nextLevelForOverlay = nextLvl;
+              });
+
+              Future.delayed(const Duration(milliseconds: 1800), () {
+                if (!mounted) return;
+                setState(() => _showLevelUp = false);
+                _startLevel(nextLvl);
+              });
+            } else {
+              // Game Complete!
+              _startLevel(1);
+            }
+          });
+        }
       } else {
-        // ── Match Failed ──
+        // NO MATCH
         _currentCombo = 0;
-        AudioManager.instance.playThud();
-        HapticFeedback.lightImpact();
-
-        await Future.delayed(const Duration(milliseconds: 1000));
-
+        await Future.delayed(const Duration(milliseconds: 900));
         if (!mounted) return;
         setState(() {
-          _cards[firstIdx] = _cards[firstIdx].copyWith(isFaceUp: false);
-          _cards[secondIdx] = _cards[secondIdx].copyWith(isFaceUp: false);
+          _cards[idx1] = _cards[idx1].copyWith(isFaceUp: false);
+          _cards[idx2] = _cards[idx2].copyWith(isFaceUp: false);
           _flippedIndices.clear();
           _isProcessing = false;
         });
@@ -311,279 +347,251 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
     }
   }
 
-  // ─── Hint ───
+  void _triggerComboAnimation(int combo) {
+    if (combo >= 2) {
+      setState(() {
+        if (combo == 2) _comboMessage = '2연속 성공! 🔥';
+        else if (combo == 3) _comboMessage = '3연속 대박! ⚡';
+        else _comboMessage = '$combo연속 최고! 🚀';
+      });
+      Future.delayed(const Duration(milliseconds: 1200), () {
+        if (mounted) setState(() => _comboMessage = null);
+      });
+    }
+  }
+
+  // ─── Magic Hint ───
   void _useHint() async {
     if (_isProcessing || _isMemorizing || _isHintActive) return;
-    bool hasUnmatched = _cards.any((c) => !c.isMatched && !c.isFaceUp);
-    if (!hasUnmatched) return;
 
-    AudioManager.instance.playBoing();
+    if (PlayerDataManager.instance.starCoins < 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('⭐ 별코인이 부족해요!', style: GoogleFonts.jua(fontSize: 16)),
+          backgroundColor: KidsTheme.pink,
+          duration: const Duration(seconds: 1),
+        ),
+      );
+      return;
+    }
+
+    PlayerDataManager.instance.spendStarCoins(1);
+
+    AudioManager.instance.playChime();
+    HapticFeedback.heavyImpact();
+    setState(() => _isHintActive = true);
+
+    // Briefly flip all un-matched cards up
+    final unMatchedIndices = <int>[];
+    for (int i = 0; i < _cards.length; i++) {
+      if (!_cards[i].isMatched && !_cards[i].isFaceUp) {
+        unMatchedIndices.add(i);
+      }
+    }
 
     setState(() {
-      _isHintActive = true;
-      for (int i = 0; i < _cards.length; i++) {
-        if (!_cards[i].isMatched) {
-          _cards[i] = _cards[i].copyWith(isFaceUp: true);
-        }
+      for (int i in unMatchedIndices) {
+        _cards[i] = _cards[i].copyWith(isFaceUp: true);
       }
     });
 
-    await Future.delayed(const Duration(milliseconds: 1200));
+    await Future.delayed(const Duration(milliseconds: 1500));
 
     if (!mounted) return;
     setState(() {
-      for (int i = 0; i < _cards.length; i++) {
-        if (!_cards[i].isMatched && !_flippedIndices.contains(i)) {
-          _cards[i] = _cards[i].copyWith(isFaceUp: false);
-        }
+      for (int i in unMatchedIndices) {
+        _cards[i] = _cards[i].copyWith(isFaceUp: false);
       }
       _isHintActive = false;
     });
   }
 
-  // ─── Level complete check ───
-  void _checkLevelComplete() {
-    bool allMatched = _cards.every((c) => c.isMatched);
-    if (!allMatched) return;
-
-    _gameTimer?.cancel();
-    final stars = _getStarCount();
-
-    // Reward 1 Star Coin per level cleared
-    PlayerDataManager.instance.addStarCoin(1);
-
-    setState(() => _earnedStars = stars);
-
-    if (stars == 3) {
-      _confettiController.play();
-    }
-
-    AudioManager.instance.playSuccess();
-
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      if (!mounted) return;
-      setState(() => _earnedStars = null);
-
-      if (_currentLevel < 5) {
-        // Show level-up overlay then start next level
-        _showLevelUpOverlay(_currentLevel + 1);
-      } else {
-        // All levels cleared!
-        _confettiController.play();
-        _showVictoryDialog();
-      }
-    });
-  }
-
-  // ─── Level-up overlay ───
-  void _showLevelUpOverlay(int nextLevel) {
-    setState(() {
-      _showLevelUp = true;
-      _nextLevelForOverlay = nextLevel;
-    });
-
-    AudioManager.instance.playPop();
-
-    Future.delayed(const Duration(milliseconds: 2000), () {
-      if (!mounted) return;
-      setState(() => _showLevelUp = false);
-      _startLevel(nextLevel);
-    });
-  }
-
-  // ─── Victory dialog ───
-  void _showVictoryDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        content: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: KidsTheme.toyDecoration(color: Colors.white, borderRadius: 30),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('🎉 🎉 🎉', style: TextStyle(fontSize: 40)),
-              const SizedBox(height: 16),
-              Text(
-                '정말 똑똑해요!',
-                style: GoogleFonts.jua(fontSize: 32, color: KidsTheme.orange, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '모든 레벨을 클리어했어요!',
-                style: GoogleFonts.jua(fontSize: 18, color: KidsTheme.textLight),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: KidsTheme.green,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  elevation: 5,
-                ),
-                onPressed: () {
-                  AudioManager.instance.playClick();
-                  Navigator.of(context).pop();
-                  _startLevel(1);
-                },
-                child: Text(
-                  '다시 하기 🔄',
-                  style: GoogleFonts.nunito(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   int _getGridCrossAxisCount() {
-    if (_currentLevel == 1) return 2;
-    if (_currentLevel == 5) return 4;
+    if (_cards.length <= 4) return 2;
+    if (_cards.length <= 8) return 4;
+    if (_cards.length <= 12) return 4;
     return 4;
   }
-
-  // ─────────────────────────────────────────────
-  // BUILD
-  // ─────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final theme = _currentTheme;
 
     return Scaffold(
-      body: AnimatedContainer(
-        duration: const Duration(milliseconds: 600),
-        curve: Curves.easeInOut,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              theme.backgroundColor,
-              theme.backgroundColor.withValues(alpha: 0.7),
-            ],
-          ),
-        ),
-        child: Stack(
-          children: [
-            // Floating Background Emojis
-            ...List.generate(15, (i) {
-              return Positioned(
-                left: 20 + (i * 47) % MediaQuery.of(context).size.width,
-                top: 50 + (i * 63) % MediaQuery.of(context).size.height,
-                child: Opacity(
-                  opacity: 0.15,
-                  child: Text(
-                    theme.bgEmoji,
-                    style: TextStyle(fontSize: 30 + (i % 3) * 15.0),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 🌈 아기자기하고 액티브한 동적 그라데이션 배경
+          AnimatedBuilder(
+            animation: _bgAnimCtrl,
+            builder: (context, child) {
+              final val = _bgAnimCtrl.value;
+              return Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color.lerp(theme.bgGradient[0], theme.bgGradient[1], val)!,
+                      Color.lerp(theme.bgGradient[1], theme.bgGradient[2], val)!,
+                      Color.lerp(theme.bgGradient[2], theme.bgGradient[0], val)!,
+                    ],
                   ),
                 ),
               );
-            }),
-            SafeArea(
-              child: Column(
+            },
+          ),
+
+          // 🎈 둥둥 떠다니는 배경 아기자기 데코레이션 (구름/풍선/별/버블)
+          AnimatedBuilder(
+            animation: _bgAnimCtrl,
+            builder: (context, child) {
+              final val = _bgAnimCtrl.value;
+              return Stack(
                 children: [
-                  // ── Header ──
-                  _buildHeader(theme),
-                  const SizedBox(height: 8),
+                  Positioned(
+                    left: 20 + val * 40,
+                    top: 80 - val * 10,
+                    child: Opacity(
+                      opacity: 0.65,
+                      child: Text(theme.bgEmoji, style: const TextStyle(fontSize: 42)),
+                    ),
+                  ),
+                  Positioned(
+                    right: 30 + val * 30,
+                    top: 130 + val * 15,
+                    child: const Opacity(
+                      opacity: 0.5,
+                      child: Text('☁️', style: TextStyle(fontSize: 48)),
+                    ),
+                  ),
+                  Positioned(
+                    left: 200 - val * 30,
+                    top: 160,
+                    child: const Opacity(
+                      opacity: 0.6,
+                      child: Text('✨', style: TextStyle(fontSize: 32)),
+                    ),
+                  ),
+                  Positioned(
+                    right: 140 - val * 20,
+                    bottom: 120 + val * 25,
+                    child: Opacity(
+                      opacity: 0.7,
+                      child: Text(theme.bgEmoji, style: const TextStyle(fontSize: 38)),
+                    ),
+                  ),
+                  Positioned(
+                    left: 40 + val * 20,
+                    bottom: 100 - val * 15,
+                    child: const Opacity(
+                      opacity: 0.55,
+                      child: Text('🎈', style: TextStyle(fontSize: 44)),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
 
-                  // ── Star display ──
-                  _buildStarBar(),
-                  const SizedBox(height: 12),
+          // 🎮 메인 게임 화면 UI
+          SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(theme),
+                const SizedBox(height: 8),
+                _buildStarBar(),
+                const SizedBox(height: 12),
 
-                  // ── Game Board ──
-                  Expanded(
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                        child: AnimatedBuilder(
-                          animation: _ambientCtrl,
-                          builder: (context, child) {
-                            return GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: _getGridCrossAxisCount(),
-                                crossAxisSpacing: 14,
-                                mainAxisSpacing: 14,
-                                childAspectRatio: 0.85,
-                              ),
-                              itemCount: _cards.length,
-                              itemBuilder: (context, index) {
-                                double phase = index * 0.5;
-                                double dy = sin((_ambientCtrl.value * pi * 2) + phase) * 3.5;
+                // 🎴 카드가 놓이는 메인 게임 영역
+                Expanded(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: AnimatedBuilder(
+                        animation: _ambientCtrl,
+                        builder: (context, child) {
+                          return GridView.builder(
+                            shrinkWrap: true,
+                            physics: const BouncingScrollPhysics(),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: _getGridCrossAxisCount(),
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                              childAspectRatio: 0.82,
+                            ),
+                            itemCount: _cards.length,
+                            itemBuilder: (context, index) {
+                              double phase = index * 0.4;
+                              double dy = sin((_ambientCtrl.value * pi * 2) + phase) * 4.0;
 
-                                final isFlying = _flyingIndices.contains(index);
+                              final isFlying = _flyingIndices.contains(index);
 
-                                return AnimatedSlide(
-                                  offset: isFlying ? const Offset(0, -2.5) : Offset.zero,
+                              return AnimatedSlide(
+                                offset: isFlying ? const Offset(0, -2.5) : Offset.zero,
+                                duration: const Duration(milliseconds: 600),
+                                curve: Curves.easeInBack,
+                                child: AnimatedScale(
+                                  scale: isFlying ? 0.0 : 1.0,
                                   duration: const Duration(milliseconds: 600),
                                   curve: Curves.easeInBack,
-                                  child: AnimatedScale(
-                                    scale: isFlying ? 0.0 : 1.0,
+                                  child: AnimatedRotation(
+                                    turns: isFlying ? 0.5 : 0.0,
                                     duration: const Duration(milliseconds: 600),
-                                    curve: Curves.easeInBack,
-                                    child: AnimatedRotation(
-                                      turns: isFlying ? 0.5 : 0.0,
-                                      duration: const Duration(milliseconds: 600),
-                                      child: Transform.translate(
-                                        offset: Offset(0, dy),
-                                        child: FlipCardWidget(
-                                          cardData: _cards[index],
-                                          cardBackColor: theme.cardBackColor,
-                                          onTap: () => _onCardTap(index),
-                                        ),
+                                    child: Transform.translate(
+                                      offset: Offset(0, dy),
+                                      child: FlipCardWidget(
+                                        cardData: _cards[index],
+                                        cardBackColor: theme.cardBackColor,
+                                        cardBorderColor: theme.cardBorderColor,
+                                        cardBackEmoji: theme.cardBackEmoji,
+                                        onTap: () => _onCardTap(index),
                                       ),
                                     ),
                                   ),
-                                );
-                              },
-                            );
-                          },
-                        ),
+                                ),
+                              );
+                            },
+                          );
+                        },
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                ],
-              ),
+                ),
+                const SizedBox(height: 16),
+              ],
             ),
+          ),
 
-            // ── Combo overlay ──
-            if (_comboMessage != null)
-              Align(
-                alignment: Alignment.center,
-                child: _ComboText(message: _comboMessage!),
-              ),
-
-            // ── Star earned overlay ──
-            if (_earnedStars != null)
-              _StarEarnedOverlay(starCount: _earnedStars!),
-
-            // ── Level-up overlay ──
-            if (_showLevelUp)
-              _LevelUpOverlay(
-                nextLevel: _nextLevelForOverlay,
-                theme: _themes[_nextLevelForOverlay - 1],
-              ),
-
-            // ── Confetti ──
+          // ── Combo overlay ──
+          if (_comboMessage != null)
             Align(
-              alignment: Alignment.topCenter,
-              child: ConfettiWidget(
-                confettiController: _confettiController,
-                blastDirectionality: BlastDirectionality.explosive,
-                shouldLoop: false,
-                colors: const [Colors.red, Colors.blue, Colors.green, Colors.yellow, Colors.purple, Colors.pink],
-              ),
+              alignment: Alignment.center,
+              child: _ComboText(message: _comboMessage!),
             ),
-          ],
-        ),
+
+          // ── Star earned overlay ──
+          if (_earnedStars != null)
+            _StarEarnedOverlay(starCount: _earnedStars!),
+
+          // ── Level-up overlay ──
+          if (_showLevelUp)
+            _LevelUpOverlay(
+              nextLevel: _nextLevelForOverlay,
+              theme: _themes[(_nextLevelForOverlay - 1) % _themes.length],
+            ),
+
+          // ── Confetti ──
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              shouldLoop: false,
+              colors: const [Colors.red, Colors.blue, Colors.green, Colors.yellow, Colors.purple, Colors.pink],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -594,9 +602,11 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Container(
         height: 64,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(32),
+          border: Border.all(color: Colors.white, width: 2.5),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.1),
@@ -607,32 +617,26 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
         ),
         child: Row(
           children: [
-            const SizedBox(width: 8),
-            // Back Button
+            // 뒤로가기 버튼
             GestureDetector(
               onTap: () {
                 AudioManager.instance.playClick();
                 Navigator.of(context).pop();
               },
               child: Container(
-                width: 48,
-                height: 48,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    )
-                  ],
+                  border: Border.all(color: const Color(0xFFFFB74D), width: 2),
+                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                 ),
-                child: const Icon(Icons.arrow_back, color: KidsTheme.textDark, size: 28),
+                child: const Icon(Icons.arrow_back, color: KidsTheme.textDark, size: 26),
               ),
             ),
             
-            // Central Title
+            // 중앙 타이틀
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -648,7 +652,7 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
               ),
             ),
             
-            // Star Coins Counter
+            // 별코인 카운터
             ValueListenableBuilder<int>(
               valueListenable: PlayerDataManager.instance.starCoinsNotifier,
               builder: (context, starCoins, child) {
@@ -681,27 +685,21 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
             ),
             const SizedBox(width: 8),
 
-            // Hint Button
+            // 힌트 요술봉 버튼
             GestureDetector(
               onTap: _useHint,
               child: Container(
-                width: 48,
-                height: 48,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: KidsTheme.yellow,
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    )
-                  ],
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                 ),
-                child: const Center(child: Text('🪄', style: TextStyle(fontSize: 24))),
+                child: const Center(child: Text('🪄', style: TextStyle(fontSize: 22))),
               ),
             ),
-            const SizedBox(width: 8),
           ],
         ),
       ),
@@ -727,8 +725,9 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.white.withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white, width: 2),
             ),
             child: Text(
               '${_elapsedSeconds}s',
@@ -763,18 +762,22 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
 }
 
 // ─────────────────────────────────────────────
-// Flip Card Widget (3D)
+// 3D 프리미엄 카드 뒷면 & 앞면 위젯 (FlipCardWidget)
 // ─────────────────────────────────────────────
 
 class FlipCardWidget extends StatefulWidget {
   final MemoryCardData cardData;
   final Color cardBackColor;
+  final Color cardBorderColor;
+  final String cardBackEmoji;
   final VoidCallback onTap;
 
   const FlipCardWidget({
     super.key,
     required this.cardData,
     required this.cardBackColor,
+    required this.cardBorderColor,
+    required this.cardBackEmoji,
     required this.onTap,
   });
 
@@ -838,22 +841,68 @@ class _FlipCardWidgetState extends State<FlipCardWidget> with SingleTickerProvid
     );
   }
 
+  // 🎁 입체감 넘치는 귀여운 3D 장난감 상자 카드 뒷면
   Widget _buildCardBack() {
     return Container(
       decoration: BoxDecoration(
-        color: widget.cardBackColor,
-        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.lerp(widget.cardBackColor, Colors.white, 0.35)!,
+            widget.cardBackColor,
+            Color.lerp(widget.cardBackColor, Colors.black, 0.15)!,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: Colors.white, width: 3.5),
-        boxShadow: const [
-          BoxShadow(color: Colors.black26, offset: Offset(0, 3), blurRadius: 4),
+        boxShadow: [
+          BoxShadow(
+            color: widget.cardBackColor.withValues(alpha: 0.4),
+            offset: const Offset(0, 6),
+            blurRadius: 10,
+          ),
+          const BoxShadow(
+            color: Colors.white30,
+            offset: Offset(0, 2),
+            blurRadius: 2,
+          ),
         ],
       ),
-      child: Center(
-        child: Icon(Icons.star_rounded, color: Colors.white.withValues(alpha: 0.4), size: 36),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // 배경 아기자기 도트 패턴
+          Positioned(
+            left: 8, top: 8,
+            child: Text('✨', style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.7))),
+          ),
+          Positioned(
+            right: 8, bottom: 8,
+            child: Text('✨', style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.7))),
+          ),
+          // 메인 신나는 장난감/보물상자 에디션 아이콘
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.25),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 2),
+            ),
+            child: Center(
+              child: Text(
+                widget.cardBackEmoji,
+                style: const TextStyle(fontSize: 28),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
+  // 🃏 카드 앞면
   Widget _buildCardFront() {
     return Transform(
       transform: Matrix4.identity()..rotateY(pi),
@@ -861,10 +910,14 @@ class _FlipCardWidgetState extends State<FlipCardWidget> with SingleTickerProvid
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: KidsTheme.orange, width: 3.5),
-          boxShadow: const [
-            BoxShadow(color: Colors.black12, offset: Offset(0, 3), blurRadius: 4),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFFF9F43), width: 3.5),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF9F43).withValues(alpha: 0.3),
+              offset: const Offset(0, 6),
+              blurRadius: 10,
+            ),
           ],
         ),
         child: Center(
