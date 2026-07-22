@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'core/theme/kids_theme.dart';
 import 'core/data/player_data_manager.dart';
-import 'lobby/lobby_screen.dart';
+import 'lobby/splash_screen.dart';
 
 import 'package:flutter/services.dart';
 
@@ -27,7 +27,7 @@ class KidsToyBoxApp extends StatelessWidget {
       title: 'Kids Toy Box',
       debugShowCheckedModeBanner: false,
       theme: KidsTheme.lightTheme,
-      home: const LobbyScreen(),
+      home: const SplashScreen(),
     );
   }
 }
