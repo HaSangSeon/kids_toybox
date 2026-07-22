@@ -235,7 +235,7 @@ class DrawingEngine extends ChangeNotifier {
 
   double characterTime = 0.0;
   VoidCallback? onShapeCompleted;
-  static const int gridSize = 45;
+  static const int gridSize = 70;
   int selectedBackgroundIndex = 0;
   double rainbowHue = 0.0;
 
@@ -323,7 +323,7 @@ class DrawingEngine extends ChangeNotifier {
     final double gcx = relPoint.dx * gridSize;
     final double gcy = relPoint.dy * gridSize;
     final double relativeStrokeWidth = strokeWidth / canvasSize;
-    final double gridRadius = (relativeStrokeWidth / 2) * gridSize;
+    final double gridRadius = (relativeStrokeWidth * 0.38) * gridSize;
 
     final int minX = (gcx - gridRadius).floor().clamp(0, gridSize - 1);
     final int maxX = (gcx + gridRadius).ceil().clamp(0, gridSize - 1);
@@ -357,7 +357,8 @@ class DrawingEngine extends ChangeNotifier {
     final targetMask = _shapeTargetMask[shape]!;
     final colored = shapeColoredGrid[shape]!;
     
-    if (colored.length >= targetMask.length * 0.85) {
+    // Strict completion requirement: Must color at least 94% of the shape!
+    if (targetMask.isNotEmpty && colored.length >= targetMask.length * 0.94) {
       shapeCompleted[shape] = true;
       _triggerConfetti();
       _saveState();
