@@ -675,7 +675,7 @@ class _PacmanGameState extends State<PacmanGame>
       _isGameClear = true;
       _confettiController.play();
       AudioManager.instance.playSuccess();
-      PlayerDataManager.instance.addStarCoin(5);
+      PlayerDataManager.instance.addStarCoin(2);
     }
   }
 

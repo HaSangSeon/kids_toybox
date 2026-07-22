@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:confetti/confetti.dart';
+import 'package:hive/hive.dart';
 import '../../core/audio/audio_manager.dart';
 import '../../core/theme/kids_theme.dart';
 import '../../core/data/player_data_manager.dart';
@@ -160,6 +161,17 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
       ..repeat(reverse: true);
     _bgAnimCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 8))
       ..repeat(reverse: true);
+    _loadSavedLevel();
+  }
+
+  void _loadSavedLevel() {
+    try {
+      final box = Hive.box('high_scores_box');
+      final savedLvl = box.get('memory_match_level', defaultValue: 1);
+      _currentLevel = (savedLvl is int && savedLvl >= 1 && savedLvl <= 5) ? savedLvl : 1;
+    } catch (_) {
+      _currentLevel = 1;
+    }
     _startLevel(_currentLevel);
   }
 
@@ -173,6 +185,11 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
 
   // ─── Level management ───
   void _startLevel(int level) {
+    try {
+      final box = Hive.box('high_scores_box');
+      box.put('memory_match_level', level);
+    } catch (_) {}
+
     setState(() {
       _currentLevel = level;
       _flippedIndices.clear();
@@ -262,7 +279,14 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
 
         // Check level completion
         if (_cards.every((c) => c.isMatched)) {
-          PlayerDataManager.instance.addStarCoin(3);
+          // 밸런스 조정된 별코인 보상 (쉬운 1단계는 0개, 2~3단계 1개, 4~5단계 2개)
+          int coins = 0;
+          if (_currentLevel == 2 || _currentLevel == 3) coins = 1;
+          if (_currentLevel >= 4) coins = 2;
+          if (coins > 0) {
+            PlayerDataManager.instance.addStarCoin(coins);
+          }
+
           _confettiController.play();
           AudioManager.instance.playLevelComplete();
 
