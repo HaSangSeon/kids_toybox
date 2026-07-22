@@ -641,38 +641,8 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
                                   ),
                                 ),
                               ),
-                              
-                              GestureDetector(
-                                onTap: _resetAllColoring,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: KidsTheme.red,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Row(
-                                    children: [
-                                      Icon(Icons.delete_sweep, color: Colors.white, size: 18),
-                                      SizedBox(width: 4),
-                                      Text("모두", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              GestureDetector(
-                                onTap: _resetColoring,
-                                child: Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: KidsTheme.green,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(Icons.refresh, color: Colors.white, size: 24),
-                                ),
-                              ),
-                              const SizedBox(width: 4),
+
+                              const SizedBox(width: 48), // Balance left back button for perfect centering
                             ],
                           ),
                         ),
