@@ -927,68 +927,71 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
                       child: Column(
                         children: [
                           // 붓 두께 선택바
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                '붓 두께:',
-                                style: GoogleFonts.jua(fontSize: 16, color: KidsTheme.textDark),
-                              ),
-                              const SizedBox(width: 8),
-                              ..._brushSizes.map((size) {
-                                final isSelected = _selectedWidth == size;
-                                double dotSize = size == 10.0 ? 6.0 : (size == 20.0 ? 12.0 : 18.0);
-                                String sizeLabel = size == 10.0 ? '✏️ 얇게' : (size == 20.0 ? '🖌️ 보통' : '🎨 두껍게');
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  '붓 두께:',
+                                  style: GoogleFonts.jua(fontSize: 15, color: KidsTheme.textDark),
+                                ),
+                                const SizedBox(width: 6),
+                                ..._brushSizes.map((size) {
+                                  final isSelected = _selectedWidth == size;
+                                  double dotSize = size == 10.0 ? 6.0 : (size == 20.0 ? 12.0 : 18.0);
+                                  String sizeLabel = size == 10.0 ? '✏️ 얇게' : (size == 20.0 ? '🖌️ 보통' : '🎨 두껍게');
 
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      AudioManager.instance.playClick();
-                                      HapticFeedback.selectionClick();
-                                      setState(() => _selectedWidth = size);
-                                    },
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 200),
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: isSelected ? const Color(0xFFFF9F43) : Colors.white,
-                                        borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(color: isSelected ? Colors.white : Colors.grey.shade300, width: 2),
-                                        boxShadow: isSelected ? [const BoxShadow(color: Color(0xFFFF9F43), blurRadius: 6)] : [],
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            width: 18, height: 18,
-                                            alignment: Alignment.center,
-                                            decoration: BoxDecoration(
-                                              color: isSelected ? Colors.white.withValues(alpha: 0.3) : Colors.grey.shade200,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Container(
-                                              width: dotSize, height: dotSize,
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 3.0),
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        AudioManager.instance.playClick();
+                                        HapticFeedback.selectionClick();
+                                        setState(() => _selectedWidth = size);
+                                      },
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 200),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color: isSelected ? const Color(0xFFFF9F43) : Colors.white,
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(color: isSelected ? Colors.white : Colors.grey.shade300, width: 2),
+                                          boxShadow: isSelected ? [const BoxShadow(color: Color(0xFFFF9F43), blurRadius: 6)] : [],
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              width: 16, height: 16,
+                                              alignment: Alignment.center,
                                               decoration: BoxDecoration(
-                                                color: isSelected ? Colors.white : KidsTheme.textDark,
+                                                color: isSelected ? Colors.white.withValues(alpha: 0.3) : Colors.grey.shade200,
                                                 shape: BoxShape.circle,
                                               ),
+                                              child: Container(
+                                                width: dotSize, height: dotSize,
+                                                decoration: BoxDecoration(
+                                                  color: isSelected ? Colors.white : KidsTheme.textDark,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
                                             ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            sizeLabel,
-                                            style: GoogleFonts.jua(
-                                              fontSize: 13,
-                                              color: isSelected ? Colors.white : KidsTheme.textDark,
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              sizeLabel,
+                                              style: GoogleFonts.jua(
+                                                fontSize: 13,
+                                                color: isSelected ? Colors.white : KidsTheme.textDark,
+                                              ),
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              }),
-                            ],
+                                  );
+                                }),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 12),
 
@@ -1212,58 +1215,6 @@ class _MainShapePainter extends CustomPainter {
     final shapePath = getShapePath(shape, size);
     final isCompleted = engine.shapeCompleted[shape] ?? false;
 
-    const double scale = 0.72;
-    final double w = size.width * scale;
-    final double h = size.height * scale;
-    final double dx = (size.width - w) / 2;
-    final double dy = (size.height - h) / 2;
-
-    Offset faceCenter = Offset(dx + w / 2, dy + h / 2);
-
-    if (isCompleted) {
-      final limbPaint = Paint()
-        ..color = KidsTheme.borderDark
-        ..strokeWidth = 7
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round;
-
-      final double time = engine.characterTime;
-      final double swing = sin(time * 7.0);
-      final double ly = faceCenter.dy;
-
-      final leftArmPath = Path()
-        ..moveTo(dx + w * 0.22, ly)
-        ..quadraticBezierTo(
-          dx + w * 0.1, ly - 5 + swing * 10, 
-          dx + w * 0.05, ly - 12 + swing * 22
-        );
-      canvas.drawPath(leftArmPath, limbPaint);
-      
-      final rightArmPath = Path()
-        ..moveTo(dx + w * 0.78, ly)
-        ..quadraticBezierTo(
-          dx + w * 0.9, ly - 5 - swing * 10, 
-          dx + w * 0.95, ly - 12 - swing * 22
-        );
-      canvas.drawPath(rightArmPath, limbPaint);
-
-      final leftLegPath = Path()
-        ..moveTo(dx + w * 0.38, dy + h * 0.82)
-        ..quadraticBezierTo(
-          dx + w * 0.35, dy + h * 0.90,
-          dx + w * (0.32 + swing * 0.04), dy + h * 0.97
-        );
-      canvas.drawPath(leftLegPath, limbPaint);
-
-      final rightLegPath = Path()
-        ..moveTo(dx + w * 0.62, dy + h * 0.82)
-        ..quadraticBezierTo(
-          dx + w * 0.65, dy + h * 0.90,
-          dx + w * (0.68 - swing * 0.04), dy + h * 0.97
-        );
-      canvas.drawPath(rightLegPath, limbPaint);
-    }
-
     canvas.save();
     canvas.clipPath(shapePath);
     
@@ -1306,50 +1257,6 @@ class _MainShapePainter extends CustomPainter {
       canvas.drawPath(path, strokePaint);
     }
     canvas.restore();
-
-    if (isCompleted) {
-      final double time = engine.characterTime;
-      final Offset leftEye = Offset(faceCenter.dx - 18, faceCenter.dy - 10);
-      final Offset rightEye = Offset(faceCenter.dx + 18, faceCenter.dy - 10);
-      final Offset leftBlush = Offset(faceCenter.dx - 26, faceCenter.dy + 2);
-      final Offset rightBlush = Offset(faceCenter.dx + 26, faceCenter.dy + 2);
-
-      final blushPaint = Paint()..color = KidsTheme.pink.withValues(alpha: 0.5)..style = PaintingStyle.fill;
-      canvas.drawOval(Rect.fromCenter(center: leftBlush, width: 14, height: 8), blushPaint);
-      canvas.drawOval(Rect.fromCenter(center: rightBlush, width: 14, height: 8), blushPaint);
-
-      final bool isBlinking = (time % 3.5) < 0.16;
-      if (isBlinking) {
-        final blinkPaint = Paint()
-          ..color = KidsTheme.borderDark
-          ..strokeWidth = 3.5
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round;
-        canvas.drawPath(Path()..moveTo(leftEye.dx - 6, leftEye.dy)..quadraticBezierTo(leftEye.dx, leftEye.dy + 3, leftEye.dx + 6, leftEye.dy), blinkPaint);
-        canvas.drawPath(Path()..moveTo(rightEye.dx - 6, rightEye.dy)..quadraticBezierTo(rightEye.dx, rightEye.dy + 3, rightEye.dx + 6, rightEye.dy), blinkPaint);
-      } else {
-        final eyePaint = Paint()..color = KidsTheme.borderDark..style = PaintingStyle.fill;
-        final whitePaint = Paint()..color = Colors.white..style = PaintingStyle.fill;
-        canvas.drawCircle(leftEye, 5.5, eyePaint);
-        canvas.drawCircle(rightEye, 5.5, eyePaint);
-        canvas.drawCircle(Offset(leftEye.dx - 1.8, leftEye.dy - 1.8), 1.8, whitePaint);
-        canvas.drawCircle(Offset(rightEye.dx - 1.8, rightEye.dy - 1.8), 1.8, whitePaint);
-      }
-
-      final mouthOutlinePaint = Paint()
-        ..color = KidsTheme.borderDark
-        ..strokeWidth = 3.5
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round;
-
-      final mouthPath = Path()
-        ..moveTo(faceCenter.dx - 8, faceCenter.dy + 3)
-        ..quadraticBezierTo(faceCenter.dx, faceCenter.dy + 12, faceCenter.dx + 8, faceCenter.dy + 3)
-        ..close();
-
-      canvas.drawPath(mouthPath, Paint()..color = KidsTheme.red..style = PaintingStyle.fill);
-      canvas.drawPath(mouthPath, mouthOutlinePaint);
-    }
 
     final strokePaint = Paint()
       ..color = isCompleted ? const Color(0xFFFF9F43) : KidsTheme.borderDark
