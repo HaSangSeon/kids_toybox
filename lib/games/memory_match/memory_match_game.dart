@@ -279,7 +279,7 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
         // MATCH!
         _currentCombo++;
         _triggerComboAnimation(_currentCombo);
-        AudioManager.instance.playPop();
+        AudioManager.instance.playCardMatch();
         HapticFeedback.mediumImpact();
 
         // Flying card animation
@@ -309,7 +309,7 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
           });
 
           _confettiController.play();
-          AudioManager.instance.playSuccess();
+          AudioManager.instance.playLevelComplete();
 
           Future.delayed(const Duration(seconds: 3), () {
             if (!mounted) return;
@@ -333,8 +333,9 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
           });
         }
       } else {
-        // NO MATCH
+        // NO MATCH - 귀여운 보잉 틀림 사운드 재생
         _currentCombo = 0;
+        AudioManager.instance.playCardMismatch();
         await Future.delayed(const Duration(milliseconds: 900));
         if (!mounted) return;
         setState(() {
