@@ -6,13 +6,17 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive/hive.dart';
 import '../../core/audio/audio_manager.dart';
-import '../../core/data/player_data_manager.dart';
 import '../../core/theme/kids_theme.dart';
 
 enum ShapeType {
   bear,
   cat,
   bunny,
+  dog,
+  elephant,
+  lion,
+  giraffe,
+  dolphin,
   fish,
   whale,
   unicorn,
@@ -22,6 +26,9 @@ enum ShapeType {
   star,
   car,
   heart,
+  icecream,
+  cake,
+  apple,
 }
 
 class Stroke {
@@ -70,14 +77,14 @@ Path getShapePath(ShapeType shape, Size size) {
 
   switch (shape) {
     case ShapeType.bear:
-      // 귀여운 곰돌이
+      // 🐻 곰돌이
       path.addOval(Rect.fromLTWH(dx + w * 0.15, dy + h * 0.25, w * 0.7, h * 0.7));
       path.addOval(Rect.fromLTWH(dx + w * 0.12, dy + h * 0.1, w * 0.26, h * 0.26));
       path.addOval(Rect.fromLTWH(dx + w * 0.62, dy + h * 0.1, w * 0.26, h * 0.26));
       break;
 
     case ShapeType.cat:
-      // 아기 야옹이 (귀 뾰족)
+      // 🐱 야옹이 (귀 뾰족)
       path.moveTo(dx + w * 0.2, dy + h * 0.4);
       path.lineTo(dx + w * 0.15, dy + h * 0.12);
       path.lineTo(dx + w * 0.4, dy + h * 0.25);
@@ -90,16 +97,70 @@ Path getShapePath(ShapeType shape, Size size) {
       break;
 
     case ShapeType.bunny:
-      // 긴 귀 토끼
+      // 🐰 토끼
       path.addOval(Rect.fromLTWH(dx + w * 0.2, dy + h * 0.4, w * 0.6, h * 0.55));
-      // 왼쪽 긴 귀
       path.addOval(Rect.fromLTWH(dx + w * 0.22, dy + h * 0.05, w * 0.22, h * 0.42));
-      // 오른쪽 긴 귀
       path.addOval(Rect.fromLTWH(dx + w * 0.56, dy + h * 0.05, w * 0.22, h * 0.42));
       break;
 
+    case ShapeType.dog:
+      // 🐶 강아지 (늘어진 귀)
+      path.addOval(Rect.fromLTWH(dx + w * 0.25, dy + h * 0.25, w * 0.5, h * 0.6));
+      // 왼쪽 귀
+      path.addOval(Rect.fromLTWH(dx + w * 0.05, dy + h * 0.2, w * 0.25, h * 0.55));
+      // 오른쪽 귀
+      path.addOval(Rect.fromLTWH(dx + w * 0.7, dy + h * 0.2, w * 0.25, h * 0.55));
+      break;
+
+    case ShapeType.elephant:
+      // 🐘 코끼리 (큰 귀 & 코)
+      path.addOval(Rect.fromLTWH(dx + w * 0.25, dy + h * 0.25, w * 0.5, h * 0.5));
+      path.addOval(Rect.fromLTWH(dx + w * 0.05, dy + h * 0.2, w * 0.3, h * 0.45)); // 귀1
+      path.addOval(Rect.fromLTWH(dx + w * 0.65, dy + h * 0.2, w * 0.3, h * 0.45)); // 귀2
+      // 코
+      path.moveTo(dx + w * 0.45, dy + h * 0.65);
+      path.quadraticBezierTo(dx + w * 0.5, dy + h * 0.95, dx + w * 0.65, dy + h * 0.85);
+      path.lineTo(dx + w * 0.55, dy + h * 0.65);
+      break;
+
+    case ShapeType.lion:
+      // 🦁 사자 (갈기 & 얼굴)
+      final cx = dx + w / 2;
+      final cy = dy + h / 2;
+      final rx = w / 2;
+      const int manePoints = 12;
+      for (int i = 0; i <= manePoints; i++) {
+        final angle = i * 2 * pi / manePoints;
+        final r = (i % 2 == 0) ? rx : rx * 0.7;
+        final currX = cx + r * cos(angle);
+        final currY = cy + r * sin(angle);
+        if (i == 0) path.moveTo(currX, currY);
+        else path.lineTo(currX, currY);
+      }
+      path.close();
+      break;
+
+    case ShapeType.giraffe:
+      // 🦒 기린 (긴 목 & 뿔)
+      path.addOval(Rect.fromLTWH(dx + w * 0.3, dy + h * 0.2, w * 0.4, h * 0.45));
+      path.addRect(Rect.fromLTWH(dx + w * 0.38, dy + h * 0.55, w * 0.24, h * 0.4));
+      path.addOval(Rect.fromLTWH(dx + w * 0.32, dy + h * 0.05, w * 0.12, h * 0.18)); // 뿔1
+      path.addOval(Rect.fromLTWH(dx + w * 0.56, dy + h * 0.05, w * 0.12, h * 0.18)); // 뿔2
+      break;
+
+    case ShapeType.dolphin:
+      // 🐬 돌고래
+      path.moveTo(dx + w * 0.1, dy + h * 0.5);
+      path.quadraticBezierTo(dx + w * 0.4, dy + h * 0.08, dx + w * 0.9, dy + h * 0.5);
+      path.lineTo(dx + w * 1.0, dy + h * 0.38);
+      path.lineTo(dx + w * 0.92, dy + h * 0.5);
+      path.lineTo(dx + w * 1.0, dy + h * 0.62);
+      path.quadraticBezierTo(dx + w * 0.5, dy + h * 0.92, dx + w * 0.1, dy + h * 0.5);
+      path.close();
+      break;
+
     case ShapeType.fish:
-      // 열대어
+      // 🐠 물고기
       path.moveTo(dx + w * 0.08, dy + h * 0.5);
       path.quadraticBezierTo(dx + w * 0.45, dy + h * 0.12, dx + w * 0.78, dy + h * 0.5);
       path.lineTo(dx + w * 0.96, dy + h * 0.25);
@@ -111,7 +172,7 @@ Path getShapePath(ShapeType shape, Size size) {
       break;
 
     case ShapeType.whale:
-      // 아기 고래
+      // 🐳 아기 고래
       path.moveTo(dx + w * 0.1, dy + h * 0.6);
       path.quadraticBezierTo(dx + w * 0.15, dy + h * 0.25, dx + w * 0.65, dy + h * 0.3);
       path.quadraticBezierTo(dx + w * 0.85, dy + h * 0.3, dx + w * 0.95, dy + h * 0.55);
@@ -122,9 +183,8 @@ Path getShapePath(ShapeType shape, Size size) {
       break;
 
     case ShapeType.unicorn:
-      // 유니콘 뿔 & 머리
+      // 🦄 유니콘 뿔 & 머리
       path.addOval(Rect.fromLTWH(dx + w * 0.25, dy + h * 0.35, w * 0.5, h * 0.55));
-      // 뿔 (Triangle top)
       path.moveTo(dx + w * 0.5, dy + h * 0.05);
       path.lineTo(dx + w * 0.38, dy + h * 0.38);
       path.lineTo(dx + w * 0.62, dy + h * 0.38);
@@ -132,7 +192,7 @@ Path getShapePath(ShapeType shape, Size size) {
       break;
 
     case ShapeType.princess:
-      // 공주 왕관
+      // 👑 공주 왕관
       path.addOval(Rect.fromLTWH(dx + w * 0.2, dy + h * 0.45, w * 0.6, h * 0.5));
       path.moveTo(dx + w * 0.25, dy + h * 0.5);
       path.lineTo(dx + w * 0.15, dy + h * 0.15); 
@@ -145,7 +205,7 @@ Path getShapePath(ShapeType shape, Size size) {
       break;
 
     case ShapeType.rocket:
-      // 우주 로켓
+      // 🚀 로켓
       path.moveTo(dx + w * 0.5, dy + h * 0.08);
       path.quadraticBezierTo(dx + w * 0.8, dy + h * 0.3, dx + w * 0.7, dy + h * 0.75);
       path.lineTo(dx + w * 0.88, dy + h * 0.9);
@@ -159,36 +219,33 @@ Path getShapePath(ShapeType shape, Size size) {
       break;
 
     case ShapeType.flower:
-      // 꽃송이
-      final double cx = dx + w / 2;
-      final double cy = dy + h / 2;
-      final double rx = w / 2;
+      // 🌸 꽃
+      final cx = dx + w / 2;
+      final cy = dy + h / 2;
+      final rx = w / 2;
       const int petals = 5;
       for (int i = 0; i <= 360; i += 2) {
         final angle = i * pi / 180;
-        final double r = rx * (0.65 + 0.32 * cos(petals * angle).abs());
-        final double currX = cx + r * cos(angle);
-        final double currY = cy + r * sin(angle);
-        if (i == 0) {
-          path.moveTo(currX, currY);
-        } else {
-          path.lineTo(currX, currY);
-        }
+        final r = rx * (0.65 + 0.32 * cos(petals * angle).abs());
+        final currX = cx + r * cos(angle);
+        final currY = cy + r * sin(angle);
+        if (i == 0) path.moveTo(currX, currY);
+        else path.lineTo(currX, currY);
       }
       path.close();
       break;
 
     case ShapeType.star:
-      // 반짝 별
-      final double cx = dx + w / 2;
-      final double cy = dy + h / 2;
-      final double rx = w / 2;
+      // ⭐ 별
+      final cx = dx + w / 2;
+      final cy = dy + h / 2;
+      final rx = w / 2;
       const int points = 5;
-      final double angle = pi / points;
+      final angle = pi / points;
       for (int i = 0; i < 2 * points; i++) {
-        final double r = (i % 2 == 0) ? rx : rx * 0.45;
-        final double currX = cx + r * sin(i * angle);
-        final double currY = cy - r * cos(i * angle);
+        final r = (i % 2 == 0) ? rx : rx * 0.45;
+        final currX = cx + r * sin(i * angle);
+        final currY = cy - r * cos(i * angle);
         if (i == 0) path.moveTo(currX, currY);
         else path.lineTo(currX, currY);
       }
@@ -196,27 +253,56 @@ Path getShapePath(ShapeType shape, Size size) {
       break;
 
     case ShapeType.car:
-      // 붕붕이 자동차
+      // 🚗 붕붕이
       path.addRRect(RRect.fromRectAndRadius(
         Rect.fromLTWH(dx + w * 0.1, dy + h * 0.45, w * 0.8, h * 0.35),
         Radius.circular(w * 0.12),
       ));
-      // 루프/창문
       path.addRRect(RRect.fromRectAndRadius(
         Rect.fromLTWH(dx + w * 0.25, dy + h * 0.2, w * 0.5, h * 0.32),
         Radius.circular(w * 0.1),
       ));
-      // 바퀴 2개
       path.addOval(Rect.fromLTWH(dx + w * 0.2, dy + h * 0.7, w * 0.22, h * 0.22));
       path.addOval(Rect.fromLTWH(dx + w * 0.58, dy + h * 0.7, w * 0.22, h * 0.22));
       break;
 
     case ShapeType.heart:
-      // 사랑스러운 하트
+      // 💖 하트
       path.moveTo(dx + w / 2, dy + h / 5);
       path.cubicTo(dx + w * 5 / 6, dy - h / 10, dx + w * 1.1, dy + h * 2 / 5, dx + w / 2, dy + h * 9 / 10);
       path.cubicTo(dx - w * 0.1, dy + h * 2 / 5, dx + w / 6, dy - h / 10, dx + w / 2, dy + h / 5);
       path.close();
+      break;
+
+    case ShapeType.icecream:
+      // 🍦 아이스크림 콘
+      path.moveTo(dx + w * 0.2, dy + h * 0.45);
+      path.lineTo(dx + w * 0.5, dy + h * 0.95);
+      path.lineTo(dx + w * 0.8, dy + h * 0.45);
+      path.close();
+      // 스쿱
+      path.addOval(Rect.fromLTWH(dx + w * 0.15, dy + h * 0.1, w * 0.7, h * 0.45));
+      break;
+
+    case ShapeType.cake:
+      // 🎂 케이크 & 초
+      path.addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTWH(dx + w * 0.15, dy + h * 0.45, w * 0.7, h * 0.45),
+        Radius.circular(12),
+      ));
+      path.addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTWH(dx + w * 0.25, dy + h * 0.25, w * 0.5, h * 0.25),
+        Radius.circular(10),
+      ));
+      // 초
+      path.addRect(Rect.fromLTWH(dx + w * 0.45, dy + h * 0.08, w * 0.1, h * 0.18));
+      break;
+
+    case ShapeType.apple:
+      // 🍎 사과
+      path.addOval(Rect.fromLTWH(dx + w * 0.15, dy + h * 0.2, w * 0.7, h * 0.7));
+      // 잎사귀
+      path.addOval(Rect.fromLTWH(dx + w * 0.48, dy + h * 0.08, w * 0.25, h * 0.15));
       break;
   }
   return path;
@@ -225,50 +311,21 @@ Path getShapePath(ShapeType shape, Size size) {
 class DrawingEngine extends ChangeNotifier {
   final Map<ShapeType, List<Stroke>> shapeStrokes = {};
   final Map<ShapeType, Set<int>> shapeColoredGrid = {};
-  final Map<ShapeType, Set<int>> _shapeTargetMask = {};
-  final Map<ShapeType, bool> shapeCompleted = {};
   
-  final List<Confetti> confettiParticles = [];
   final List<Confetti> canvasSparkles = [];
-  
   final Random random = Random();
 
-  double characterTime = 0.0;
-  VoidCallback? onShapeCompleted;
-  static const int gridSize = 70;
-  int selectedBackgroundIndex = 0;
   double rainbowHue = 0.0;
 
   DrawingEngine() {
     for (var shape in ShapeType.values) {
       shapeStrokes[shape] = [];
       shapeColoredGrid[shape] = {};
-      shapeCompleted[shape] = false;
-      _shapeTargetMask[shape] = _calculateTargetMask(shape);
     }
     _loadState();
   }
 
-  Set<int> _calculateTargetMask(ShapeType shape) {
-    final mask = <int>{};
-    final path = getShapePath(shape, const Size(100, 100));
-    final cellSize = 100 / gridSize;
-
-    for (int y = 0; y < gridSize; y++) {
-      for (int x = 0; x < gridSize; x++) {
-        final cx = x * cellSize + cellSize / 2;
-        final cy = y * cellSize + cellSize / 2;
-        if (path.contains(Offset(cx, cy))) {
-          mask.add(y * gridSize + x);
-        }
-      }
-    }
-    return mask;
-  }
-
   void startStroke(ShapeType shape, Offset relativePoint, Color color, double canvasSize, double strokeWidth, {bool isRainbow = false}) {
-    if (shapeCompleted[shape]!) return;
-
     Color strokeColor = color;
     if (isRainbow) {
       rainbowHue = (rainbowHue + 15) % 360;
@@ -281,14 +338,11 @@ class DrawingEngine extends ChangeNotifier {
       strokeWidth: strokeWidth,
       isRainbow: isRainbow,
     ));
-    _updateGrid(shape, relativePoint, strokeColor, canvasSize, strokeWidth);
     _spawnSparkles(relativePoint, strokeColor);
     notifyListeners();
   }
 
   void addPointToLastStroke(ShapeType shape, Offset relativePoint, double canvasSize) {
-    if (shapeCompleted[shape]!) return;
-
     final strokes = shapeStrokes[shape]!;
     if (strokes.isNotEmpty) {
       final lastStroke = strokes.last;
@@ -299,7 +353,6 @@ class DrawingEngine extends ChangeNotifier {
       }
 
       lastStroke.points.add(relativePoint);
-      _updateGrid(shape, relativePoint, pointColor, canvasSize, lastStroke.strokeWidth);
       _spawnSparkles(relativePoint, pointColor);
       notifyListeners();
     }
@@ -318,98 +371,20 @@ class DrawingEngine extends ChangeNotifier {
     ));
   }
 
-  void _updateGrid(ShapeType shape, Offset relPoint, Color color, double canvasSize, double strokeWidth) {
-    final isEraser = color == Colors.white;
-    final double gcx = relPoint.dx * gridSize;
-    final double gcy = relPoint.dy * gridSize;
-    final double relativeStrokeWidth = strokeWidth / canvasSize;
-    final double gridRadius = (relativeStrokeWidth * 0.38) * gridSize;
-
-    final int minX = (gcx - gridRadius).floor().clamp(0, gridSize - 1);
-    final int maxX = (gcx + gridRadius).ceil().clamp(0, gridSize - 1);
-    final int minY = (gcy - gridRadius).floor().clamp(0, gridSize - 1);
-    final int maxY = (gcy + gridRadius).ceil().clamp(0, gridSize - 1);
-
-    bool changed = false;
-    for (int y = minY; y <= maxY; y++) {
-      for (int x = minX; x <= maxX; x++) {
-        final double dx = (x + 0.5) - gcx;
-        final double dy = (y + 0.5) - gcy;
-        if (dx * dx + dy * dy <= gridRadius * gridRadius) {
-          final index = y * gridSize + x;
-          if (isEraser) {
-            if (shapeColoredGrid[shape]!.remove(index)) changed = true;
-          } else {
-            if (_shapeTargetMask[shape]!.contains(index)) {
-              if (shapeColoredGrid[shape]!.add(index)) changed = true;
-            }
-          }
-        }
-      }
-    }
-
-    if (changed && !isEraser && !shapeCompleted[shape]!) {
-      _checkCompletion(shape);
-    }
-  }
-
-  void _checkCompletion(ShapeType shape) {
-    final targetMask = _shapeTargetMask[shape]!;
-    final colored = shapeColoredGrid[shape]!;
-    
-    // Strict completion requirement: Must color at least 94% of the shape!
-    if (targetMask.isNotEmpty && colored.length >= targetMask.length * 0.94) {
-      shapeCompleted[shape] = true;
-      _triggerConfetti();
-      _saveState();
-      // Award Star Coins
-      PlayerDataManager.instance.addStarCoin(3);
-      onShapeCompleted?.call();
-    }
-  }
-
-  void _triggerConfetti() {
-    for (int i = 0; i < 70; i++) {
-      confettiParticles.add(Confetti(
-        x: 0.5, y: 0.5,
-        vx: (random.nextDouble() - 0.5) * 0.05,
-        vy: (random.nextDouble() - 0.5) * 0.05 - 0.02,
-        color: KidsTheme.getRandomColor(),
-        size: random.nextDouble() * 9 + 6,
-      ));
-    }
-  }
-
   void update(double dt) {
-    bool hasActiveAnimation = confettiParticles.isNotEmpty || canvasSparkles.isNotEmpty || shapeCompleted.values.any((c) => c);
-
-    if (hasActiveAnimation) {
-      characterTime += dt;
-
-      for (var p in confettiParticles) {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.0015;
-        p.life -= 0.015;
-      }
-      confettiParticles.removeWhere((p) => p.life <= 0);
-
+    if (canvasSparkles.isNotEmpty) {
       for (var p in canvasSparkles) {
         p.x += p.vx;
         p.y += p.vy;
         p.life -= 0.05;
       }
       canvasSparkles.removeWhere((p) => p.life <= 0);
-
       notifyListeners();
     }
   }
 
   void clear(ShapeType shape) {
     shapeStrokes[shape]!.clear();
-    shapeColoredGrid[shape]!.clear();
-    shapeCompleted[shape] = false;
-    confettiParticles.clear();
     canvasSparkles.clear();
     _saveState();
     notifyListeners();
@@ -436,19 +411,7 @@ class DrawingEngine extends ChangeNotifier {
         }).toList();
       });
 
-      final Map<String, dynamic> gridMap = {};
-      shapeColoredGrid.forEach((key, gridSet) {
-        gridMap[key.name] = gridSet.toList();
-      });
-
-      final Map<String, dynamic> completedMap = {};
-      shapeCompleted.forEach((key, isDone) {
-        completedMap[key.name] = isDone;
-      });
-
       box.put('shape_strokes', strokesMap);
-      box.put('shape_grid', gridMap);
-      box.put('shape_completed', completedMap);
     } catch (e) {
       debugPrint('Error saving drawing state: $e');
     }
@@ -457,14 +420,6 @@ class DrawingEngine extends ChangeNotifier {
   void _loadState() {
     try {
       final box = Hive.box('high_scores_box');
-
-      final rawCompleted = box.get('shape_completed');
-      if (rawCompleted is Map) {
-        rawCompleted.forEach((key, value) {
-          final shape = ShapeType.values.firstWhere((e) => e.name == key, orElse: () => ShapeType.bear);
-          shapeCompleted[shape] = value as bool;
-        });
-      }
 
       final rawStrokes = box.get('shape_strokes');
       if (rawStrokes is Map) {
@@ -485,15 +440,6 @@ class DrawingEngine extends ChangeNotifier {
               isRainbow: (m['isRainbow'] as bool?) ?? false,
             );
           }).toList();
-        });
-      }
-
-      final rawGrid = box.get('shape_grid');
-      if (rawGrid is Map) {
-        rawGrid.forEach((key, value) {
-          final shape = ShapeType.values.firstWhere((e) => e.name == key, orElse: () => ShapeType.bear);
-          final List<dynamic> list = value as List<dynamic>;
-          shapeColoredGrid[shape] = list.map((i) => i as int).toSet();
         });
       }
       notifyListeners();
@@ -532,16 +478,10 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
 
   final List<double> _brushSizes = [10.0, 20.0, 36.0];
 
-  late AnimationController _bounceController;
-  late Animation<double> _bounceAnimation;
-  
-  bool _showSuccessText = false;
-
   @override
   void initState() {
     super.initState();
     _engine = DrawingEngine();
-    _engine.onShapeCompleted = _onShapeCompleted;
 
     _bgAnimCtrl = AnimationController(
       vsync: this,
@@ -551,34 +491,11 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
     _ticker = createTicker((elapsed) {
       _engine.update(0.016);
     })..start();
-
-    _bounceController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    );
-    _bounceAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.15).chain(CurveTween(curve: Curves.easeOutBack)), weight: 30),
-      TweenSequenceItem(tween: Tween(begin: 1.15, end: 1.0).chain(CurveTween(curve: Curves.bounceOut)), weight: 70),
-    ]).animate(_bounceController);
-    
-    _bounceController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        if (mounted) setState(() => _showSuccessText = false);
-      }
-    });
-  }
-
-  void _onShapeCompleted() {
-    AudioManager.instance.playSuccess();
-    HapticFeedback.heavyImpact();
-    setState(() => _showSuccessText = true);
-    _bounceController.forward(from: 0.0);
   }
 
   @override
   void dispose() {
     _ticker.dispose();
-    _bounceController.dispose();
     _bgAnimCtrl.dispose();
     _engine.dispose();
     super.dispose();
@@ -595,15 +512,23 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
       case ShapeType.bear: return '🐻 곰돌이';
       case ShapeType.cat: return '🐱 야옹이';
       case ShapeType.bunny: return '🐰 토끼';
+      case ShapeType.dog: return '🐶 강아지';
+      case ShapeType.elephant: return '🐘 코끼리';
+      case ShapeType.lion: return '🦁 사자';
+      case ShapeType.giraffe: return '🦒 기린';
+      case ShapeType.dolphin: return '🐬 돌고래';
       case ShapeType.fish: return '🐠 물고기';
-      case ShapeType.whale: return '🐳 아기고래';
+      case ShapeType.whale: return '🐳 고래';
       case ShapeType.unicorn: return '🦄 유니콘';
       case ShapeType.princess: return '👑 왕관';
       case ShapeType.rocket: return '🚀 로켓';
-      case ShapeType.flower: return '🌸 예쁜꽃';
-      case ShapeType.star: return '⭐ 반짝별';
+      case ShapeType.flower: return '🌸 꽃';
+      case ShapeType.star: return '⭐ 별';
       case ShapeType.car: return '🚗 붕붕이';
       case ShapeType.heart: return '💖 하트';
+      case ShapeType.icecream: return '🍦 아이스크림';
+      case ShapeType.cake: return '🎂 케이크';
+      case ShapeType.apple: return '🍎 사과';
     }
   }
 
@@ -757,11 +682,12 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
                 ),
               ),
 
-              // 귀여운 동물/모양 선택 카루셀
+              // 20종 동물/모양 선택 카루셀 (깔끔한 텍스트 뱃지)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: ListenableBuilder(
                     listenable: _engine,
@@ -769,11 +695,9 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
                       return Row(
                         children: ShapeType.values.map((shape) {
                           final isSelected = _selectedShape == shape;
-                          final isColored = _engine.isShapeColored(shape);
-                          final isCompleted = _engine.shapeCompleted[shape] ?? false;
 
                           return Padding(
-                            padding: const EdgeInsets.only(right: 10.0),
+                            padding: const EdgeInsets.only(right: 8.0),
                             child: GestureDetector(
                               onTap: () {
                                 AudioManager.instance.playClick();
@@ -783,37 +707,24 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 250),
                                 curve: Curves.easeOutBack,
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                 decoration: BoxDecoration(
-                                  color: isSelected ? const Color(0xFFFF9F43) : Colors.white.withValues(alpha: 0.85),
+                                  color: isSelected ? const Color(0xFFFF9F43) : Colors.white.withValues(alpha: 0.9),
                                   borderRadius: BorderRadius.circular(24),
                                   border: Border.all(
                                     color: isSelected ? Colors.white : const Color(0xFFFFCC80),
-                                    width: 3,
+                                    width: 2.5,
                                   ),
                                   boxShadow: isSelected
-                                      ? [const BoxShadow(color: Color(0xFFFF9F43), blurRadius: 10, offset: Offset(0, 4))]
+                                      ? [const BoxShadow(color: Color(0xFFFF9F43), blurRadius: 8, offset: Offset(0, 3))]
                                       : [const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                                 ),
-                                child: Row(
-                                  children: [
-                                    CustomPaint(
-                                      size: const Size(24, 24),
-                                      painter: _ShapeItemPainter(
-                                        shape: shape,
-                                        isColored: isColored,
-                                        coloredColor: isColored ? const Color(0xFFFF6B8B) : Colors.white,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      isCompleted ? '${_getShapeNameKo(shape)} ✨' : _getShapeNameKo(shape),
-                                      style: GoogleFonts.jua(
-                                        fontSize: 16,
-                                        color: isSelected ? Colors.white : KidsTheme.textDark,
-                                      ),
-                                    ),
-                                  ],
+                                child: Text(
+                                  _getShapeNameKo(shape),
+                                  style: GoogleFonts.jua(
+                                    fontSize: 16,
+                                    color: isSelected ? Colors.white : KidsTheme.textDark,
+                                  ),
                                 ),
                               ),
                             ),
@@ -877,14 +788,11 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
                                     },
                                     onPanEnd: (details) => _engine.saveState(),
                                     onPanCancel: () => _engine.saveState(),
-                                    child: ScaleTransition(
-                                      scale: _bounceAnimation,
-                                      child: CustomPaint(
-                                        size: Size(canvasWidth, canvasHeight),
-                                        painter: _MainShapePainter(
-                                          shape: _selectedShape,
-                                          engine: _engine,
-                                        ),
+                                    child: CustomPaint(
+                                      size: Size(canvasWidth, canvasHeight),
+                                      painter: _MainShapePainter(
+                                        shape: _selectedShape,
+                                        engine: _engine,
                                       ),
                                     ),
                                   );
@@ -930,6 +838,7 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
                           // 붓 두께 선택바
                           SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -1094,56 +1003,6 @@ class _ShapeColoringGameState extends State<ShapeColoringGame> with TickerProvid
               ),
             ],
           ),
-          
-          // "참 잘했어요!" 성공 팝업 애니메이션
-          if (_showSuccessText)
-            Positioned(
-              top: MediaQuery.of(context).size.height * 0.38,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: IgnorePointer(
-                  child: ScaleTransition(
-                    scale: _bounceAnimation,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFF6B8B), Color(0xFFFF8E53)],
-                        ),
-                        borderRadius: BorderRadius.circular(40),
-                        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 15, offset: Offset(0, 8))],
-                        border: Border.all(color: Colors.white, width: 4),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '참 잘했어요! 💖 ⭐+3',
-                            style: GoogleFonts.jua(fontSize: 32, color: Colors.white),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-          // 폭죽 이펙트 (스크린 전체)
-          Positioned.fill(
-            child: IgnorePointer(
-              child: ListenableBuilder(
-                listenable: _engine,
-                builder: (context, child) {
-                  if (_engine.confettiParticles.isEmpty) return const SizedBox.shrink();
-                  return CustomPaint(
-                    painter: _ConfettiPainter(_engine.confettiParticles),
-                  );
-                }
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -1169,52 +1028,6 @@ class _CanvasSparklePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
-class _ConfettiPainter extends CustomPainter {
-  final List<Confetti> particles;
-  _ConfettiPainter(this.particles);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (var p in particles) {
-      final paint = Paint()
-        ..color = p.color
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(Offset(p.x * size.width, p.y * size.height), p.size, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
-
-class _ShapeItemPainter extends CustomPainter {
-  final ShapeType shape;
-  final bool isColored;
-  final Color coloredColor;
-
-  _ShapeItemPainter({required this.shape, required this.isColored, required this.coloredColor});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
-    final paint = Paint()
-      ..shader = RadialGradient(
-        colors: [coloredColor.withValues(alpha: 0.5), coloredColor],
-        center: const Alignment(-0.3, -0.3),
-        radius: 0.8,
-      ).createShader(rect)
-      ..style = PaintingStyle.fill;
-    final strokePaint = Paint()..color = KidsTheme.borderDark..style = PaintingStyle.stroke..strokeWidth = 2;
-    
-    final path = getShapePath(shape, size);
-    canvas.drawPath(path, paint);
-    canvas.drawPath(path, strokePaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _ShapeItemPainter oldDelegate) => true;
-}
-
 class _MainShapePainter extends CustomPainter {
   final ShapeType shape;
   final DrawingEngine engine;
@@ -1225,7 +1038,6 @@ class _MainShapePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
     final shapePath = getShapePath(shape, size);
-    final isCompleted = engine.shapeCompleted[shape] ?? false;
 
     canvas.save();
     canvas.clipPath(shapePath);
@@ -1271,9 +1083,9 @@ class _MainShapePainter extends CustomPainter {
     canvas.restore();
 
     final strokePaint = Paint()
-      ..color = isCompleted ? const Color(0xFFFF9F43) : KidsTheme.borderDark
+      ..color = KidsTheme.borderDark
       ..style = PaintingStyle.stroke
-      ..strokeWidth = isCompleted ? 8 : 6;
+      ..strokeWidth = 6;
     canvas.drawPath(shapePath, strokePaint);
   }
 
