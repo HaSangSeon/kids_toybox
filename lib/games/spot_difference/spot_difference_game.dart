@@ -543,113 +543,107 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
           SafeArea(
             child: Column(
               children: [
-                // 3D Glassmorphic 프리미엄 헤더
+                // 3D 글래스 헤더 (BackdropFilter 대신 경량화 60fps translucent container 사용)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(32),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                      child: Container(
-                        height: 64,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.75),
-                          borderRadius: BorderRadius.circular(32),
-                          border: Border.all(color: Colors.white, width: 2.5),
-                          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))],
+                  child: Container(
+                    height: 64,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      borderRadius: BorderRadius.circular(32),
+                      border: Border.all(color: Colors.white, width: 2.5),
+                      boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))],
+                    ),
+                    child: Row(
+                      children: [
+                        // 🏠 뒤로가기 버튼
+                        GestureDetector(
+                          onTap: () {
+                            AudioManager.instance.playClick();
+                            Navigator.of(context).pop();
+                          },
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: const Color(0xFFFFB74D), width: 2),
+                              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+                            ),
+                            child: const Icon(Icons.arrow_back, color: KidsTheme.textDark, size: 26),
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            // 🏠 뒤로가기 버튼
-                            GestureDetector(
-                              onTap: () {
-                                AudioManager.instance.playClick();
-                                Navigator.of(context).pop();
-                              },
+                        
+                        // 🎨 메인 타이틀
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              '틀린그림 찾기 🔍 (Lv $_currentRound/$_totalRounds)',
+                              style: GoogleFonts.jua(
+                                fontSize: 19,
+                                foreground: Paint()
+                                  ..style = PaintingStyle.fill
+                                  ..color = KidsTheme.purple,
+                                shadows: const [
+                                  Shadow(color: Colors.white, offset: Offset(1.5, 1.5)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // ⭐ 별코인 카운터
+                        ValueListenableBuilder<int>(
+                          valueListenable: PlayerDataManager.instance.starCoinsNotifier,
+                          builder: (context, starCoins, child) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text('⭐', style: TextStyle(fontSize: 14)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '$starCoins',
+                                    style: GoogleFonts.jua(fontSize: 14, color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 8),
+
+                        // 🪄 힌트 요술봉 버튼
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            return GestureDetector(
+                              onTap: () => _useHint(constraints),
                               child: Container(
                                 width: 44,
                                 height: 44,
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: KidsTheme.yellow,
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: const Color(0xFFFFB74D), width: 2),
+                                  border: Border.all(color: Colors.white, width: 2),
                                   boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                                 ),
-                                child: const Icon(Icons.arrow_back, color: KidsTheme.textDark, size: 26),
+                                child: const Center(child: Text('🪄', style: TextStyle(fontSize: 22))),
                               ),
-                            ),
-                            
-                            // 🎨 메인 타이틀
-                            Expanded(
-                              child: Center(
-                                child: Text(
-                                  '틀린그림 찾기 🔍 (Lv $_currentRound/$_totalRounds)',
-                                  style: GoogleFonts.jua(
-                                    fontSize: 19,
-                                    foreground: Paint()
-                                      ..style = PaintingStyle.fill
-                                      ..color = KidsTheme.purple,
-                                    shadows: const [
-                                      Shadow(color: Colors.white, offset: Offset(1.5, 1.5)),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                            // ⭐ 별코인 카운터
-                            ValueListenableBuilder<int>(
-                              valueListenable: PlayerDataManager.instance.starCoinsNotifier,
-                              builder: (context, starCoins, child) {
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Text('⭐', style: TextStyle(fontSize: 14)),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '$starCoins',
-                                        style: GoogleFonts.jua(fontSize: 14, color: Colors.white),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(width: 8),
-
-                            // 🪄 힌트 요술봉 버튼
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                return GestureDetector(
-                                  onTap: () => _useHint(constraints),
-                                  child: Container(
-                                    width: 44,
-                                    height: 44,
-                                    decoration: BoxDecoration(
-                                      color: KidsTheme.yellow,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 2),
-                                      boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
-                                    ),
-                                    child: const Center(child: Text('🪄', style: TextStyle(fontSize: 22))),
-                                  ),
-                                );
-                              }
-                            ),
-                          ],
+                            );
+                          }
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ),

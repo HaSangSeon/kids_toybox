@@ -261,32 +261,34 @@ class _LobbyScreenState extends State<LobbyScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // ── Animated sky background ──────────────────────────────────────
-          AnimatedBuilder(
-            animation: Listenable.merge([_cloudController, _starController]),
-            builder: (_, __) {
-              return CustomPaint(
-                painter: _StarPainter(_starController.value, _stars),
-                child: CustomPaint(
-                  painter: _CloudPainter(_cloudController.value),
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Color(0xFF9FD8FF), // dreamy sky blue
-                          Color(0xFFB8EDFF),
-                          Color(0xFFFFE8F5), // soft cotton candy pink
-                          Color(0xFFFFF5CC), // warm lemon cream
-                        ],
-                        stops: [0.0, 0.3, 0.7, 1.0],
+          // ── Animated sky background (RepaintBoundary for 60fps) ────────────
+          RepaintBoundary(
+            child: AnimatedBuilder(
+              animation: Listenable.merge([_cloudController, _starController]),
+              builder: (_, __) {
+                return CustomPaint(
+                  painter: _StarPainter(_starController.value, _stars),
+                  child: CustomPaint(
+                    painter: _CloudPainter(_cloudController.value),
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0xFF9FD8FF), // dreamy sky blue
+                            Color(0xFFB8EDFF),
+                            Color(0xFFFFE8F5), // soft cotton candy pink
+                            Color(0xFFFFF5CC), // warm lemon cream
+                          ],
+                          stops: [0.0, 0.3, 0.7, 1.0],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
 
           // ── Main content ─────────────────────────────────────────────────
