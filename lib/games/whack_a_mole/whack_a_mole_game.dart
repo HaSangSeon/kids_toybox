@@ -122,11 +122,13 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
 
   int? _activeHammerIndex;
   int _combo = 0;
+  double _skyTime = 0.0;
 
   @override
   void initState() {
     super.initState();
     _ticker = createTicker(_onTick);
+    _ticker.start();
   }
 
   @override
@@ -138,18 +140,20 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
     super.dispose();
   }
 
-  // ── Ticker: 떠다니는 텍스트 애니메이션 ───────────────────────────────────
+  // ── Ticker: 배경 애니메이션 & 떠다니는 텍스트 ──────────────────────────────
   void _onTick(Duration elapsed) {
-    if (_isGameOver || !_isPlaying) return;
     final dt = ((elapsed.inMicroseconds - _lastElapsed.inMicroseconds) / 1e6)
         .clamp(0.0, 0.05);
     _lastElapsed = elapsed;
     setState(() {
-      for (final e in _effects) {
-        e.yOffset -= 65.0 * dt;
-        e.opacity -= 1.6 * dt;
+      _skyTime += dt;
+      if (_isPlaying && !_isGameOver) {
+        for (final e in _effects) {
+          e.yOffset -= 65.0 * dt;
+          e.opacity -= 1.6 * dt;
+        }
+        _effects.removeWhere((e) => e.opacity <= 0);
       }
-      _effects.removeWhere((e) => e.opacity <= 0);
     });
   }
 
@@ -172,9 +176,6 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
     });
 
     _lastElapsed = Duration.zero;
-    _ticker.stop();
-    _ticker.start();
-
     _gameTimer?.cancel();
     _gameTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_timeLeft > 0) {
@@ -191,7 +192,6 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
   void _endGame() {
     _gameTimer?.cancel();
     _spawnTimer?.cancel();
-    _ticker.stop();
     for (final m in _moles) {
       m.cancelRetract();
       m.isUp = false;
@@ -335,10 +335,12 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 아기자기한 배경
+          // 아기자기한 동적 60fps 배경
           Positioned.fill(
-            child: CustomPaint(
-              painter: _FarmBackgroundPainter(),
+            child: RepaintBoundary(
+              child: CustomPaint(
+                painter: _FarmBackgroundPainter(_skyTime),
+              ),
             ),
           ),
 
@@ -386,7 +388,7 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
     );
   }
 
-  // ── 레벨 선택 화면 ────────────────────────────────────────────────────────
+  // ── 레벨 선택 화면 (아기자기하고 고급스러운 3D 디자인) ────────────────────────────────
   Widget _buildLevelSelect(BuildContext context) {
     return SafeArea(
       child: Column(
@@ -404,45 +406,49 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
                 child: Container(
                   width: 52, height: 52,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF6B6B),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: KidsTheme.borderDark, width: 3),
-                    boxShadow: const [BoxShadow(color: Color(0xFFCC4444), offset: Offset(0, 4))],
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFFF6B6B), width: 2.5),
+                    boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3))],
                   ),
-                  child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 22),
+                  child: const Icon(Icons.arrow_back, color: Color(0xFFFF6B6B), size: 28),
                 ),
               ),
             ),
           ),
           const Spacer(),
-          // 타이틀
+          // 3D 글래스모피즘 타이틀
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: KidsTheme.borderDark, width: 3),
-              boxShadow: const [BoxShadow(color: Color(0x44000000), blurRadius: 8, offset: Offset(0,4))],
+              color: Colors.white.withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(color: Colors.white, width: 3),
+              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 16, offset: Offset(0,8))],
             ),
-            child: Text(
-              '🔨 두더지 잡기',
-              style: GoogleFonts.jua(fontSize: 34, color: KidsTheme.textDark),
+            child: Column(
+              children: [
+                Text(
+                  '🔨 두더지 잡기',
+                  style: GoogleFonts.jua(fontSize: 38, color: KidsTheme.purple),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '난이도를 선택하세요!',
+                  style: GoogleFonts.jua(fontSize: 18, color: const Color(0xFF636E72)),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '난이도를 선택하세요!',
-            style: GoogleFonts.jua(fontSize: 20, color: KidsTheme.textDark.withOpacity(0.85)),
           ),
           const Spacer(),
           // 레벨 카드들
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               children: List.generate(_levels.length, (i) {
                 final cfg = _levels[i];
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
+                  padding: const EdgeInsets.only(bottom: 16),
                   child: GestureDetector(
                     onTap: () {
                       AudioManager.instance.playClick();
@@ -452,24 +458,37 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
                     },
                     child: Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                       decoration: BoxDecoration(
-                        color: cfg.color,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: KidsTheme.borderDark, width: 3),
+                        gradient: LinearGradient(
+                          colors: [
+                            cfg.color,
+                            HSLColor.fromColor(cfg.color).withLightness((HSLColor.fromColor(cfg.color).lightness - 0.08).clamp(0,1)).toColor(),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 2),
                         boxShadow: [
                           BoxShadow(
-                            color: HSLColor.fromColor(cfg.color).withLightness(
-                              (HSLColor.fromColor(cfg.color).lightness - 0.15).clamp(0, 1),
-                            ).toColor(),
-                            offset: const Offset(0, 5),
+                            color: HSLColor.fromColor(cfg.color).withLightness((HSLColor.fromColor(cfg.color).lightness - 0.2).clamp(0, 1)).toColor(),
+                            offset: const Offset(0, 6),
                             blurRadius: 0,
                           ),
+                          const BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 8)),
                         ],
                       ),
                       child: Row(
                         children: [
-                          Text(cfg.emoji, style: const TextStyle(fontSize: 36)),
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: const BoxDecoration(
+                              color: Colors.white24,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(cfg.emoji, style: const TextStyle(fontSize: 34)),
+                          ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: Column(
@@ -477,7 +496,7 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
                               children: [
                                 Text(
                                   'Lv${cfg.level} · ${cfg.label}',
-                                  style: GoogleFonts.jua(fontSize: 22, color: Colors.white),
+                                  style: GoogleFonts.jua(fontSize: 24, color: Colors.white),
                                 ),
                                 Text(
                                   _levelDescription(cfg),
@@ -920,8 +939,11 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
   }
 }
 
-// ── 배경 페인터 (농장/정원 테마) ─────────────────────────────────────────────
+// ── 동적 배경 페인터 (농장/정원 테마 + 움직이는 구름/새) ─────────────────────────────────────────────
 class _FarmBackgroundPainter extends CustomPainter {
+  final double time;
+  _FarmBackgroundPainter(this.time);
+
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
@@ -950,10 +972,20 @@ class _FarmBackgroundPainter extends CustomPainter {
       Paint()..color = const Color(0xFFFFF9C4),
     );
 
-    // 구름들
-    _cloud(canvas, Offset(w * 0.1, h * 0.06), 0.9);
-    _cloud(canvas, Offset(w * 0.5, h * 0.04), 1.2);
-    _cloud(canvas, Offset(w * 0.72, h * 0.10), 0.7);
+    // 구름들 (시간에 따라 이동)
+    final cloudOffset1 = (time * 15) % (w + 200) - 100;
+    final cloudOffset2 = (time * 10 + 200) % (w + 200) - 100;
+    final cloudOffset3 = (time * 22 + 400) % (w + 200) - 100;
+
+    _cloud(canvas, Offset(cloudOffset1, h * 0.06), 0.9);
+    _cloud(canvas, Offset(w - cloudOffset2, h * 0.04), 1.2);
+    _cloud(canvas, Offset(cloudOffset3, h * 0.10), 0.7);
+
+    // 새들 (v 모양으로 날아감)
+    final birdOffset1 = (time * 40) % (w + 100) - 50;
+    final birdOffset2 = (time * 50 + 300) % (w + 100) - 50;
+    _bird(canvas, Offset(birdOffset1, h * 0.15 + sin(time * 3) * 10), 1.0);
+    _bird(canvas, Offset(w - birdOffset2, h * 0.2 + cos(time * 4) * 15), 0.7);
 
     // 뒷 언덕
     _hill(canvas, size, xOff: 0, yCenter: h * 0.60, width: w * 1.4,
@@ -997,8 +1029,23 @@ class _FarmBackgroundPainter extends CustomPainter {
     _scarecrow(canvas, Offset(w * 0.5, h * 0.58));
   }
 
+  void _bird(Canvas canvas, Offset center, double scale) {
+    final path = Path()
+      ..moveTo(center.dx - 12 * scale, center.dy - 8 * scale)
+      ..quadraticBezierTo(center.dx - 6 * scale, center.dy, center.dx, center.dy + 4 * scale)
+      ..quadraticBezierTo(center.dx + 6 * scale, center.dy, center.dx + 12 * scale, center.dy - 8 * scale);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = const Color(0xFF78909C)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5 * scale
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
   void _cloud(Canvas canvas, Offset c, double s) {
-    final p = Paint()..color = Colors.white.withOpacity(0.92);
+    final p = Paint()..color = Colors.white.withValues(alpha: 0.92);
     for (final pair in [
       [0.0, 0.0, 22.0], [-28.0, 8.0, 16.0],
       [26.0, 6.0, 18.0], [-50.0, 14.0, 13.0],
@@ -1099,5 +1146,5 @@ class _FarmBackgroundPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_FarmBackgroundPainter old) => false;
+  bool shouldRepaint(covariant _FarmBackgroundPainter oldDelegate) => true;
 }
