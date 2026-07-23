@@ -773,7 +773,7 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
               }
             ),
 
-            // Stage Clear Bouncy Overlay
+            // Stage Clear Bouncy Overlay (Clean 3D Popup with Home & Next Stage buttons)
             ListenableBuilder(
               listenable: _engine,
               builder: (context, child) {
@@ -781,71 +781,139 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
 
                 return Positioned.fill(
                   child: Container(
-                    color: Colors.black.withOpacity(0.55),
+                    color: Colors.black.withValues(alpha: 0.65),
                     child: Center(
                       child: ScaleTransition(
                         scale: _clearScaleAnimation,
                         child: Container(
-                          width: 300,
-                          padding: const EdgeInsets.all(28),
-                          decoration: KidsTheme.toyDecoration(
-                            color: Colors.white,
-                            borderRadius: 32,
+                          width: 320,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.96),
+                            borderRadius: BorderRadius.circular(32),
+                            border: Border.all(color: const Color(0xFFFFD700), width: 3.5),
+                            boxShadow: const [
+                              BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 8)),
+                            ],
                           ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Text(
-                                '참 잘했어요! 👍',
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w900,
-                                  color: KidsTheme.pink,
+                              const Text('🎉 🎈 🏆', style: TextStyle(fontSize: 42)),
+                              const SizedBox(height: 10),
+                              Text(
+                                '참 잘했어요!',
+                                style: GoogleFonts.jua(
+                                  fontSize: 26,
+                                  color: KidsTheme.purple,
                                 ),
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 4),
                               Text(
-                                '${_engine.stage}단계 통과! 🎉',
-                                style: const TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w900,
-                                  color: KidsTheme.textDark,
+                                '${_engine.stage}단계 미션 성공!',
+                                style: GoogleFonts.jua(
+                                  fontSize: 20,
+                                  color: const Color(0xFF10AC84),
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              Text(
-                                '누적 점수: ${_engine.totalScore} 점 🏆',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: KidsTheme.orange,
+
+                              // Score Box
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFFFFF9C4), Color(0xFFFFECB3)],
+                                  ),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: const Color(0xFFFFD54F), width: 1.5),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text('누적 점수: ', style: GoogleFonts.jua(fontSize: 16, color: KidsTheme.textDark)),
+                                        Text('${_engine.totalScore} 점', style: GoogleFonts.jua(fontSize: 18, color: const Color(0xFFFF6B6B))),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    const Text('⭐ 별코인 +1 획득!', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFFF59E0B))),
+                                  ],
                                 ),
                               ),
                               const SizedBox(height: 24),
-                              GestureDetector(
-                                onTap: () {
-                                  AudioManager.instance.playEffect('audio/click.wav');
-                                  HapticFeedback.mediumImpact();
-                                  _engine.nextStage();
-                                },
-                                child: Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  decoration: KidsTheme.toyDecoration(
-                                    color: KidsTheme.green,
-                                    borderRadius: 20,
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      '다음 단계로! (${_engine.stage + 1}단계) 🚀',
-                                      style: const TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
+
+                              // Action Buttons: [🏠 메인으로] [🚀 다음 단계]
+                              Row(
+                                children: [
+                                  // 🏠 메인으로
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        AudioManager.instance.playClick();
+                                        HapticFeedback.mediumImpact();
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 14),
+                                        decoration: BoxDecoration(
+                                          gradient: const LinearGradient(
+                                            colors: [Color(0xFFFF6B6B), Color(0xFFEE5253)],
+                                          ),
+                                          borderRadius: BorderRadius.circular(20),
+                                          boxShadow: const [
+                                            BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3)),
+                                          ],
+                                        ),
+                                        child: Center(
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              const Icon(Icons.home_rounded, color: Colors.white, size: 20),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '메인으로',
+                                                style: GoogleFonts.jua(fontSize: 16, color: Colors.white),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
+                                  const SizedBox(width: 10),
+
+                                  // 🚀 다음 단계로
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        AudioManager.instance.playClick();
+                                        HapticFeedback.mediumImpact();
+                                        _engine.nextStage();
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 14),
+                                        decoration: BoxDecoration(
+                                          gradient: const LinearGradient(
+                                            colors: [Color(0xFF1DD1A1), Color(0xFF10AC84)],
+                                          ),
+                                          borderRadius: BorderRadius.circular(20),
+                                          boxShadow: const [
+                                            BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3)),
+                                          ],
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            '다음 단계 (${_engine.stage + 1}단계) 🚀',
+                                            style: GoogleFonts.jua(fontSize: 15, color: Colors.white),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -854,9 +922,8 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                     ),
                   ),
                 );
-              }
+              },
             ),
-
 
             // Game Over Bouncy Overlay
             ListenableBuilder(
@@ -872,76 +939,111 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                         scale: _gameOverScaleAnimation,
                         child: Container(
                           width: 320,
-                          padding: const EdgeInsets.all(32),
-                          decoration: KidsTheme.toyDecoration(
-                            color: Colors.white,
-                            borderRadius: 32,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.96),
+                            borderRadius: BorderRadius.circular(32),
+                            border: Border.all(color: const Color(0xFFFF6B6B), width: 3),
+                            boxShadow: const [
+                              BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 8)),
+                            ],
                           ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Text(
-                                '풍선이 도망갔어요! 😢',
-                                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: KidsTheme.textLight),
+                              const Text('🎈 😢 💥', style: TextStyle(fontSize: 42)),
+                              const SizedBox(height: 10),
+                              Text(
+                                '풍선이 도망갔어요!',
+                                style: GoogleFonts.jua(fontSize: 24, color: const Color(0xFFFF4757)),
                               ),
-                              const SizedBox(height: 12),
-                              const Text(
-                                '게임 종료 🎈',
-                                style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: KidsTheme.red),
-                              ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 16),
                               Container(
-                                padding: const EdgeInsets.all(16),
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFFFF9C4),
                                   borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: const Color(0xFFFFD54F), width: 1.5),
                                 ),
                                 child: Column(
                                   children: [
                                     Text(
                                       '도달한 단계: ${_engine.stage}단계',
-                                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: KidsTheme.orange),
+                                      style: GoogleFonts.jua(fontSize: 16, color: KidsTheme.textDark),
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 4),
                                     Text(
-                                      '내가 모은 점수: ${_engine.totalScore} 점',
-                                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: KidsTheme.textDark),
+                                      '최종 점수: ${_engine.totalScore} 점',
+                                      style: GoogleFonts.jua(fontSize: 18, color: const Color(0xFFFF6B6B)),
                                     ),
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 32),
+                              const SizedBox(height: 24),
                               Row(
                                 children: [
+                                  // 🏠 메인으로
                                   Expanded(
                                     child: GestureDetector(
                                       onTap: () {
-                                        AudioManager.instance.playEffect('audio/click.wav');
+                                        AudioManager.instance.playClick();
                                         HapticFeedback.mediumImpact();
                                         Navigator.of(context).pop();
                                       },
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
-                                        decoration: KidsTheme.toyDecoration(color: KidsTheme.red, borderRadius: 20),
-                                        child: const Center(
-                                          child: Text('그만하기 🏠', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                                        padding: const EdgeInsets.symmetric(vertical: 14),
+                                        decoration: BoxDecoration(
+                                          gradient: const LinearGradient(
+                                            colors: [Color(0xFF576574), Color(0xFF222F3E)],
+                                          ),
+                                          borderRadius: BorderRadius.circular(20),
+                                          boxShadow: const [
+                                            BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3)),
+                                          ],
+                                        ),
+                                        child: Center(
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              const Icon(Icons.home_rounded, color: Colors.white, size: 20),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '메인으로',
+                                                style: GoogleFonts.jua(fontSize: 16, color: Colors.white),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: 10),
+
+                                  // 🔄 다시하기
                                   Expanded(
                                     child: GestureDetector(
                                       onTap: () {
-                                        AudioManager.instance.playEffect('audio/click.wav');
+                                        AudioManager.instance.playClick();
                                         HapticFeedback.mediumImpact();
                                         _engine.reset();
                                       },
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
-                                        decoration: KidsTheme.toyDecoration(color: KidsTheme.green, borderRadius: 20),
-                                        child: const Center(
-                                          child: Text('다시하기 🔄', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                                        padding: const EdgeInsets.symmetric(vertical: 14),
+                                        decoration: BoxDecoration(
+                                          gradient: const LinearGradient(
+                                            colors: [Color(0xFF1DD1A1), Color(0xFF10AC84)],
+                                          ),
+                                          borderRadius: BorderRadius.circular(20),
+                                          boxShadow: const [
+                                            BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3)),
+                                          ],
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            '다시하기 🔄',
+                                            style: GoogleFonts.jua(fontSize: 16, color: Colors.white),
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -955,7 +1057,7 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                     ),
                   ),
                 );
-              }
+              },
             ),
 
           ],
