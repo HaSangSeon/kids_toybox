@@ -300,7 +300,7 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
         break;
       case MoleType.golden:
         pts = 30 + (_combo >= 3 ? (_combo - 2) * 10 : 0);
-        popText = '+$pts ⭐$comboBonus';
+        popText = '+$pts ✨$comboBonus';
         popColor = Colors.amberAccent;
         _score += pts;
         AudioManager.instance.playHammerWhack();
@@ -504,7 +504,7 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
   String _levelDescription(_LevelConfig cfg) {
     switch (cfg.level) {
       case 1: return '두더지 1마리씩, 천천히 등장해요 🐹';
-      case 2: return '두더지 2마리, 황금두더지 등장 ⭐';
+      case 2: return '두더지 2마리, 황금두더지 등장 ✨';
       case 3: return '빠르게! 가시두더지 조심! 🦔';
       default: return '';
     }
@@ -536,7 +536,7 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
             ),
           ),
           const SizedBox(width: 12),
-          // 점수
+          // 점수 (🎯 과냥 타겟 아이콘 사용하여 별코인과 구별)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
@@ -548,9 +548,9 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('⭐', style: TextStyle(fontSize: 18)),
+                const Text('🎯', style: TextStyle(fontSize: 18)),
                 const SizedBox(width: 4),
-                Text('$_score', style: GoogleFonts.jua(fontSize: 22, color: KidsTheme.textDark)),
+                Text('$_score점', style: GoogleFonts.jua(fontSize: 20, color: KidsTheme.textDark)),
               ],
             ),
           ),
