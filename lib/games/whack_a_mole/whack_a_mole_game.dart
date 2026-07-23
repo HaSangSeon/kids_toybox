@@ -510,88 +510,121 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
     }
   }
 
-  // ── 헤더 ──────────────────────────────────────────────────────────────────
+  // ── 헤더 (3D Glassmorphic 60fps 최적화 헤더) ──────────────────────────────────
   Widget _buildHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () {
-              AudioManager.instance.playClick();
-              _gameTimer?.cancel();
-              _spawnTimer?.cancel();
-              _ticker.stop();
-              setState(() => _showLevelSelect = true);
-            },
-            child: Container(
-              width: 52, height: 52,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFF6B6B),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: KidsTheme.borderDark, width: 3),
-                boxShadow: const [BoxShadow(color: Color(0xFFCC4444), offset: Offset(0, 4))],
-              ),
-              child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 22),
-            ),
-          ),
-          const SizedBox(width: 12),
-          // 점수 (🎯 과냥 타겟 아이콘 사용하여 별코인과 구별)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFE66D),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: KidsTheme.borderDark, width: 3),
-              boxShadow: const [BoxShadow(color: Color(0xFFCCB030), offset: Offset(0, 4))],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('🎯', style: TextStyle(fontSize: 18)),
-                const SizedBox(width: 4),
-                Text('$_score점', style: GoogleFonts.jua(fontSize: 20, color: KidsTheme.textDark)),
-              ],
-            ),
-          ),
-          const Spacer(),
-          // 콤보
-          if (_combo >= 3)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: KidsTheme.orange,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: KidsTheme.borderDark, width: 3),
-                boxShadow: const [BoxShadow(color: Color(0xFFCC7A00), offset: Offset(0, 4))],
-              ),
-              child: Text('🔥×$_combo', style: GoogleFonts.jua(fontSize: 18, color: Colors.white)),
-            ),
-          if (_combo >= 3) const SizedBox(width: 8),
-          // 타이머
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: _timeLeft <= 5 ? KidsTheme.red : const Color(0xFF42A5F5),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: KidsTheme.borderDark, width: 3),
-              boxShadow: [
-                BoxShadow(
-                  color: _timeLeft <= 5 ? const Color(0xFFCC2222) : const Color(0xFF1565C0),
-                  offset: const Offset(0, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Container(
+        height: 64,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(color: Colors.white, width: 2.5),
+          boxShadow: const [
+            BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4)),
+          ],
+        ),
+        child: Row(
+          children: [
+            // 🏠 뒤로가기 / 레벨선택 버튼
+            GestureDetector(
+              onTap: () {
+                AudioManager.instance.playClick();
+                _gameTimer?.cancel();
+                _spawnTimer?.cancel();
+                _ticker.stop();
+                setState(() => _showLevelSelect = true);
+              },
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFFF6B6B), width: 2),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+                  ],
                 ),
-              ],
+                child: const Icon(Icons.arrow_back, color: KidsTheme.textDark, size: 26),
+              ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.timer_rounded, color: Colors.white, size: 20),
-                const SizedBox(width: 4),
-                Text('${_timeLeft}초', style: GoogleFonts.jua(fontSize: 22, color: Colors.white)),
-              ],
+            const SizedBox(width: 8),
+
+            // 🎯 점수 뱃지 (별코인과 명확히 구분되는 타겟 아이콘)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('🎯', style: TextStyle(fontSize: 16)),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$_score점',
+                    style: GoogleFonts.jua(fontSize: 16, color: Colors.white),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+
+            const Spacer(),
+
+            // 🔥 콤보 뱃지
+            if (_combo >= 3) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  '🔥×$_combo',
+                  style: GoogleFonts.jua(fontSize: 15, color: Colors.white),
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
+
+            // ⏰ 타이머 뱃지
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: _timeLeft <= 5
+                      ? [const Color(0xFFFF4757), const Color(0xFFFF6B6B)]
+                      : [const Color(0xFF2979FF), const Color(0xFF29B6F6)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.timer_rounded, color: Colors.white, size: 16),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${_timeLeft}초',
+                    style: GoogleFonts.jua(fontSize: 16, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -603,9 +636,10 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
         decoration: BoxDecoration(
-          color: _cfg.color.withOpacity(0.9),
+          color: _cfg.color.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: KidsTheme.borderDark, width: 2),
+          border: Border.all(color: Colors.white, width: 2),
+          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
         ),
         child: Text(
           '${_cfg.emoji} Lv${_cfg.level} · ${_cfg.label}',
@@ -619,21 +653,22 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
   Widget _buildHintBanner() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.88),
+        color: Colors.white.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: KidsTheme.borderDark, width: 3),
-        boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 6, offset: Offset(0,3))],
+        border: Border.all(color: Colors.white, width: 2.5),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3))],
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('🔨', style: TextStyle(fontSize: 22)),
-          const SizedBox(width: 8),
+          const Text('🔨', style: TextStyle(fontSize: 20)),
+          const SizedBox(width: 6),
           Text(
-            '두더지를 탁! 눌러요!',
-            style: GoogleFonts.jua(fontSize: 18, color: KidsTheme.textDark),
+            '두더지를 쏙쏙! 누르세요!',
+            style: GoogleFonts.jua(fontSize: 16, color: KidsTheme.textDark),
           ),
         ],
       ),
@@ -740,71 +775,139 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
     );
   }
 
-  // ── 게임 오버 오버레이 ────────────────────────────────────────────────────
+  // ── 게임 완주 팝업 (깔끔한 3D 디자인 및 메인 이동 버튼) ───────────────────
   Widget _buildGameOver() {
     return Container(
-      color: Colors.black.withOpacity(0.78),
+      color: Colors.black.withValues(alpha: 0.65),
       child: Center(
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 32),
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 36),
+          width: 320,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Colors.white.withValues(alpha: 0.96),
             borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: KidsTheme.borderDark, width: 4),
-            boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 24, offset: Offset(0, 8))],
+            border: Border.all(color: const Color(0xFFFFD700), width: 3.5),
+            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 8))],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('🎉 완료!', style: GoogleFonts.jua(fontSize: 44, color: KidsTheme.orange)),
-              const SizedBox(height: 12),
-              Text('최종 점수', style: GoogleFonts.jua(fontSize: 20, color: KidsTheme.textLight)),
+              const Text('🎉 🔨 🏆', style: TextStyle(fontSize: 42)),
+              const SizedBox(height: 10),
               Text(
-                '$_score 점',
-                style: GoogleFonts.jua(fontSize: 52, color: KidsTheme.textDark),
+                '두더지 잡기 완료!',
+                style: GoogleFonts.jua(fontSize: 26, color: KidsTheme.purple),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Lv${_cfg.level} 미션 완료!',
+                style: GoogleFonts.jua(fontSize: 18, color: const Color(0xFF10AC84)),
+              ),
+              const SizedBox(height: 16),
+              
+              // 점수 & 보상 박스
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFFF9C4), Color(0xFFFFECB3)],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFFFD54F), width: 1.5),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('획득 점수: ', style: GoogleFonts.jua(fontSize: 16, color: KidsTheme.textDark)),
+                        Text('$_score 점', style: GoogleFonts.jua(fontSize: 18, color: const Color(0xFFFF6B6B))),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    const Text('⭐ 별코인 +1 획득!', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFFF59E0B))),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
+
+              // 버튼 영역: [🏠 메인으로] [🔄 다시하기]
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // 레벨 선택으로
-                  GestureDetector(
-                    onTap: () {
-                      AudioManager.instance.playClick();
-                      setState(() {
-                        _isGameOver = false;
-                        _showLevelSelect = true;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF90A4AE),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: KidsTheme.borderDark, width: 3),
-                        boxShadow: const [BoxShadow(color: Color(0xFF546E7A), offset: Offset(0, 4))],
+                  // 🏠 메인으로
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        AudioManager.instance.playClick();
+                        HapticFeedback.mediumImpact();
+                        Navigator.of(context).pop();
+                      },
+                      child: Container(
+                        height: 52,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFF6B6B), Color(0xFFEE5253)],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3))],
+                        ),
+                        child: Center(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.home_rounded, color: Colors.white, size: 20),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '메인으로',
+                                  style: GoogleFonts.jua(fontSize: 16, color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                      child: Text('레벨 선택', style: GoogleFonts.jua(fontSize: 18, color: Colors.white)),
                     ),
                   ),
-                  const SizedBox(width: 14),
-                  // 다시 하기
-                  GestureDetector(
-                    onTap: () {
-                      AudioManager.instance.playClick();
-                      setState(() => _isGameOver = false);
-                      _startGame();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: KidsTheme.green,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: KidsTheme.borderDark, width: 3),
-                        boxShadow: const [BoxShadow(color: Color(0xFF038568), offset: Offset(0, 4))],
+                  const SizedBox(width: 10),
+
+                  // 🔄 다시하기
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        AudioManager.instance.playClick();
+                        HapticFeedback.mediumImpact();
+                        setState(() => _isGameOver = false);
+                        _startGame();
+                      },
+                      child: Container(
+                        height: 52,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF1DD1A1), Color(0xFF10AC84)],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3))],
+                        ),
+                        child: Center(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  '다시하기 🔄',
+                                  style: GoogleFonts.jua(fontSize: 16, color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                      child: Text('다시 하기 🔄', style: GoogleFonts.jua(fontSize: 18, color: Colors.white)),
                     ),
                   ),
                 ],
