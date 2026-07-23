@@ -857,7 +857,8 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                                         Navigator.of(context).pop();
                                       },
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(vertical: 14),
+                                        height: 52,
+                                        padding: const EdgeInsets.symmetric(horizontal: 10),
                                         decoration: BoxDecoration(
                                           gradient: const LinearGradient(
                                             colors: [Color(0xFFFF6B6B), Color(0xFFEE5253)],
@@ -868,16 +869,19 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                                           ],
                                         ),
                                         child: Center(
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              const Icon(Icons.home_rounded, color: Colors.white, size: 20),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                '메인으로',
-                                                style: GoogleFonts.jua(fontSize: 16, color: Colors.white),
-                                              ),
-                                            ],
+                                          child: FittedBox(
+                                            fit: BoxFit.scaleDown,
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                const Icon(Icons.home_rounded, color: Colors.white, size: 20),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  '메인으로',
+                                                  style: GoogleFonts.jua(fontSize: 16, color: Colors.white),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -894,7 +898,8 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                                         _engine.nextStage();
                                       },
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(vertical: 14),
+                                        height: 52,
+                                        padding: const EdgeInsets.symmetric(horizontal: 10),
                                         decoration: BoxDecoration(
                                           gradient: const LinearGradient(
                                             colors: [Color(0xFF1DD1A1), Color(0xFF10AC84)],
@@ -905,9 +910,17 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                                           ],
                                         ),
                                         child: Center(
-                                          child: Text(
-                                            '다음 단계 (${_engine.stage + 1}단계) 🚀',
-                                            style: GoogleFonts.jua(fontSize: 15, color: Colors.white),
+                                          child: FittedBox(
+                                            fit: BoxFit.scaleDown,
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  '🚀 ${_engine.stage + 1}단계로',
+                                                  style: GoogleFonts.jua(fontSize: 16, color: Colors.white),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
