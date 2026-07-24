@@ -884,7 +884,7 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                   color: KidsTheme.orange.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text('⭐ $_score', style: GoogleFonts.jua(fontSize: 15, color: KidsTheme.orange)),
+                child: Text('🎯 $_score', style: GoogleFonts.jua(fontSize: 15, color: KidsTheme.orange)),
               ),
               const SizedBox(width: 6),
               // 하트
@@ -1188,7 +1188,7 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                   style: GoogleFonts.jua(fontSize: 16, color: Colors.grey.shade700),
                 ),
                 const SizedBox(height: 4),
-                Text('누적 점수: $_score 점 ⭐', style: GoogleFonts.jua(fontSize: 20, color: KidsTheme.orange)),
+                Text('누적 점수: $_score 점 🎯', style: GoogleFonts.jua(fontSize: 20, color: KidsTheme.orange)),
                 if (nextStageName != null) ...
                   [
                     const SizedBox(height: 4),
@@ -1247,7 +1247,7 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                 const SizedBox(height: 8),
                 Text('바다가 험해져 낚시가 끝났어요.', style: GoogleFonts.jua(fontSize: 16, color: Colors.grey.shade600)),
                 const SizedBox(height: 4),
-                Text('최종 점수: $_score 점 ⭐', style: GoogleFonts.jua(fontSize: 24, color: KidsTheme.textDark)),
+                Text('최종 점수: $_score 점 🎯', style: GoogleFonts.jua(fontSize: 24, color: KidsTheme.textDark)),
                 const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,

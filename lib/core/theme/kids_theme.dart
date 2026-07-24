@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class KidsTheme {
   // Playful Color Palette
@@ -35,10 +34,9 @@ class KidsTheme {
   };
 
   static ThemeData get lightTheme {
-    final baseTextTheme = GoogleFonts.nunitoTextTheme();
-
     return ThemeData(
       useMaterial3: true,
+      fontFamily: 'sans-serif',
       scaffoldBackgroundColor: background,
       primaryColor: orange,
       colorScheme: const ColorScheme.light(
@@ -51,23 +49,23 @@ class KidsTheme {
         onSecondary: textDark,
         onSurface: textDark,
       ),
-      textTheme: baseTextTheme.copyWith(
-        displayLarge: baseTextTheme.displayLarge?.copyWith(
+      textTheme: const TextTheme(
+        displayLarge: TextStyle(
           fontSize: 36,
           fontWeight: FontWeight.w800,
           color: textDark,
         ),
-        titleLarge: baseTextTheme.titleLarge?.copyWith(
+        titleLarge: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.bold,
           color: textDark,
         ),
-        bodyLarge: baseTextTheme.bodyLarge?.copyWith(
+        bodyLarge: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w500,
           color: textDark,
         ),
-        bodyMedium: baseTextTheme.bodyMedium?.copyWith(
+        bodyMedium: TextStyle(
           fontSize: 16,
           color: textDark,
         ),
@@ -91,7 +89,7 @@ class KidsTheme {
             borderRadius: BorderRadius.circular(24),
             side: const BorderSide(color: borderDark, width: 4),
           ),
-          textStyle: GoogleFonts.nunito(
+          textStyle: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),

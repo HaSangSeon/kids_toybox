@@ -420,7 +420,7 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text('⭐', style: TextStyle(fontSize: 18)),
+                            const Text('🎯', style: TextStyle(fontSize: 18)),
                             const SizedBox(width: 5),
                             Text(
                               '$_score',
@@ -802,7 +802,7 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Text('⭐', style: TextStyle(fontSize: 26)),
+                                    const Text('🎯', style: TextStyle(fontSize: 26)),
                                     const SizedBox(width: 6),
                                     Text(
                                       '$_score',

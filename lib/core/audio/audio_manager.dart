@@ -114,6 +114,22 @@ class AudioManager {
   Future<void> playJigsawSnapIncorrect() => playEffect('audio/jigsaw_snap_incorrect.wav');
   Future<void> playJigsawSuccess() => playEffect('audio/jigsaw_success.wav');
 
+  // 데칼코마니 마법 전용 사운드
+  Future<void> playMagicFold() async {
+    if (!_soundEnabled) return;
+    // 아기자기한 마법 접기 소리 (샤라랑~✨)
+    playEffect('audio/chime.wav', rate: 1.2);
+  }
+
+  Future<void> playMagicUnfoldSuccess() async {
+    if (!_soundEnabled) return;
+    // 마법이 완성되어 짠! 하고 펼쳐지는 아기자기 뾰로롱 소리
+    playEffect('audio/trace_success.wav', rate: 1.15);
+    Future.delayed(const Duration(milliseconds: 150), () {
+      playEffect('audio/chime.wav', rate: 1.5);
+    });
+  }
+
   // 각 조각의 이모지 매칭 사운드 재생
   Future<void> playEmojiSound(String emoji) {
     String filename;
@@ -143,10 +159,61 @@ class AudioManager {
   Future<void> playHammerWhack() => playEffect('audio/hammer_whack.wav');
   Future<void> playMissWoosh() => playEffect('audio/miss_woosh.wav');
 
+  // 🟡 원조 팩맨(Pac-Man) 전용 클래식 8-Bit 사운드
+  bool _pacmanWakaPitchHigh = false;
+  Future<void> playPacmanWaka() async {
+    if (!_soundEnabled) return;
+    _pacmanWakaPitchHigh = !_pacmanWakaPitchHigh;
+    final double pitchRate = _pacmanWakaPitchHigh ? 1.65 : 1.25;
+    playEffect('audio/munch.wav', rate: pitchRate);
+  }
+
+  Future<void> playPacmanPowerPellet() async {
+    if (!_soundEnabled) return;
+    playEffect('audio/chime.wav', rate: 1.6);
+  }
+
+  Future<void> playPacmanEatGhost() async {
+    if (!_soundEnabled) return;
+    playEffect('audio/jigsaw_snap_correct.wav', rate: 1.5);
+  }
+
+  Future<void> playPacmanFruit() async {
+    if (!_soundEnabled) return;
+    playEffect('audio/trace_success.wav', rate: 1.4);
+  }
+
+  Future<void> playPacmanDeath() async {
+    if (!_soundEnabled) return;
+    // 팩맨 특유의 피치가 차례로 쪼르르 내려가는 8-bit 데스 연출
+    playEffect('audio/damage.wav', rate: 1.2);
+    Future.delayed(const Duration(milliseconds: 180), () {
+      playEffect('audio/damage.wav', rate: 0.85);
+    });
+    Future.delayed(const Duration(milliseconds: 360), () {
+      playEffect('audio/thud.wav', rate: 0.6);
+    });
+  }
+
   // Maze sounds
   Future<void> playMazeMove() => playEffect('audio/maze_move.wav');
   Future<void> playMazeBump() => playEffect('audio/maze_bump.wav');
   Future<void> playMazeClear() => playEffect('audio/maze_clear.wav');
+
+  // 🏰 탑쌓기 전용 실감나는 건축 & 콤보 사운드
+  Future<void> playTowerBlockDrop({double pitch = 1.0}) async {
+    if (!_soundEnabled) return;
+    playEffect('audio/snap.wav', rate: 0.95 * pitch);
+    Future.delayed(const Duration(milliseconds: 40), () {
+      playEffect('audio/thud.wav', rate: 1.2 * pitch);
+    });
+  }
+
+  Future<void> playTowerPerfect({int combo = 1}) async {
+    if (!_soundEnabled) return;
+    final double pitch = (1.2 + (combo * 0.08)).clamp(1.2, 2.0);
+    playEffect('audio/chime.wav', rate: pitch);
+  }
 
   // Dispose players
   void dispose() {

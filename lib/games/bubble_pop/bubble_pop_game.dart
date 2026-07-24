@@ -359,30 +359,39 @@ class _BubblePopGameState extends State<BubblePopGame>
     // 팝 파티클
     final cx = bubble.x + bubble.size / 2;
     final cy = bubble.y + bubble.size / 2;
-    for (int i = 0; i < 10; i++) {
-      final angle = _random.nextDouble() * 2 * pi;
-      final speed = 80 + _random.nextDouble() * 160;
+    
+    // 비눗방울 터질 때 물방울 파티클 (더 많고, 반짝이게)
+    final particleCount = isTarget ? 14 : 10;
+    for (int i = 0; i < particleCount; i++) {
+      final angle = (i / particleCount) * 2 * pi + _random.nextDouble() * 0.4;
+      final speed = 70 + _random.nextDouble() * (isTarget ? 200 : 140);
       _particles.add(PopParticle(
         x: cx, y: cy,
         vx: cos(angle) * speed,
-        vy: sin(angle) * speed - 60,
-        radius: 4 + _random.nextDouble() * 7,
-        color: bubble.color.withOpacity(0.9),
+        vy: sin(angle) * speed - 40,
+        radius: isTarget
+            ? 3.5 + _random.nextDouble() * 8
+            : 2.5 + _random.nextDouble() * 5,
+        color: bubble.color.withOpacity(isTarget ? 0.95 : 0.6),
       ));
     }
 
-    // 점수 팝업 또는 경고 팝업
+    // 팝업 텍스트: 맞추면 점수, 틀리면 조용히 💨 (빠르게 사라짐)
     _popups.add(ScorePopup(
       x: cx, y: cy - bubble.size / 2,
-      text: isTarget ? '+${15 * _wave}' : '❌',
+      text: isTarget ? '+${15 * _wave}' : '💨',
+      vy: isTarget ? -70 : -40,
+      opacity: isTarget ? 1.0 : 0.7,
     ));
 
-    // 사운드
+    // 사운드 – 비눗방울 고유 "퍽" 소리
     if (isTarget) {
-      final pitch = 0.9 + _random.nextDouble() * 0.5;
-      AudioManager.instance.playEffect('audio/balloon_pop.wav', rate: pitch);
+      // 맞는 방울: 피치 살짝 랜덤 (상쾌한 퍽!)
+      final pitch = 1.0 + _random.nextDouble() * 0.4;
+      AudioManager.instance.playEffect('audio/bubble_pop.wav', rate: pitch);
     } else {
-      AudioManager.instance.playBoing(); // Wrong pop sound
+      // 틀린 방울: 낮은 피치로 풀 죽은 느낌
+      AudioManager.instance.playEffect('audio/bubble_pop.wav', rate: 0.65);
     }
     HapticFeedback.lightImpact();
 
@@ -515,7 +524,7 @@ class _BubblePopGameState extends State<BubblePopGame>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('⭐', style: TextStyle(fontSize: 18)),
+                const Text('🎯', style: TextStyle(fontSize: 18)),
                 const SizedBox(width: 4),
                 Text(
                   '$_score',

@@ -63,6 +63,8 @@ class Mole {
   bool isWhacked = false;
   MoleType type = MoleType.normal;
   Timer? _autoRetractTimer;
+  // 팝업 애니메이션 트리거용 키 (올라올 때마다 바뀜)
+  UniqueKey popKey = UniqueKey();
 
   String get emoji {
     if (isWhacked) return '💥';
@@ -243,6 +245,7 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
     setState(() {
       mole.isUp = true;
       mole.isWhacked = false;
+      mole.popKey = UniqueKey(); // 올라올 때마다 새 애니메이션 트리거
     });
 
     // 일정 시간 후 자동 내려감
@@ -761,19 +764,25 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
                       ),
                     ),
                   ),
-                  // 두더지 슬라이드 업/다운
+                  // 두더지 – 생동감 있는 팝업 애니메이션
                   AnimatedPositioned(
-                    duration: const Duration(milliseconds: 130),
-                    curve: Curves.easeOutBack,
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeInOut,
                     bottom: mole.isUp ? 0 : -100,
                     left: 0,
                     right: 0,
-                    child: Center(
-                      child: Text(
-                        mole.emoji,
-                        style: const TextStyle(fontSize: 64),
-                      ),
-                    ),
+                    child: mole.isUp
+                        ? _MolePopWidget(
+                            key: mole.popKey,
+                            emoji: mole.emoji,
+                            isWhacked: mole.isWhacked,
+                          )
+                        : Center(
+                            child: Text(
+                              mole.emoji,
+                              style: const TextStyle(fontSize: 64),
+                            ),
+                          ),
                   ),
                 ],
               ),
@@ -784,9 +793,14 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
             Positioned(
               top: -38,
               right: -14,
-              child: Transform.rotate(
-                angle: -0.45,
-                child: const Text('🔨', style: TextStyle(fontSize: 62)),
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: -0.9, end: -0.45),
+                duration: const Duration(milliseconds: 120),
+                curve: Curves.easeOutBack,
+                builder: (_, angle, __) => Transform.rotate(
+                  angle: angle,
+                  child: const Text('🔨', style: TextStyle(fontSize: 62)),
+                ),
               ),
             ),
         ],
@@ -939,6 +953,97 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
   }
 }
 
+// ── 두더지 팝업 애니메이션 위젯 ────────────────────────────────────────────────
+class _MolePopWidget extends StatefulWidget {
+  final String emoji;
+  final bool isWhacked;
+  const _MolePopWidget({super.key, required this.emoji, required this.isWhacked});
+
+  @override
+  State<_MolePopWidget> createState() => _MolePopWidgetState();
+}
+
+class _MolePopWidgetState extends State<_MolePopWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _scale;
+  late Animation<double> _rotation;
+  late Animation<double> _bounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 480),
+    );
+
+    // 1) 팍 커졌다가 → 살짝 작아지는 탄성 스케일
+    _scale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.25).chain(CurveTween(curve: Curves.easeOutCubic)), weight: 35),
+      TweenSequenceItem(tween: Tween(begin: 1.25, end: 0.88).chain(CurveTween(curve: Curves.easeIn)), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: 0.88, end: 1.08).chain(CurveTween(curve: Curves.easeOut)), weight: 25),
+      TweenSequenceItem(tween: Tween(begin: 1.08, end: 1.0).chain(CurveTween(curve: Curves.easeIn)), weight: 20),
+    ]).animate(_ctrl);
+
+    // 2) 올라오면서 살짝 좌우 흔들림
+    _rotation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 0.18), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: 0.18, end: -0.14), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: -0.14, end: 0.08), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: 0.08, end: -0.04), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: -0.04, end: 0.0), weight: 20),
+    ]).animate(CurvedAnimation(parent: _ctrl, curve: const Interval(0.0, 0.6)));
+
+    // 3) 위아래 살짝 튀기는 바운스 오프셋
+    _bounce = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 6.0, end: -8.0).chain(CurveTween(curve: Curves.easeOut)), weight: 40),
+      TweenSequenceItem(tween: Tween(begin: -8.0, end: 3.0).chain(CurveTween(curve: Curves.easeInOut)), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 3.0, end: 0.0).chain(CurveTween(curve: Curves.easeIn)), weight: 30),
+    ]).animate(_ctrl);
+
+    _ctrl.forward();
+  }
+
+  @override
+  void didUpdateWidget(_MolePopWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 맞았을 때 히트 애니메이션
+    if (widget.isWhacked && !oldWidget.isWhacked) {
+      _ctrl.reset();
+      _ctrl.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) => Transform.translate(
+        offset: Offset(0, _bounce.value),
+        child: Transform.rotate(
+          angle: _rotation.value,
+          child: Transform.scale(
+            scale: _scale.value,
+            child: Center(
+              child: Text(
+                widget.emoji,
+                style: const TextStyle(fontSize: 64),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ── 동적 배경 페인터 (농장/정원 테마 + 움직이는 구름/새) ─────────────────────────────────────────────
 class _FarmBackgroundPainter extends CustomPainter {
   final double time;
@@ -981,11 +1086,13 @@ class _FarmBackgroundPainter extends CustomPainter {
     _cloud(canvas, Offset(w - cloudOffset2, h * 0.04), 1.2);
     _cloud(canvas, Offset(cloudOffset3, h * 0.10), 0.7);
 
-    // 새들 (v 모양으로 날아감)
-    final birdOffset1 = (time * 40) % (w + 100) - 50;
-    final birdOffset2 = (time * 50 + 300) % (w + 100) - 50;
-    _bird(canvas, Offset(birdOffset1, h * 0.15 + sin(time * 3) * 10), 1.0);
-    _bird(canvas, Offset(w - birdOffset2, h * 0.2 + cos(time * 4) * 15), 0.7);
+    // 새들 – 날개짓하며 실제 새처럼 날아감
+    final birdOffset1 = (time * 38) % (w + 180) - 90;
+    final birdOffset2 = (time * 52 + 300) % (w + 180) - 90;
+    final birdOffset3 = (time * 30 + 500) % (w + 180) - 90;
+    _bird(canvas, Offset(birdOffset1, h * 0.13 + sin(time * 2.5) * 8), 1.1, time);
+    _bird(canvas, Offset(w - birdOffset2, h * 0.20 + cos(time * 3.2) * 10), 0.75, time + 1.3);
+    _bird(canvas, Offset(birdOffset3, h * 0.09 + sin(time * 1.8 + 0.5) * 6), 0.85, time + 2.7);
 
     // 뒷 언덕
     _hill(canvas, size, xOff: 0, yCenter: h * 0.60, width: w * 1.4,
@@ -1029,19 +1136,85 @@ class _FarmBackgroundPainter extends CustomPainter {
     _scarecrow(canvas, Offset(w * 0.5, h * 0.58));
   }
 
-  void _bird(Canvas canvas, Offset center, double scale) {
-    final path = Path()
-      ..moveTo(center.dx - 12 * scale, center.dy - 8 * scale)
-      ..quadraticBezierTo(center.dx - 6 * scale, center.dy, center.dx, center.dy + 4 * scale)
-      ..quadraticBezierTo(center.dx + 6 * scale, center.dy, center.dx + 12 * scale, center.dy - 8 * scale);
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = const Color(0xFF78909C)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5 * scale
-        ..strokeCap = StrokeCap.round,
+  void _bird(Canvas canvas, Offset center, double scale, double time) {
+    // 날개짓 각도 (-0.6 ~ +0.6 라디안 사이를 빠르게 오르내림)
+    final wingAngle = sin(time * 8.0) * 0.55;
+
+    final bodyPaint = Paint()..color = const Color(0xFF37474F);
+    final wingPaint = Paint()..color = const Color(0xFF546E7A);
+    final bellyPaint = Paint()..color = const Color(0xFFB0BEC5);
+    final eyePaint = Paint()..color = Colors.white;
+    final pupilPaint = Paint()..color = const Color(0xFF212121);
+    final beakPaint = Paint()..color = const Color(0xFFFFA000);
+    final tailPaint = Paint()
+      ..color = const Color(0xFF455A64)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2 * scale
+      ..strokeCap = StrokeCap.round;
+
+    final cx = center.dx;
+    final cy = center.dy;
+    final s = scale;
+
+    // ── 왼쪽 날개 (캔버스 save/restore로 회전)
+    canvas.save();
+    canvas.translate(cx - 6 * s, cy);
+    canvas.rotate(-wingAngle);  // 위로 올라가면 음수
+    final leftWing = Path()
+      ..moveTo(0, 0)
+      ..cubicTo(-10 * s, -3 * s, -18 * s, 4 * s, -14 * s, 8 * s)
+      ..cubicTo(-10 * s, 10 * s, -2 * s, 6 * s, 0, 0);
+    canvas.drawPath(leftWing, wingPaint);
+    canvas.restore();
+
+    // ── 오른쪽 날개
+    canvas.save();
+    canvas.translate(cx + 6 * s, cy);
+    canvas.rotate(wingAngle);
+    final rightWing = Path()
+      ..moveTo(0, 0)
+      ..cubicTo(10 * s, -3 * s, 18 * s, 4 * s, 14 * s, 8 * s)
+      ..cubicTo(10 * s, 10 * s, 2 * s, 6 * s, 0, 0);
+    canvas.drawPath(rightWing, wingPaint);
+    canvas.restore();
+
+    // ── 몸통 (타원형)
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(cx, cy + 2 * s), width: 22 * s, height: 13 * s),
+      bodyPaint,
     );
+
+    // ── 배 (밝은 색)
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(cx, cy + 4 * s), width: 12 * s, height: 8 * s),
+      bellyPaint,
+    );
+
+    // ── 머리
+    canvas.drawCircle(Offset(cx + 8 * s, cy - 5 * s), 7 * s, bodyPaint);
+
+    // ── 눈
+    canvas.drawCircle(Offset(cx + 10 * s, cy - 6.5 * s), 2.2 * s, eyePaint);
+    canvas.drawCircle(Offset(cx + 10.5 * s, cy - 6.5 * s), 1.2 * s, pupilPaint);
+
+    // ── 부리 (삼각형)
+    final beakPath = Path()
+      ..moveTo(cx + 14 * s, cy - 5.5 * s)
+      ..lineTo(cx + 19 * s, cy - 4.5 * s)
+      ..lineTo(cx + 14 * s, cy - 3.5 * s)
+      ..close();
+    canvas.drawPath(beakPath, beakPaint);
+
+    // ── 꼬리 (깃털 3가닥)
+    for (int i = -1; i <= 1; i++) {
+      final tailPath = Path()
+        ..moveTo(cx - 9 * s, cy + 2 * s)
+        ..quadraticBezierTo(
+          cx - 16 * s, cy + (2 + i * 3) * s,
+          cx - 22 * s, cy + (1 + i * 4) * s,
+        );
+      canvas.drawPath(tailPath, tailPaint);
+    }
   }
 
   void _cloud(Canvas canvas, Offset c, double s) {

@@ -15,7 +15,7 @@ import '../games/dino_jump/dino_jump_game.dart';
 import '../games/brick_breaker/brick_breaker_game.dart';
 import '../games/xylophone/xylophone_game.dart';
 import '../games/bubble_pop/bubble_pop_game.dart';
-import '../games/burger_maker/burger_maker_game.dart';
+import '../games/decalcomania/decalcomania_game.dart';
 import '../games/tower_builder/tower_builder_game.dart';
 import '../games/mini_racing/mini_racing_game.dart';
 import '../games/fishing_game/fishing_game_game.dart';
@@ -26,6 +26,7 @@ import '../games/maze_escape/maze_escape_game.dart';
 import '../games/block_builder/block_builder_game.dart';
 import '../games/pacman/pacman_game.dart';
 import '../games/snake/snake_game.dart';
+import '../games/slide_puzzle/slide_puzzle_game.dart';
 import '../core/data/player_data_manager.dart';
 import 'gacha_shop_screen.dart';
 import '../core/widgets/skin_select_modal.dart';
@@ -759,7 +760,7 @@ class _LobbyScreenState extends State<LobbyScreen>
       ),
       _GameData(
         title: '벽돌 깨기',
-        emoji: '🧱',
+        emoji: '🎳',
         gradientColors: KidsTheme.gameGradients['indigo']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BrickBreakerGame())); },
       ),
@@ -776,10 +777,10 @@ class _LobbyScreenState extends State<LobbyScreen>
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BubblePopGame())); },
       ),
       _GameData(
-        title: '햄버거 타이쿤',
-        emoji: '🍔',
-        gradientColors: KidsTheme.gameGradients['amber']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BurgerMakerGame())); },
+        title: '데칼코마니',
+        emoji: '🦋',
+        gradientColors: KidsTheme.gameGradients['pink']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DecalcomaniaGame())); },
       ),
       _GameData(
         title: '탑 쌓기',
@@ -838,7 +839,7 @@ class _LobbyScreenState extends State<LobbyScreen>
       ),
       _GameData(
         title: '블럭 조립',
-        emoji: '🧱',
+        emoji: '🧊',
         gradientColors: KidsTheme.gameGradients['orange']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BlockBuilderGame())); },
       ),
@@ -873,6 +874,12 @@ class _LobbyScreenState extends State<LobbyScreen>
             },
           );
         },
+      ),
+      _GameData(
+        title: '슬라이드 퍼즐',
+        emoji: '🧩',
+        gradientColors: KidsTheme.gameGradients['teal']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SlidePuzzleGame())); },
       ),
     ];
   }

@@ -1027,7 +1027,7 @@ class _MiniRacingGameState extends State<MiniRacingGame> with SingleTickerProvid
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                '⭐ $_score',
+                                '🎯 $_score',
                                 style: GoogleFonts.jua(fontSize: 18, color: KidsTheme.orange),
                               ),
                               const SizedBox(width: 8),
@@ -1071,7 +1071,7 @@ class _MiniRacingGameState extends State<MiniRacingGame> with SingleTickerProvid
                                 const SizedBox(height: 8),
                                 Text('쿠웅! 사고가 났어요!', style: GoogleFonts.jua(fontSize: 34, color: KidsTheme.red)),
                                 const SizedBox(height: 8),
-                                Text('최종 점수: $_score 점 ⭐', style: GoogleFonts.jua(fontSize: 24, color: KidsTheme.textDark)),
+                                Text('최종 점수: $_score 점 🎯', style: GoogleFonts.jua(fontSize: 24, color: KidsTheme.textDark)),
                                 const SizedBox(height: 24),
                                 Row(
                                   children: [

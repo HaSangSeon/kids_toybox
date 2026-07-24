@@ -235,7 +235,7 @@ class _FeedAnimalsGameState extends State<FeedAnimalsGame>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('⭐', style: TextStyle(fontSize: 20)),
+                const Text('🎯', style: TextStyle(fontSize: 20)),
                 const SizedBox(width: 6),
                 Text(
                   '$_score',

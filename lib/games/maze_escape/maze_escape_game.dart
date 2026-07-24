@@ -415,7 +415,7 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
                           children: [
                             Text('도착했어요! 🎉', style: GoogleFonts.jua(fontSize: 44, color: Colors.white)),
                             const SizedBox(height: 4),
-                            Text('⭐ +50점 획득!', style: GoogleFonts.jua(fontSize: 24, color: Colors.yellowAccent)),
+                            Text('🎯 +50점 획득!', style: GoogleFonts.jua(fontSize: 24, color: Colors.yellowAccent)),
                           ],
                         ),
                       ),
@@ -468,7 +468,7 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
                 color: const Color(0xFFFFD700).withAlpha(50),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Text('⭐ $_totalScore', style: GoogleFonts.jua(fontSize: 18, color: isDark ? const Color(0xFFFFD700) : KidsTheme.orange)),
+              child: Text('🎯 $_totalScore', style: GoogleFonts.jua(fontSize: 18, color: isDark ? const Color(0xFFFFD700) : KidsTheme.orange)),
             ),
             const SizedBox(width: 8),
           ],

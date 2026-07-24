@@ -454,7 +454,7 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
                               boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                             ),
                             child: Text(
-                              '⭐ $_score',
+                              '🎯 $_score',
                               style: GoogleFonts.jua(fontSize: 20, color: KidsTheme.orange),
                             ),
                           ),

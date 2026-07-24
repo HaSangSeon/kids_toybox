@@ -641,7 +641,7 @@ class _SnakeGameState extends State<SnakeGame>
               const Text('🎉', style: TextStyle(fontSize: 60)),
               Text('STAGE $_level 클리어!', style: GoogleFonts.jua(fontSize: 32, color: KidsTheme.orange)),
               const SizedBox(height: 8),
-              Text('과일을 맛있게 찾아 먹었어요! ⭐+5', style: GoogleFonts.nunito(fontSize: 16, fontWeight: FontWeight.bold)),
+              Text('과일을 맛있게 찾아 먹었어요! 🎯+5', style: GoogleFonts.nunito(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,

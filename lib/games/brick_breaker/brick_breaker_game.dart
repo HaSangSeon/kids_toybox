@@ -4,6 +4,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/kids_theme.dart';
+import '../../core/theme/app_fonts.dart';
 import '../../core/audio/audio_manager.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -224,7 +225,7 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
   double _paddleWidth = 130.0;
   final double _paddleHeight = 22.0;
   final double _ballRadius = 14.0;
-  double _baseSpeed = 290.0;
+  double _baseSpeed = 410.0;
 
   // 아이템 활성 시간
   double _widePaddleTimer = 0;
@@ -269,7 +270,7 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
     _level = 1;
     _isGameOver = false;
     _isGameClear = false;
-    _baseSpeed = 290.0;
+    _baseSpeed = 410.0;
     _paddleWidth = 130.0;
     _widePaddleTimer = 0;
     _slowBallTimer   = 0;
@@ -277,6 +278,12 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
     _items.clear();
     _particles.clear();
     _popups.clear();
+    _initLevel();
+  }
+
+  void _nextLevel() {
+    _level++;
+    _baseSpeed = (410.0 + (_level - 1) * 15.0).clamp(410.0, 580.0);
     _initLevel();
   }
 
@@ -315,37 +322,42 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
   void _generateBricks() {
     _bricks.clear();
     final int cols = 6;
-    final int rows = 3 + _level;
+    // 레벨이 오르더라도 최대 7행까지만 깔끔하게 제한
+    final int rows = (3 + (_level - 1) % 5).clamp(3, 7);
 
     const double padding = 7.0;
     final double totalPadding = padding * (cols + 1);
     final double brickWidth  = (_screenSize.width - totalPadding) / cols;
-    const double brickHeight = 38.0;
-    const double topOffset   = 110.0;
+    const double brickHeight = 36.0;
+    const double topOffset   = 100.0;
 
     for (int r = 0; r < rows; r++) {
       for (int c = 0; c < cols; c++) {
+        // 패턴 모양 (체크판 또는 피라미드 형태 건너뛰기)
+        if (_level % 3 == 2 && (r + c) % 2 == 1 && _random.nextDouble() < 0.2) {
+          continue; // 약간의 무늬 구멍 생김
+        }
+
         final left = padding + c * (brickWidth + padding);
         final top  = topOffset + r * (brickHeight + padding);
 
-        // 레벨이 높을수록 강한 벽돌 비율 증가
         final rng = _random.nextDouble();
         BrickType type;
         int hp;
-        Color baseColor = _brickBaseColors[r % _brickBaseColors.length];
-        String emoji = _brickEmojis[_random.nextInt(_brickEmojis.length)];
+        Color baseColor = _brickBaseColors[(r + _level) % _brickBaseColors.length];
+        String emoji = _brickEmojis[(r + c + _level) % _brickEmojis.length];
 
-        if (_level >= 4 && rng < 0.08) {
+        if (_level >= 4 && rng < 0.06) {
           type  = BrickType.steel;
-          hp    = 99; // 불공만 파괴
+          hp    = 99;
           emoji = '⚙️';
           baseColor = const Color(0xFF90A4AE);
-        } else if (_level >= 3 && rng < 0.25) {
+        } else if (_level >= 3 && rng < 0.20) {
           type  = BrickType.super_;
           hp    = 3;
           emoji = '💎';
           baseColor = const Color(0xFFAB47BC);
-        } else if (_level >= 2 && rng < 0.45) {
+        } else if (_level >= 2 && rng < 0.35) {
           type = BrickType.tough;
           hp   = 2;
         } else {
@@ -353,12 +365,12 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
           hp   = 1;
         }
 
-        // 아이템 드롭 설정 (약 20% 확률)
+        // 아이템 드롭 설정 (약 45% 확률로 우수수 드롭!)
         ItemType? dropItem;
         double dropChance = 0.0;
         if (type != BrickType.steel) {
           final itemRng = _random.nextDouble();
-          if (itemRng < 0.20) {
+          if (itemRng < 0.45) {
             dropChance = 1.0;
             final items = ItemType.values;
             dropItem = items[_random.nextInt(items.length)];
@@ -674,23 +686,26 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
   void _applyItem(ItemType type) {
     switch (type) {
       case ItemType.multiBall:
-        // 현재 공 개수 기준으로 복제 (최대 5개)
+        // 멀티볼 아이템 먹었을 때 공이 펑펑 2~3개씩 복제 (최대 12개)
         final List<Ball> newBalls = [];
         for (final b in _balls) {
-          if (_balls.length + newBalls.length >= 5) break;
-          final spread = (_random.nextDouble() - 0.5) * 1.2;
-          newBalls.add(Ball(
-            x: b.x, y: b.y,
-            vx: b.vx * cos(spread) - b.vy * sin(spread),
-            vy: b.vx * sin(spread) + b.vy * cos(spread),
-            radius: b.radius,
-            isFireball: b.isFireball,
-          ));
+          if (_balls.length + newBalls.length >= 12) break;
+          for (int i = 0; i < 2; i++) {
+            if (_balls.length + newBalls.length >= 12) break;
+            final spread = (_random.nextDouble() - 0.5) * 1.5;
+            newBalls.add(Ball(
+              x: b.x, y: b.y,
+              vx: b.vx * cos(spread) - b.vy * sin(spread),
+              vy: b.vx * sin(spread) + b.vy * cos(spread),
+              radius: b.radius,
+              isFireball: b.isFireball,
+            ));
+          }
         }
         _balls.addAll(newBalls);
 
       case ItemType.widePaddle:
-        _widePaddleTimer = 10.0;
+        _widePaddleTimer = 12.0;
         _paddle!.width = _paddleWidth * 1.8;
 
       case ItemType.slowBall:
@@ -698,14 +713,16 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
         for (final b in _balls) {
           final spd = sqrt(b.vx * b.vx + b.vy * b.vy);
           if (spd > 0) {
-            b.vx = b.vx / spd * _baseSpeed * 0.55;
-            b.vy = b.vy / spd * _baseSpeed * 0.55;
+            b.vx = b.vx / spd * _baseSpeed * 0.6;
+            b.vy = b.vy / spd * _baseSpeed * 0.6;
           }
         }
 
       case ItemType.fireball:
-        _fireballTimer = 7.0;
-        for (final b in _balls) b.isFireball = true;
+        _fireballTimer = 9.0;
+        for (final b in _balls) {
+          b.isFireball = true;
+        }
     }
   }
 
@@ -720,16 +737,7 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
     });
   }
 
-  // ── Next level ─────────────────────────────────────────────────────────────
 
-  void _nextLevel() {
-    _level++;
-    _baseSpeed += 25;
-    _widePaddleTimer = 0;
-    _slowBallTimer   = 0;
-    _fireballTimer   = 0;
-    _initLevel();
-  }
 
   // ── Build ──────────────────────────────────────────────────────────────────
 
@@ -860,32 +868,41 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
           const SizedBox(width: 8),
           // 레벨 뱃지
           _HeaderBadge(
-            label: 'LEVEL',
+            label: '레벨',
             value: '$_level',
             icon: '🚀',
             color: const Color(0xFF7C4DFF),
           ),
           const SizedBox(width: 8),
-          // 점수
+          // 점수 뱃지
           _HeaderBadge(
-            label: 'SCORE',
+            label: '점수',
             value: '$_score',
-            icon: '⭐',
+            icon: '🎯',
             color: const Color(0xFFFFB300),
           ),
           const Spacer(),
-          // 최고 점수
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.10),
-              borderRadius: BorderRadius.circular(10),
+          // 최고 점수 (최고점수가 있을 때만 🏆 최고: 100 으로 표시)
+          if (_bestScore > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFD54F).withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFFD54F).withValues(alpha: 0.5), width: 1.5),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('🏆', style: TextStyle(fontSize: 12)),
+                  const SizedBox(width: 4),
+                  Text(
+                    '최고 $_bestScore',
+                    style: AppFonts.jua(fontSize: 13, color: const Color(0xFFFFD54F)),
+                  ),
+                ],
+              ),
             ),
-            child: Text(
-              '🏆 $_bestScore',
-              style: GoogleFonts.jua(fontSize: 14, color: Colors.white70),
-            ),
-          ),
           const SizedBox(width: 8),
           // 목숨 (하트)
           Row(
@@ -896,7 +913,7 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
                 duration: const Duration(milliseconds: 300),
                 child: Text(
                   '❤️',
-                  style: TextStyle(fontSize: i < _lives ? 22 : 18),
+                  style: TextStyle(fontSize: i < _lives ? 20 : 16),
                 ),
               ),
             )),
@@ -1122,12 +1139,12 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
               children: [
                 Text(
                   'LEVEL $_level',
-                  style: GoogleFonts.jua(fontSize: 30, color: Colors.white),
+                  style: AppFonts.jua(fontSize: 30, color: Colors.white),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '화면을 터치해서 발사! 🎳',
-                  style: GoogleFonts.jua(fontSize: 18, color: Colors.white70),
+                  style: AppFonts.jua(fontSize: 18, color: Colors.white70),
                 ),
               ],
             ),
@@ -1163,12 +1180,12 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
             children: [
               const Text('💥', style: TextStyle(fontSize: 72)),
               const SizedBox(height: 8),
-              Text('게임 오버!', style: GoogleFonts.jua(fontSize: 40, color: Colors.white)),
+              Text('게임 오버!', style: AppFonts.jua(fontSize: 40, color: Colors.white)),
               const SizedBox(height: 8),
-              Text('$_score 점', style: GoogleFonts.jua(fontSize: 36, color: const Color(0xFFFFB300))),
+              Text('$_score 점', style: AppFonts.jua(fontSize: 36, color: const Color(0xFFFFB300))),
               if (_score >= _bestScore && _score > 0) ...[
                 const SizedBox(height: 4),
-                Text('🏆 최고 기록!', style: GoogleFonts.jua(fontSize: 18, color: const Color(0xFFFFD54F))),
+                Text('🏆 최고 기록!', style: AppFonts.jua(fontSize: 18, color: const Color(0xFFFFD54F))),
               ],
               const SizedBox(height: 28),
               GestureDetector(
@@ -1184,7 +1201,7 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
                     border: Border.all(color: Colors.white.withOpacity(0.4), width: 2),
                     boxShadow: [BoxShadow(color: const Color(0xFFFF6B9D).withOpacity(0.5), blurRadius: 12)],
                   ),
-                  child: Text('다시 하기 🔄', style: GoogleFonts.jua(fontSize: 22, color: Colors.white)),
+                  child: Text('다시 하기 🔄', style: AppFonts.jua(fontSize: 22, color: Colors.white)),
                 ),
               ),
             ],
@@ -1196,33 +1213,62 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
 
   Widget _buildGameClearOverlay() {
     return Container(
-      color: Colors.black.withOpacity(0.65),
+      color: Colors.black.withValues(alpha: 0.5),
       child: Center(
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 32),
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+          margin: const EdgeInsets.symmetric(horizontal: 28),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF1a1a2e), Color(0xFF16213e), Color(0xFF0f3460)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFFFF0F5), Color(0xFFFFE4E1), Color(0xFFFFF9C4)],
             ),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: const Color(0xFFFFB300).withOpacity(0.6), width: 2),
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: Colors.white, width: 4),
             boxShadow: [
-              BoxShadow(color: const Color(0xFFFFB300).withOpacity(0.3), blurRadius: 24),
+              BoxShadow(color: const Color(0xFFFF6B9D).withValues(alpha: 0.35), blurRadius: 24, offset: const Offset(0, 8)),
             ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('🎉', style: TextStyle(fontSize: 72)),
-              const SizedBox(height: 8),
-              Text('클리어!', style: GoogleFonts.jua(fontSize: 44, color: const Color(0xFFFFD54F))),
-              Text('Level $_level 완료!', style: GoogleFonts.jua(fontSize: 22, color: Colors.white70)),
-              const SizedBox(height: 8),
-              Text('$_score 점', style: GoogleFonts.jua(fontSize: 32, color: Colors.white)),
-              const SizedBox(height: 28),
+              const Text('🎉', style: TextStyle(fontSize: 60)),
+              const SizedBox(height: 6),
+              Text(
+                '우와! 클리어!',
+                style: AppFonts.jua(fontSize: 34, color: const Color(0xFF8338EC)),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '레벨 $_level 완성!',
+                style: AppFonts.jua(fontSize: 20, color: const Color(0xFFFF5964)),
+              ),
+              const SizedBox(height: 12),
+              // 별 3개 반짝반짝
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Text('⭐', style: TextStyle(fontSize: 32)),
+                  SizedBox(width: 8),
+                  Text('🌟', style: TextStyle(fontSize: 42)),
+                  SizedBox(width: 8),
+                  Text('⭐', style: TextStyle(fontSize: 32)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  '획득 점수: $_score 점',
+                  style: AppFonts.jua(fontSize: 18, color: const Color(0xFF2B2D42)),
+                ),
+              ),
+              const SizedBox(height: 24),
               GestureDetector(
                 onTap: () {
                   AudioManager.instance.playClick();
@@ -1231,12 +1277,22 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFFFFB300), Color(0xFFFF6B00)]),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.4), width: 2),
-                    boxShadow: [BoxShadow(color: const Color(0xFFFFB300).withOpacity(0.5), blurRadius: 12)],
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFF6EB4), Color(0xFF8338EC)],
+                    ),
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: [
+                      BoxShadow(color: const Color(0xFF8338EC).withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 4)),
+                    ],
                   ),
-                  child: Text('다음 레벨! 🚀', style: GoogleFonts.jua(fontSize: 22, color: Colors.white)),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('다음 레벨로!', style: AppFonts.jua(fontSize: 20, color: Colors.white)),
+                      const SizedBox(width: 8),
+                      const Text('🚀', style: TextStyle(fontSize: 20)),
+                    ],
+                  ),
                 ),
               ),
             ],

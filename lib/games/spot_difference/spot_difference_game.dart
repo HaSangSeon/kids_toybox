@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -53,9 +52,10 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
   List<SceneElement> _baseScene = [];
   List<SceneElement> _bottomScene = [];
   List<int> _differenceIds = [];
-  List<int> _foundDifferenceIds = [];
-  List<Map<String, dynamic>> _wrongTaps = [];
+  final List<int> _foundDifferenceIds = [];
+  final List<Map<String, dynamic>> _wrongTaps = [];
   bool _isGameOver = false;
+  bool _isTransitioning = false; // 중복 터치 및 라운드 이행 상태 보호
 
   final List<String> _swapPool = ["🍏", "🐱", "🌹", "🛸", "🐝", "🦆", "🐢", "🍄", "🧸", "🦄"];
 
@@ -71,28 +71,24 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
   ];
 
   final List<List<Color>> _backgrounds = [
-    [const Color(0xFFE0F7FA), const Color(0xFFB2EBF2)], // 공원 (하늘)
-    [const Color(0xFF311B92), Color(0xFF4A148C)], // 우주 (보라 밤하늘)
-    [const Color(0xFFE0F7FA), const Color(0xFF80DEEA)], // 바다 (에메랄드)
-    [const Color(0xFFFFF8E1), const Color(0xFFFFECB3)], // 사막 (크림 파스텔)
-    [const Color(0xFFF1F8E9), const Color(0xFFDCEDC8)], // 농장 (연두 파스텔)
+    [const Color(0xFFE0F7FA), const Color(0xFFB2EBF2)], // 공원
+    [const Color(0xFF311B92), const Color(0xFF4A148C)], // 우주
+    [const Color(0xFFE0F7FA), const Color(0xFF80DEEA)], // 바다
+    [const Color(0xFFFFF8E1), const Color(0xFFFFECB3)], // 사막
+    [const Color(0xFFF1F8E9), const Color(0xFFDCEDC8)], // 농장
   ];
 
   final List<Color> _groundColors = [
-    const Color(0xFFAED581), // 공원 풀밭
-    const Color(0xFF7E57C2), // 우주 행성 표면
-    const Color(0xFFFFE082), // 바다 모래사장
-    const Color(0xFFFFCC80), // 사막 언덕
-    const Color(0xFF9CCC65), // 농장 잔디
+    const Color(0xFFAED581),
+    const Color(0xFF7E57C2),
+    const Color(0xFFFFE082),
+    const Color(0xFFFFCC80),
+    const Color(0xFF9CCC65),
   ];
 
   // Combo System
   DateTime? _lastTapTime;
   String? _comboMessage;
-  
-  // Hint System
-  bool _isHintFlying = false;
-  Offset? _hintTargetOffset;
 
   // Round System (3 rounds)
   int _currentRound = 1;
@@ -121,35 +117,34 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
     setState(() {
       if (resetRound) _currentRound = 1;
       _isGameOver = false;
+      _isTransitioning = false;
       _foundDifferenceIds.clear();
       _wrongTaps.clear();
       _lastTapTime = null;
       _comboMessage = null;
-      _isHintFlying = false;
-      
-      final int themeIdx = _random.nextInt(_themes.length);
+
+      final int themeIdx = (_currentRound - 1 + _random.nextInt(_themes.length)) % _themes.length;
       final currentThemePool = _themes[themeIdx];
-      
+
       _currentBg = _backgrounds[themeIdx];
       _currentGround = _groundColors[themeIdx];
 
       List<SceneElement> newScene = [];
       int idCounter = 0;
-      
+
       for (int row = 0; row < 4; row++) {
         for (int col = 0; col < 4; col++) {
-           final emoji = currentThemePool[_random.nextInt(currentThemePool.length)];
-           final x = (col + 0.2 + _random.nextDouble() * 0.6) / 4.0; 
-           final y = (row + 0.2 + _random.nextDouble() * 0.6) / 4.0;
-           final size = 35.0 + _random.nextDouble() * 25.0;
-           final angle = (_random.nextDouble() - 0.5) * 0.8;
-           newScene.add(SceneElement(id: idCounter++, emoji: emoji, x: x, y: y, size: size, angle: angle));
+          final emoji = currentThemePool[_random.nextInt(currentThemePool.length)];
+          final x = (col + 0.2 + _random.nextDouble() * 0.6) / 4.0;
+          final y = (row + 0.2 + _random.nextDouble() * 0.6) / 4.0;
+          final size = 35.0 + _random.nextDouble() * 25.0;
+          final angle = (_random.nextDouble() - 0.5) * 0.8;
+          newScene.add(SceneElement(id: idCounter++, emoji: emoji, x: x, y: y, size: size, angle: angle));
         }
       }
       _baseScene = newScene;
-
       _bottomScene = List.from(_baseScene);
-      
+
       var ids = _baseScene.map((e) => e.id).toList();
       ids.shuffle();
       _differenceIds = ids.take(3).toList();
@@ -168,29 +163,38 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
     });
   }
 
-  // 🎯 틀린 곳 터치 판정
-  void _onCanvasTap(double relX, double relY) {
-    if (_isGameOver) return;
+  // 🎯 틀린 곳 터치 판정 (실시간 애니메이션 위치 오프셋 완벽 반영 & 상단/하단 100% 터치 지원!)
+  void _onCanvasTap(double relX, double relY, Size containerSize) {
+    if (_isGameOver || _isTransitioning) return;
 
     int? foundDiffId;
     for (int diffId in _differenceIds) {
       if (_foundDifferenceIds.contains(diffId)) continue;
       final element = _baseScene.firstWhere((e) => e.id == diffId);
-      final dx = element.x - relX;
+
+      // ☁️ 🐟 🦋 등 동적 애니메이션 이동거리(dx) 정밀 보정!
+      double ambientDx = 0.0;
+      if (["☁️", "🐟", "🐠", "🐬", "🦋"].contains(element.emoji)) {
+        ambientDx = ((_ambientCtrl.value - 0.5) * 20.0) / (containerSize.width > 0 ? containerSize.width : 300.0);
+      }
+
+      final actualX = element.x + ambientDx;
+      final dx = actualX - relX;
       final dy = element.y - relY;
       final distSq = dx * dx + dy * dy;
-      if (distSq < 0.018) { 
+
+      // 넉넉하고 아이 친화적인 정답 터치 반경 (distSq < 0.025)
+      if (distSq < 0.025) {
         foundDiffId = diffId;
         break;
       }
     }
 
     if (foundDiffId != null) {
-      // 🌟 틀린 곳 정답 클릭! -> 청아하고 상쾌한 딩동 챠임음!
+      // 정답!
       AudioManager.instance.playCardMatch();
       HapticFeedback.mediumImpact();
-      
-      // 콤보 시스템
+
       final now = DateTime.now();
       if (_lastTapTime != null && now.difference(_lastTapTime!).inSeconds <= 4) {
         final combos = ["참 잘했어요! ✨", "대단해! 🎯", "우와! 🚀"];
@@ -205,85 +209,47 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
 
       setState(() {
         _foundDifferenceIds.add(foundDiffId!);
-        _isHintFlying = false;
-        if (_foundDifferenceIds.length >= _differenceIds.length) {
-          _isGameOver = true;
-          if (_currentRound < _totalRounds) {
-            AudioManager.instance.playLevelComplete();
-            Future.delayed(const Duration(milliseconds: 800), () {
-              if (!mounted) return;
-              _showRoundTransition(_currentRound + 1);
-            });
-          } else {
-            // All 3 rounds cleared!
-            PlayerDataManager.instance.addStarCoin(2);
-            _confettiController.play();
-            AudioManager.instance.playLevelComplete();
-            Future.delayed(const Duration(milliseconds: 1000), _showVictoryDialog);
-          }
-        }
       });
+
+      // 3개 틀린 그림 모두 발견 시 레벨 이행
+      if (_foundDifferenceIds.length >= _differenceIds.length) {
+        _isTransitioning = true; // 중복 입력 방지 락
+
+        if (_currentRound < _totalRounds) {
+          AudioManager.instance.playLevelComplete();
+          // 1.5초간 축하 링 감상 후 다음 라운드로 안전 이행
+          Future.delayed(const Duration(milliseconds: 1500), () {
+            if (!mounted) return;
+            _showRoundTransition(_currentRound + 1);
+          });
+        } else {
+          // 3개 라운드 모두 최종 클리어!
+          setState(() => _isGameOver = true);
+          AudioManager.instance.playSuccess();
+          PlayerDataManager.instance.addStarCoin(2);
+          _confettiController.play();
+          
+          Future.delayed(const Duration(milliseconds: 800), () {
+            if (mounted) _showVictoryDialog();
+          });
+        }
+      }
     } else {
-      // 🐣 오답 터치! -> 아이들이 좋아하는 귀여운 보잉 사운드!
+      // ❌ 오답
       AudioManager.instance.playCardMismatch();
       HapticFeedback.lightImpact();
-      
-      final wrongTap = {
-        'x': relX,
-        'y': relY,
-        'id': DateTime.now().millisecondsSinceEpoch.toString()
-      };
-      
+
+      final wrongTap = {'x': relX, 'y': relY};
       setState(() {
         _wrongTaps.add(wrongTap);
-        _lastTapTime = null; // break combo
       });
-      
+
       Future.delayed(const Duration(milliseconds: 900), () {
         if (mounted) {
           setState(() {
             _wrongTaps.remove(wrongTap);
           });
         }
-      });
-    }
-  }
-
-  void _useHint(BoxConstraints constraints) {
-    if (_isGameOver || _isHintFlying) return;
-
-    if (PlayerDataManager.instance.starCoins < 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('⭐ 별코인이 부족해요!', style: GoogleFonts.jua(fontSize: 16)),
-          backgroundColor: KidsTheme.pink,
-          duration: const Duration(seconds: 1),
-        ),
-      );
-      return;
-    }
-
-    PlayerDataManager.instance.spendStarCoins(1);
-    
-    int? hintId;
-    for (int id in _differenceIds) {
-      if (!_foundDifferenceIds.contains(id)) {
-        hintId = id;
-        break;
-      }
-    }
-    
-    if (hintId != null) {
-      final element = _baseScene.firstWhere((e) => e.id == hintId);
-      AudioManager.instance.playChime();
-      HapticFeedback.heavyImpact();
-
-      setState(() {
-        _isHintFlying = true;
-        _hintTargetOffset = Offset(
-          element.x * constraints.maxWidth,
-          element.y * constraints.maxHeight,
-        );
       });
     }
   }
@@ -332,7 +298,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
               ),
               const SizedBox(height: 8),
               Text(
-                '3개 라운드를 모두 맞췄어요! (+2 별코인)',
+                '3개 라운드를 모두 맞췄어요! (+2 별코인 획득)',
                 style: GoogleFonts.jua(fontSize: 16, color: KidsTheme.textDark),
               ),
               const SizedBox(height: 20),
@@ -352,7 +318,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
                     boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3))],
                   ),
                   child: Text(
-                    '다시 도전하기 🔄',
+                    '다음 라운드 도전! 🚀',
                     style: GoogleFonts.jua(fontSize: 18, color: Colors.white),
                   ),
                 ),
@@ -367,11 +333,14 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
   Widget _buildSceneCanvas(List<SceneElement> sceneElements, {required bool isInteractive, bool isTop = false}) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final containerSize = Size(constraints.maxWidth, constraints.maxHeight);
+
         return GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTapDown: isInteractive ? (details) {
             final relX = details.localPosition.dx / constraints.maxWidth;
             final relY = details.localPosition.dy / constraints.maxHeight;
-            _onCanvasTap(relX, relY);
+            _onCanvasTap(relX, relY, containerSize);
           } : null,
           child: Container(
             clipBehavior: Clip.antiAlias,
@@ -442,7 +411,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
                       style: TextStyle(fontSize: item.size),
                     ),
                   );
-                }).toList(),
+                }),
 
                 // 정답 동그라미 뱃지
                 ..._foundDifferenceIds.map((diffId) {
@@ -452,7 +421,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
                     top: element.y * constraints.maxHeight - 36,
                     child: const _CorrectMark(),
                   );
-                }).toList(),
+                }),
 
                 // 오답 ❌ 표시
                 if (isInteractive) ..._wrongTaps.map((wt) {
@@ -461,18 +430,8 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
                     top: (wt['y'] as double) * constraints.maxHeight - 28,
                     child: const _WrongMark(),
                   );
-                }).toList(),
+                }),
                 
-                // 🪄 요술봉 힌트
-                if (isInteractive && _isHintFlying && _hintTargetOffset != null)
-                  AnimatedPositioned(
-                    duration: const Duration(milliseconds: 1200),
-                    curve: Curves.easeInOut,
-                    left: _hintTargetOffset!.dx - 20,
-                    top: _hintTargetOffset!.dy - 20,
-                    child: const Text('🪄', style: TextStyle(fontSize: 40)),
-                  ),
-                  
                 // Combo Text Overlay
                 if (isInteractive && _comboMessage != null)
                   Align(
@@ -543,7 +502,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
           SafeArea(
             child: Column(
               children: [
-                // 3D 글래스 헤더 (BackdropFilter 대신 경량화 60fps translucent container 사용)
+                // 3D 글래스 헤더
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                   child: Container(
@@ -576,107 +535,75 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
                           ),
                         ),
                         
-                        // 🎨 메인 타이틀
+                        // 🎨 메인 타이틀 & 레벨 뱃지 (1단계, 2단계...)
                         Expanded(
                           child: Center(
-                            child: Text(
-                              '틀린그림 찾기 🔍 (Lv $_currentRound/$_totalRounds)',
-                              style: GoogleFonts.jua(
-                                fontSize: 19,
-                                foreground: Paint()
-                                  ..style = PaintingStyle.fill
-                                  ..color = KidsTheme.purple,
-                                shadows: const [
-                                  Shadow(color: Colors.white, offset: Offset(1.5, 1.5)),
-                                ],
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '틀린그림 찾기 🔍',
+                                  style: GoogleFonts.jua(
+                                    fontSize: 18,
+                                    color: KidsTheme.purple,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [Color(0xFFFFB300), Color(0xFFFF6F00)],
+                                    ),
+                                    borderRadius: BorderRadius.circular(14),
+                                    boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+                                  ),
+                                  child: Text(
+                                    '$_currentRound단계',
+                                    style: GoogleFonts.jua(fontSize: 14, color: Colors.white),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-
-                        // ⭐ 별코인 카운터
-                        ValueListenableBuilder<int>(
-                          valueListenable: PlayerDataManager.instance.starCoinsNotifier,
-                          builder: (context, starCoins, child) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Text('⭐', style: TextStyle(fontSize: 14)),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '$starCoins',
-                                    style: GoogleFonts.jua(fontSize: 14, color: Colors.white),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 8),
-
-                        // 🪄 힌트 요술봉 버튼
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            return GestureDetector(
-                              onTap: () => _useHint(constraints),
-                              child: Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: KidsTheme.yellow,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 2),
-                                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
-                                ),
-                                child: const Center(child: Text('🪄', style: TextStyle(fontSize: 22))),
-                              ),
-                            );
-                          }
-                        ),
+                        const SizedBox(width: 44), // 대칭 우측 여백
                       ],
                     ),
                   ),
                 ),
 
-                // 2개 분할 그림 캔버스 영역 (Top: 원본, Bottom: 틀린 그림 터치 영역)
+                // 2개 분할 그림 캔버스 영역 (Top: 원본, Bottom: 틀린 그림 둘 다 100% 터치 가능!)
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
                     child: Column(
                       children: [
-                        // 상단 원본 그림
+                        // 상단 원본 그림 (터치 가능!)
                         Expanded(
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
-                              _buildSceneCanvas(_baseScene, isInteractive: false, isTop: true),
+                              _buildSceneCanvas(_baseScene, isInteractive: true, isTop: true),
                               Positioned(
                                 top: 10,
                                 left: 10,
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.85),
+                                    color: Colors.white.withValues(alpha: 0.9),
                                     borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFF7E57C2), width: 1.5),
                                   ),
-                                  child: Text('원본 그림 🖼️', style: GoogleFonts.jua(fontSize: 13, color: KidsTheme.textDark)),
+                                  child: Text('원본 그림 🖼️', style: GoogleFonts.jua(fontSize: 13, color: const Color(0xFF512DA8))),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        // 하단 틀린 그림 터치 영역
+                        const SizedBox(height: 8),
+
+                        // 하단 비교 그림 (터치 가능!)
                         Expanded(
                           child: Stack(
                             fit: StackFit.expand,
@@ -688,10 +615,11 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFF9F43),
+                                    color: Colors.white.withValues(alpha: 0.9),
                                     borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFFF9800), width: 1.5),
                                   ),
-                                  child: Text('틀린곳 3개 찾기! 🔍', style: GoogleFonts.jua(fontSize: 13, color: Colors.white)),
+                                  child: Text('틀린곳 찾기 🔍 (${_foundDifferenceIds.length}/3)', style: GoogleFonts.jua(fontSize: 13, color: const Color(0xFFE65100))),
                                 ),
                               ),
                             ],
@@ -705,43 +633,50 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
             ),
           ),
 
-          // Round Transition Overlay
+          // 라운드 전환 애니메이션 오버레이
           if (_showRoundOverlay)
             Container(
-              color: Colors.black.withValues(alpha: 0.65),
+              color: Colors.black54,
               child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Round $_nextRoundForOverlay',
-                      style: GoogleFonts.outfit(
-                        fontSize: 52,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.5, end: 1.0),
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.elasticOut,
+                  builder: (context, val, child) {
+                    return Transform.scale(
+                      scale: val,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 16)],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('🎯 🚀', style: TextStyle(fontSize: 48)),
+                            const SizedBox(height: 8),
+                            Text(
+                              '$_nextRoundForOverlay단계 시작! 🎯',
+                              style: GoogleFonts.jua(fontSize: 24, color: KidsTheme.purple),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '다음 라운드 시작! 🚀',
-                      style: GoogleFonts.jua(
-                        fontSize: 32,
-                        color: Colors.yellowAccent,
-                      ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
             ),
 
-          // Confetti
+          // 폭죽 컨페티
           Align(
             alignment: Alignment.topCenter,
             child: ConfettiWidget(
               confettiController: _confettiController,
               blastDirectionality: BlastDirectionality.explosive,
-              shouldLoop: false,
-              colors: const [Colors.red, Colors.blue, Colors.green, Colors.yellow, Colors.purple, Colors.pink],
+              numberOfParticles: 25,
             ),
           ),
         ],
@@ -750,6 +685,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
   }
 }
 
+// 정답 마크 애니메이션
 class _CorrectMark extends StatefulWidget {
   const _CorrectMark();
 
@@ -759,11 +695,13 @@ class _CorrectMark extends StatefulWidget {
 
 class _CorrectMarkState extends State<_CorrectMark> with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
+  late Animation<double> _scale;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 450));
+    _scale = CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut);
     _ctrl.forward();
   }
 
@@ -776,64 +714,53 @@ class _CorrectMarkState extends State<_CorrectMark> with SingleTickerProviderSta
   @override
   Widget build(BuildContext context) {
     return ScaleTransition(
-      scale: CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut),
+      scale: _scale,
       child: Container(
         width: 72,
         height: 72,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xFFFF4757), width: 4),
-          color: const Color(0xFFFF4757).withValues(alpha: 0.2),
-          boxShadow: const [BoxShadow(color: Color(0xFFFF4757), blurRadius: 10)],
+          gradient: RadialGradient(
+            colors: [
+              Colors.amber.shade300.withValues(alpha: 0.25),
+              Colors.orange.shade400.withValues(alpha: 0.1),
+            ],
+          ),
+          border: Border.all(color: const Color(0xFFFFB300), width: 3.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.amber.shade700.withValues(alpha: 0.35),
+              blurRadius: 10,
+              spreadRadius: 1,
+            ),
+          ],
         ),
         child: const Center(
-          child: Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 36),
+          child: Icon(Icons.stars_rounded, color: Color(0xFFFF8F00), size: 46),
         ),
       ),
     );
   }
 }
 
-class _WrongMark extends StatelessWidget {
+// 오답 마크 애니메이션
+class _WrongMark extends StatefulWidget {
   const _WrongMark();
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.redAccent, width: 3),
-        color: Colors.redAccent.withValues(alpha: 0.25),
-      ),
-      child: const Center(
-        child: Icon(Icons.close_rounded, color: Colors.redAccent, size: 36),
-      ),
-    );
-  }
+  State<_WrongMark> createState() => _WrongMarkState();
 }
 
-class _ComboText extends StatefulWidget {
-  final String message;
-  const _ComboText({required this.message});
-
-  @override
-  State<_ComboText> createState() => _ComboTextState();
-}
-
-class _ComboTextState extends State<_ComboText> with SingleTickerProviderStateMixin {
+class _WrongMarkState extends State<_WrongMark> with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
+  late Animation<double> _scale;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
-    _ctrl.forward().then((_) {
-      Future.delayed(const Duration(milliseconds: 400), () {
-        if (mounted) _ctrl.reverse();
-      });
-    });
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
+    _scale = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack);
+    _ctrl.forward();
   }
 
   @override
@@ -845,19 +772,39 @@ class _ComboTextState extends State<_ComboText> with SingleTickerProviderStateMi
   @override
   Widget build(BuildContext context) {
     return ScaleTransition(
-      scale: CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut),
-      child: FadeTransition(
-        opacity: _ctrl,
-        child: Text(
-          widget.message,
-          style: GoogleFonts.jua(
-            fontSize: 48,
-            color: Colors.yellowAccent,
-            shadows: [
-              const Shadow(color: Colors.deepOrange, offset: Offset(3, 3), blurRadius: 6),
-            ],
-          ),
+      scale: _scale,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.black.withValues(alpha: 0.5),
         ),
+        child: const Center(
+          child: Text('❌', style: TextStyle(fontSize: 32)),
+        ),
+      ),
+    );
+  }
+}
+
+class _ComboText extends StatelessWidget {
+  final String message;
+  const _ComboText({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade400,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))],
+      ),
+      child: Text(
+        message,
+        style: GoogleFonts.jua(fontSize: 22, color: Colors.brown.shade900),
       ),
     );
   }

@@ -482,7 +482,7 @@ class _PacmanGameState extends State<PacmanGame>
       _score += 10;
       if (_score > _highScore) _highScore = _score;
       _dotsEaten++;
-      AudioManager.instance.playPop();
+      AudioManager.instance.playPacmanWaka(); // 🟡 원조 팩맨 와카와카 촙촙 사운드!
       _spawnParticles(gridC + 0.5, gridR + 0.5, _currentTheme.wallInner, 4);
 
       // Spawn stage fruit when 30% of dots eaten
@@ -499,7 +499,7 @@ class _PacmanGameState extends State<PacmanGame>
       _dotsEaten++;
       _isPowerActive = true;
       _powerTimeRemainingMs = (8500 - (_level * 600)).clamp(3500, 8500);
-      AudioManager.instance.playSuccess();
+      AudioManager.instance.playPacmanPowerPellet(); // ⚡ 파워 펠릿 클래식 사운드!
       _spawnParticles(gridC + 0.5, gridR + 0.5, Colors.lightBlueAccent, 12);
 
       for (var g in _ghosts) {
@@ -512,7 +512,7 @@ class _PacmanGameState extends State<PacmanGame>
       _grid[gridR][gridC] = cellEmpty;
       _score += _currentTheme.fruitPoints;
       if (_score > _highScore) _highScore = _score;
-      AudioManager.instance.playSuccess();
+      AudioManager.instance.playPacmanFruit(); // 🍒 과일 보너스 사운드!
       _spawnParticles(gridC + 0.5, gridR + 0.5, Colors.amberAccent, 16);
     }
   }
@@ -636,12 +636,12 @@ class _PacmanGameState extends State<PacmanGame>
           g.state = GhostState.eaten;
           _score += 200;
           if (_score > _highScore) _highScore = _score;
-          AudioManager.instance.playPop();
+          AudioManager.instance.playPacmanEatGhost(); // 👾 유령 먹기 오리지널 사운드!
           _spawnParticles(g.x + 0.5, g.y + 0.5, const Color(0xFFC084FC), 16);
         } else if (g.state == GhostState.normal) {
           // Pacman hit!
           _lives--;
-          AudioManager.instance.playDamage();
+          AudioManager.instance.playPacmanDeath(); // 💀 팩맨 8-Bit 데스 사운드!
           _spawnParticles(_playerX + 0.5, _playerY + 0.5, const Color(0xFFEF4444), 20);
 
           if (_lives <= 0) {
