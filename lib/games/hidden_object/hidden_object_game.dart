@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:confetti/confetti.dart';
 import '../../core/audio/audio_manager.dart';
 import '../../core/theme/kids_theme.dart';
-import '../../core/theme/app_fonts.dart';
 
 // ─────────────────────────────────────────────
 // Data Models
@@ -73,6 +72,41 @@ const List<_LevelTheme> _themes = [
     targetEmojis: ['👽', '🛸', '🚀', '👨‍🚀', '🤖', '🛰️'],
     bgGradient: [Color(0xFF1A237E), Color(0xFF311B92)],
   ),
+  _LevelTheme(
+    name: '공룡 섬',
+    icon: '🦕',
+    scatterEmojis: ['🌵', '🪨', '🌿', '🪵', '🌋', '🌴', '🔥', '🍃', '🪨', '🌱'],
+    targetEmojis: ['🦕', '🦖', '🐊', '🥚', '🦴', '🦎'],
+    bgGradient: [Color(0xFF66BB6A), Color(0xFF2E7D32)],
+  ),
+  _LevelTheme(
+    name: '과자 나라',
+    icon: '🍭',
+    scatterEmojis: ['🍬', '🍭', '🍫', '🍩', '🧁', '🍦', '🍨', '🍿', '🍧', '🍡'],
+    targetEmojis: ['🎂', '🍪', '🧇', '🍓', '🍰', '🍒'],
+    bgGradient: [Color(0xFFFF80AB), Color(0xFFC2185B)],
+  ),
+  _LevelTheme(
+    name: '신나는 농장',
+    icon: '🚜',
+    scatterEmojis: ['🚜', '🌾', '🌽', '🥕', '🍎', '🌻', '🪵', '🎃', '🥦', '🍉'],
+    targetEmojis: ['🐮', '🐷', '🐥', '🐴', '🐑', '🐶'],
+    bgGradient: [Color(0xFFFFB74D), Color(0xFFF57C00)],
+  ),
+  _LevelTheme(
+    name: '장난감 성',
+    icon: '🏰',
+    scatterEmojis: ['🏰', '⭐', '✨', '💎', '👑', '🪄', '🔮', '🔑', '🎁', '🎈'],
+    targetEmojis: ['👸', '🤴', '🦄', '🐲', '⚔️', '🪞'],
+    bgGradient: [Color(0xFF7986CB), Color(0xFF303F9F)],
+  ),
+  _LevelTheme(
+    name: '놀이공원',
+    icon: '🎠',
+    scatterEmojis: ['🎈', '🎠', '🎡', '🎢', '🍿', '🎪', '🎆', '🍦', '🎫', '🎉'],
+    targetEmojis: ['🤡', '🧸', '🎁', '👑', '🪄', '🎭'],
+    bgGradient: [Color(0xFFBA68C8), Color(0xFF7B1FA2)],
+  ),
 ];
 
 // ─────────────────────────────────────────────
@@ -98,23 +132,14 @@ class _HiddenObjectGameState extends State<HiddenObjectGame> with TickerProvider
   bool _isLevelClear = false;
 
 
-  // Hint
+  bool _showStageSelect = true; // Open stage selection on game start!
   bool _isHintActive = false;
   String? _hintEmoji;
 
   _LevelTheme get _currentTheme => _themes[_currentLevel - 1];
 
-  int get _targetCount {
-    if (_currentLevel == 1) return 3;
-    if (_currentLevel == 2) return 4;
-    return 5;
-  }
-
-  int get _scatterCount {
-    if (_currentLevel == 1) return 30;
-    if (_currentLevel == 2) return 40;
-    return 50;
-  }
+  int get _targetCount => 3; // 3 targets max - spacious and toddler-friendly!
+  int get _scatterCount => 30;
 
   @override
   void initState() {
@@ -157,7 +182,7 @@ class _HiddenObjectGameState extends State<HiddenObjectGame> with TickerProvider
       final targetPool = List<String>.from(theme.targetEmojis)..shuffle(_random);
       _targets = targetPool.take(_targetCount).toList();
 
-      // 1. Place target items first with distinct positions
+      // 1. Place target items across the entire play area (safely between header and bottom bar)
       final List<HiddenItem> targetItems = [];
       for (String target in _targets) {
         double px = 0, py = 0;
@@ -165,21 +190,21 @@ class _HiddenObjectGameState extends State<HiddenObjectGame> with TickerProvider
         int attempts = 0;
         while (!valid && attempts < 50) {
           attempts++;
-          px = 0.12 + _random.nextDouble() * 0.76;
-          py = 0.10 + _random.nextDouble() * 0.75;
-          valid = !targetItems.any((t) => (t.x - px).abs() < 0.15 && (t.y - py).abs() < 0.15);
+          px = 0.06 + _random.nextDouble() * 0.88;
+          py = 0.05 + _random.nextDouble() * 0.90;
+          valid = !targetItems.any((t) => (t.x - px).abs() < 0.16 && (t.y - py).abs() < 0.16);
         }
         targetItems.add(HiddenItem(
           emoji: target,
           x: px,
           y: py,
-          size: 42.0 + _random.nextDouble() * 16.0,
-          angle: (_random.nextDouble() - 0.5) * 0.6,
+          size: 44.0 + _random.nextDouble() * 14.0,
+          angle: (_random.nextDouble() - 0.5) * 0.5,
           isTarget: true,
         ));
       }
 
-      // 2. Generate scatter items with distance check from targets
+      // 2. Generate scatter items across the entire play area
       final List<HiddenItem> scatterItems = [];
       for (int i = 0; i < _scatterCount; i++) {
         final emoji = theme.scatterEmojis[_random.nextInt(theme.scatterEmojis.length)];
@@ -189,16 +214,15 @@ class _HiddenObjectGameState extends State<HiddenObjectGame> with TickerProvider
         while (!valid && attempts < 30) {
           attempts++;
           sx = 0.05 + _random.nextDouble() * 0.90;
-          sy = 0.05 + _random.nextDouble() * 0.85;
-          // Avoid target items overlap
+          sy = 0.05 + _random.nextDouble() * 0.90;
           valid = !targetItems.any((t) => (t.x - sx).abs() < 0.10 && (t.y - sy).abs() < 0.10);
         }
         scatterItems.add(HiddenItem(
           emoji: emoji,
           x: sx,
           y: sy,
-          size: 30.0 + _random.nextDouble() * 20.0,
-          angle: (_random.nextDouble() - 0.5) * 1.2,
+          size: 32.0 + _random.nextDouble() * 18.0,
+          angle: (_random.nextDouble() - 0.5) * 1.0,
         ));
       }
 
@@ -230,62 +254,14 @@ class _HiddenObjectGameState extends State<HiddenObjectGame> with TickerProvider
         _isLevelClear = true;
       });
 
-      // 터지는 소리 대신 아기자기 부드러운 축하 사운드 재생
       AudioManager.instance.playMagicUnfoldSuccess();
-
-      // 중간 레벨(레벨 1, 2)은 팝업창 없이 1.2초 후 다음 레벨로 자연스럽게 전환!
-      Future.delayed(const Duration(milliseconds: 1400), () {
-        if (!mounted) return;
-
-        if (_currentLevel < 3) {
-          _startLevel(_currentLevel + 1);
-        } else {
-          _showVictoryDialog();
-        }
-      });
+      _confettiController.play();
     }
   }
 
 
 
-  void _showVictoryDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        content: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: KidsTheme.toyDecoration(color: Colors.white, borderRadius: 30),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('🌟 🌟 🌟', style: TextStyle(fontSize: 40)),
-              const SizedBox(height: 16),
-              Text('모든 레벨 클리어!',
-                style: AppFonts.jua(fontSize: 28, color: KidsTheme.orange, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: KidsTheme.green,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                ),
-                onPressed: () {
-                  AudioManager.instance.playClick();
-                  Navigator.of(context).pop();
-                  _startLevel(1);
-                },
-                child: Text('다시 하기 🔄',
-                  style: GoogleFonts.nunito(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white)),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -302,10 +278,10 @@ class _HiddenObjectGameState extends State<HiddenObjectGame> with TickerProvider
             ambientVal: _ambientCtrl.value,
           ),
           
-          // ── Play Area ────────────────────────────────────────────────
+          // ── Play Area (Fully extended between header and bottom bar) ─
           Positioned.fill(
-              top: 85,
-              bottom: 120,
+              top: 75,
+              bottom: 135,
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   return AnimatedBuilder(
@@ -340,7 +316,8 @@ class _HiddenObjectGameState extends State<HiddenObjectGame> with TickerProvider
               child: SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                  child: Column(
+                  child: SingleChildScrollView(
+child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // ── Row 1: 뒤로가기 | 테마이름+레벨 | 힌트+타이머 ──
@@ -372,59 +349,51 @@ class _HiddenObjectGameState extends State<HiddenObjectGame> with TickerProvider
                           const SizedBox(width: 10),
 
                           // 테마 이름 + 레벨 뱃지
+                          // 테마 이름 + 레벨 뱃지 (터치 시 단계 선택 창 오픈)
                           Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? Colors.white.withOpacity(0.12)
-                                    : Colors.white.withOpacity(0.82),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(isDark ? 0.2 : 0.6),
-                                  width: 1.5,
+                            child: GestureDetector(
+                              onTap: () {
+                                AudioManager.instance.playClick();
+                                setState(() {
+                                  _showStageSelect = true;
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? Colors.white.withOpacity(0.18)
+                                      : Colors.white.withOpacity(0.90),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.8),
+                                    width: 2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
                                 ),
-                                boxShadow: [BoxShadow(
-                                  color: Colors.black.withOpacity(0.08),
-                                  blurRadius: 8, offset: const Offset(0, 3),
-                                )],
-                              ),
-                              child: Row(
-                                children: [
-                                  Text(theme.icon,
-                                    style: const TextStyle(fontSize: 22)),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(theme.name,
-                                      style: GoogleFonts.jua(
-                                        fontSize: 17,
-                                        color: isDark ? Colors.white : const Color(0xFF37474F),
-                                        height: 1.1,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  // 레벨 뱃지
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [Color(0xFFFFB300), Color(0xFFFF6F00)],
-                                      ),
-                                      borderRadius: BorderRadius.circular(10),
-                                      boxShadow: [BoxShadow(
-                                        color: const Color(0xFFFFB300).withOpacity(0.5),
-                                        blurRadius: 6,
-                                      )],
-                                    ),
-                                    child: Text(
-                                      'Lv $_currentLevel',
-                                      style: GoogleFonts.jua(
-                                        fontSize: 14, color: Colors.white, height: 1.1,
+                                child: Row(
+                                  children: [
+                                    Text(theme.icon, style: const TextStyle(fontSize: 22)),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        '$_currentLevel단계 (${theme.name})',
+                                        style: GoogleFonts.jua(
+                                          fontSize: 16,
+                                          color: isDark ? Colors.white : const Color(0xFF37474F),
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    const Icon(Icons.arrow_drop_down_circle_rounded, size: 18, color: Colors.orange),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -432,6 +401,7 @@ class _HiddenObjectGameState extends State<HiddenObjectGame> with TickerProvider
                       ),
                     ],
                   ),
+                ),
                 ),
               ),
             ),
@@ -446,6 +416,12 @@ class _HiddenObjectGameState extends State<HiddenObjectGame> with TickerProvider
             ),
 
 
+
+            // ── Stage Clear Celebration Overlay ───────────────────────────
+            if (_isLevelClear) _buildStageClearOverlay(),
+
+            // ── Stage Select Modal Overlay ─────────────────────────────────
+            if (_showStageSelect) _buildStageSelectOverlay(),
 
             // ── Confetti ──────────────────────────────────────────────────
             Align(
@@ -462,19 +438,226 @@ class _HiddenObjectGameState extends State<HiddenObjectGame> with TickerProvider
       );
   }
 
+  // ── Stage Clear Overlay ───────────────────────────────────────────────────
+  Widget _buildStageClearOverlay() {
+    final bool hasNext = _currentLevel < _themes.length;
+
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.65),
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 340),
+            margin: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(color: Colors.amber, width: 3),
+              boxShadow: const [
+                BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 8)),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('🎉 🥳 🔍', style: TextStyle(fontSize: 42)),
+                const SizedBox(height: 12),
+                Text(
+                  '참 잘했어요!',
+                  style: GoogleFonts.jua(fontSize: 28, color: KidsTheme.purple),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${_currentTheme.name} 탐험 성공!',
+                  style: GoogleFonts.jua(fontSize: 18, color: const Color(0xFF10AC84)),
+                ),
+                const SizedBox(height: 24),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (hasNext)
+                      ElevatedButton(
+                        onPressed: () {
+                          AudioManager.instance.playClick();
+                          _startLevel(_currentLevel + 1);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: KidsTheme.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        ),
+                        child: Text('🚀 다음 테마 탐험하기!', style: GoogleFonts.jua(fontSize: 18)),
+                      ),
+                    if (hasNext) const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: () {
+                        AudioManager.instance.playClick();
+                        setState(() {
+                          _isLevelClear = false;
+                          _showStageSelect = true;
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: KidsTheme.orange,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      ),
+                      child: Text('🗺️ 테마 선택하기', style: GoogleFonts.jua(fontSize: 18)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Stage Select Overlay ──────────────────────────────────────────────────
+  Widget _buildStageSelectOverlay() {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.70),
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 340, maxHeight: 580),
+            margin: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(32),
+              boxShadow: const [
+                BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 8)),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('🔍', style: TextStyle(fontSize: 32)),
+                    const SizedBox(width: 8),
+                    Text(
+                      '탐험 테마 선택',
+                      style: GoogleFonts.jua(fontSize: 26, color: KidsTheme.textDark),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '놀러 가고 싶은 장소를 마음대로 골라보세요!',
+                  style: GoogleFonts.nunito(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _themes.length,
+                    itemBuilder: (context, index) {
+                      final theme = _themes[index];
+                      final bool isCurrent = _currentLevel == (index + 1);
+                      final Color mainColor = theme.bgGradient.first;
+                      final bool isRecommend = index == 0;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: GestureDetector(
+                          onTap: () {
+                            AudioManager.instance.playClick();
+                            _startLevel(index + 1);
+                            setState(() {
+                              _showStageSelect = false;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [mainColor.withOpacity(0.9), theme.bgGradient.last],
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              border: isCurrent ? Border.all(color: Colors.yellow, width: 3) : null,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: mainColor.withOpacity(0.35),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Text(theme.icon, style: const TextStyle(fontSize: 28)),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Text(
+                                            theme.name,
+                                            style: GoogleFonts.jua(fontSize: 17, color: Colors.white),
+                                          ),
+                                          if (isRecommend) ...[
+                                            const SizedBox(width: 6),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.yellow,
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: Text(
+                                                '🌟 추천',
+                                                style: GoogleFonts.jua(fontSize: 11, color: Colors.black87),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '숨은 친구 4명 찾기 🔍',
+                                        style: GoogleFonts.nunito(fontSize: 12, color: Colors.white.withOpacity(0.9), fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.play_circle_fill, color: Colors.white, size: 28),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTargetBar(bool isDark) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: const Color(0xFFFFB74D), width: 3),
+        color: Colors.white.withValues(alpha: 0.88),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFFFFB74D), width: 2.5),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFF9800).withValues(alpha: 0.25),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
+            color: const Color(0xFFFF9800).withValues(alpha: 0.22),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -483,12 +666,12 @@ class _HiddenObjectGameState extends State<HiddenObjectGame> with TickerProvider
         children: [
           // "찾아야 할 것들" 캡슐 뱃지
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xFFFF7043), Color(0xFFFFB74D)],
               ),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -505,7 +688,7 @@ class _HiddenObjectGameState extends State<HiddenObjectGame> with TickerProvider
               ],
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           // 아이템 카드들
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -595,18 +778,24 @@ class _ThemeBackgroundWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (level == 1) {
-      return CustomPaint(
-        painter: _ForestBackgroundPainter(ambientVal: ambientVal),
-      );
-    } else if (level == 2) {
-      return CustomPaint(
-        painter: _OceanBackgroundPainter(ambientVal: ambientVal),
-      );
-    } else {
-      return CustomPaint(
-        painter: _SpaceBackgroundPainter(ambientVal: ambientVal),
-      );
+    switch (level) {
+      case 1:
+        return CustomPaint(painter: _ForestBackgroundPainter(ambientVal: ambientVal));
+      case 2:
+        return CustomPaint(painter: _OceanBackgroundPainter(ambientVal: ambientVal));
+      case 3:
+        return CustomPaint(painter: _SpaceBackgroundPainter(ambientVal: ambientVal));
+      case 4:
+        return CustomPaint(painter: _DinoBackgroundPainter(ambientVal: ambientVal));
+      case 5:
+        return CustomPaint(painter: _CandyBackgroundPainter(ambientVal: ambientVal));
+      case 6:
+        return CustomPaint(painter: _FarmBackgroundPainter(ambientVal: ambientVal));
+      case 7:
+        return CustomPaint(painter: _CastleBackgroundPainter(ambientVal: ambientVal));
+      case 8:
+      default:
+        return CustomPaint(painter: _ParkBackgroundPainter(ambientVal: ambientVal));
     }
   }
 }
@@ -901,7 +1090,9 @@ class _HiddenItemWidgetState extends State<_HiddenItemWidget> with TickerProvide
                         scaleX: scaleX,
                         scaleY: scaleY,
                         child: Container(
-                          padding: const EdgeInsets.all(12),
+                          constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.all(12),
                           color: Colors.transparent,
                           decoration: widget.isHinted
                               ? BoxDecoration(
@@ -1255,6 +1446,157 @@ class _FishPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _FishPainter oldDelegate) => true;
+}
+
+// 🦕 Theme 4: 공룡 섬 배경 렌더러
+class _DinoBackgroundPainter extends CustomPainter {
+  final double ambientVal;
+  _DinoBackgroundPainter({required this.ambientVal});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Rect rect = Offset.zero & size;
+    final Paint skyPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFFE8F5E9), Color(0xFFA5D6A7), Color(0xFF66BB6A)],
+      ).createShader(rect);
+    canvas.drawRect(rect, skyPaint);
+
+    // Volcano Silhouette in background
+    final Paint volcanoPaint = Paint()..color = const Color(0xFF43A047).withValues(alpha: 0.5);
+    final Path vPath = Path()
+      ..moveTo(size.width * 0.4, size.height * 0.45)
+      ..lineTo(size.width * 0.55, size.height * 0.28)
+      ..lineTo(size.width * 0.65, size.height * 0.28)
+      ..lineTo(size.width * 0.8, size.height * 0.45)
+      ..close();
+    canvas.drawPath(vPath, volcanoPaint);
+
+    // Jungle Hills
+    final Paint hillPaint = Paint()..color = const Color(0xFF2E7D32);
+    final Path hill = Path()
+      ..moveTo(0, size.height * 0.50)
+      ..quadraticBezierTo(size.width * 0.35, size.height * 0.42, size.width * 0.7, size.height * 0.52)
+      ..quadraticBezierTo(size.width * 0.88, size.height * 0.56, size.width, size.height * 0.48)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(hill, hillPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _DinoBackgroundPainter oldDelegate) => true;
+}
+
+// 🍭 Theme 5: 과자 나라 배경 렌더러
+class _CandyBackgroundPainter extends CustomPainter {
+  final double ambientVal;
+  _CandyBackgroundPainter({required this.ambientVal});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Rect rect = Offset.zero & size;
+    final Paint skyPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFFFCE4EC), Color(0xFFF8BBD0), Color(0xFFF48FB1)],
+      ).createShader(rect);
+    canvas.drawRect(rect, skyPaint);
+
+    // Candy Cotton Hills
+    final Paint hill1 = Paint()..color = const Color(0xFFEC407A).withValues(alpha: 0.5);
+    canvas.drawCircle(Offset(size.width * 0.2, size.height * 0.55), 180, hill1);
+
+    final Paint hill2 = Paint()..color = const Color(0xFFD81B60);
+    canvas.drawCircle(Offset(size.width * 0.8, size.height * 0.58), 200, hill2);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CandyBackgroundPainter oldDelegate) => true;
+}
+
+// 🚜 Theme 6: 신나는 농장 배경 렌더러
+class _FarmBackgroundPainter extends CustomPainter {
+  final double ambientVal;
+  _FarmBackgroundPainter({required this.ambientVal});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Rect rect = Offset.zero & size;
+    final Paint skyPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFFFFF8E1), Color(0xFFFFECB3), Color(0xFFFFD54F)],
+      ).createShader(rect);
+    canvas.drawRect(rect, skyPaint);
+
+    // Golden Farm Hills
+    final Paint hill = Paint()..color = const Color(0xFFF57C00);
+    final Path path = Path()
+      ..moveTo(0, size.height * 0.52)
+      ..quadraticBezierTo(size.width * 0.4, size.height * 0.44, size.width * 0.8, size.height * 0.54)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(path, hill);
+  }
+
+  @override
+  bool shouldRepaint(covariant _FarmBackgroundPainter oldDelegate) => true;
+}
+
+// 🏰 Theme 7: 장난감 성 배경 렌더러
+class _CastleBackgroundPainter extends CustomPainter {
+  final double ambientVal;
+  _CastleBackgroundPainter({required this.ambientVal});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Rect rect = Offset.zero & size;
+    final Paint skyPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFFE8EAF6), Color(0xFFC5CAE9), Color(0xFF9FA8DA)],
+      ).createShader(rect);
+    canvas.drawRect(rect, skyPaint);
+
+    // Castle Silhouette
+    final Paint castle = Paint()..color = const Color(0xFF3F51B5).withValues(alpha: 0.6);
+    canvas.drawRect(Rect.fromLTWH(size.width * 0.35, size.height * 0.35, size.width * 0.3, size.height * 0.3), castle);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CastleBackgroundPainter oldDelegate) => true;
+}
+
+// 🎠 Theme 8: 놀이공원 배경 렌더러
+class _ParkBackgroundPainter extends CustomPainter {
+  final double ambientVal;
+  _ParkBackgroundPainter({required this.ambientVal});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Rect rect = Offset.zero & size;
+    final Paint skyPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFFF3E5F5), Color(0xFFE1BEE7), Color(0xFFCE93D8)],
+      ).createShader(rect);
+    canvas.drawRect(rect, skyPaint);
+
+    // Ferris Wheel Silhouette
+    final Paint park = Paint()..color = const Color(0xFF8E24AA).withValues(alpha: 0.4);
+    canvas.drawCircle(Offset(size.width * 0.8, size.height * 0.4), 80, park);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ParkBackgroundPainter oldDelegate) => true;
 }
 
 

@@ -12,6 +12,7 @@ class PlayerDataManager {
   final ValueNotifier<int> starCoinsNotifier = ValueNotifier<int>(0);
   final ValueNotifier<List<String>> unlockedToysNotifier = ValueNotifier<List<String>>([]);
   final ValueNotifier<String> equippedToyNotifier = ValueNotifier<String>('🐱'); // Default cat
+  final ValueNotifier<bool> isPremiumUnlockedNotifier = ValueNotifier<bool>(false);
 
   Future<void> init() async {
     _playerDataBox = await Hive.openBox('player_data_box');
@@ -27,11 +28,16 @@ class PlayerDataManager {
     // Load initial equipped toy
     final String savedEquipped = _playerDataBox.get('equippedToy', defaultValue: '🐱');
     equippedToyNotifier.value = savedEquipped;
+
+    // Load premium status
+    final bool savedPremium = _playerDataBox.get('isPremiumUnlocked', defaultValue: false);
+    isPremiumUnlockedNotifier.value = savedPremium;
   }
 
   int get starCoins => starCoinsNotifier.value;
   List<String> get unlockedToys => unlockedToysNotifier.value;
   String get equippedToy => equippedToyNotifier.value;
+  bool get isPremiumUnlocked => isPremiumUnlockedNotifier.value;
 
   void addStarCoin([int amount = 1]) {
     final int newAmount = starCoins + amount;
@@ -60,5 +66,17 @@ class PlayerDataManager {
       equippedToyNotifier.value = toyEmoji;
       _playerDataBox.put('equippedToy', toyEmoji);
     }
+  }
+
+  void unlockPremium() {
+    isPremiumUnlockedNotifier.value = true;
+    _playerDataBox.put('isPremiumUnlocked', true);
+  }
+
+  bool togglePremium() {
+    final bool nextState = !isPremiumUnlocked;
+    isPremiumUnlockedNotifier.value = nextState;
+    _playerDataBox.put('isPremiumUnlocked', nextState);
+    return nextState;
   }
 }

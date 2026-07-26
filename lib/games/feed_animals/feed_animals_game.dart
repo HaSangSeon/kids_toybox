@@ -32,7 +32,7 @@ class _FeedAnimalsGameState extends State<FeedAnimalsGame>
   List<AnimalMatch> _matches = [];
   List<String> _foodsToFeed = [];
 
-  // 12종 다양한 동물 풀 — 매 라운드 3마리 랜덤 선택
+  // 20종 다양한 동물 풀 — 덱(Deck) 순환 구조로 중복 최소화
   final List<AnimalMatch> _allPossibleMatches = [
     AnimalMatch('🐶', '🦴', 'dog'),       // 강아지 → 뼈다귀
     AnimalMatch('🐱', '🐟', 'cat'),       // 고양이 → 물고기
@@ -40,16 +40,24 @@ class _FeedAnimalsGameState extends State<FeedAnimalsGame>
     AnimalMatch('🐻', '🍯', 'bear'),      // 곰 → 꿀
     AnimalMatch('🐒', '🍌', 'monkey'),    // 원숭이 → 바나나
     AnimalMatch('🐼', '🎋', 'panda'),     // 판다 → 대나무
-    AnimalMatch('🦊', '🍎', 'fox'),       // 여우 → 사과
+    AnimalMatch('🦊', '🍇', 'fox'),       // 여우 → 포도
     AnimalMatch('🦁', '🥩', 'lion'),      // 사자 → 고기
-    AnimalMatch('🐘', '🥜', 'elephant'),  // 코끼리 → 땅콩
+    AnimalMatch('🐘', '🍎', 'elephant'),  // 코끼리 → 사과
     AnimalMatch('🐸', '🐛', 'frog'),      // 개구리 → 벌레
-    AnimalMatch('🦜', '🌽', 'parrot'),    // 앵무새 → 옥수수
-    AnimalMatch('🐧', '🦐', 'penguin'),   // 펭귄 → 새우
+    AnimalMatch('🦜', '🥜', 'parrot'),    // 앵무새 → 땅콩/견과류
+    AnimalMatch('🐧', '🦑', 'penguin'),   // 펭귄 → 오징어
+    AnimalMatch('🐭', '🧀', 'mouse'),     // 쥐 → 치즈
+    AnimalMatch('🐿️', '🌰', 'squirrel'),  // 다람쥐 → 도토리
+    AnimalMatch('🐮', '🌾', 'cow'),       // 소 → 풀
+    AnimalMatch('🐷', '🌽', 'pig'),       // 돼지 → 옥수수
+    AnimalMatch('🦒', '🌿', 'giraffe'),   // 기린 → 나뭇잎
+    AnimalMatch('🦛', '🍉', 'hippo'),     // 하마 → 수박
+    AnimalMatch('🦔', '🍄', 'hedgehog'),  // 고슴도치 → 버섯
+    AnimalMatch('🐥', '🍓', 'chick'),     // 병아리 → 딸기
   ];
 
-  // 직전 라운드에 나온 동물 추적 (반복 방지)
-  Set<String> _lastRoundAnimals = {};
+  // 덱(Deck) 기반 중복 방지 큐
+  List<AnimalMatch> _deck = [];
 
   int _score = 0;
 
@@ -79,17 +87,24 @@ class _FeedAnimalsGameState extends State<FeedAnimalsGame>
   }
 
   void _startRound() {
-    // 직전 라운드 동물을 제외하고 우선 선택 → 반복 최소화
-    final preferred = _allPossibleMatches
-        .where((m) => !_lastRoundAnimals.contains(m.animal))
-        .toList();
-    final pool = preferred.length >= 3 ? preferred : _allPossibleMatches;
-    pool.shuffle();
-    _matches = pool
+    // 덱에 남은 동물이 3마리 미만이면 전체 20마리를 섞어서 보충
+    if (_deck.length < 3) {
+      final newDeck = List<AnimalMatch>.from(_allPossibleMatches)..shuffle();
+      if (_matches.isNotEmpty) {
+        final lastAnimals = _matches.map((m) => m.animal).toSet();
+        final nonOverlapping = newDeck.where((m) => !lastAnimals.contains(m.animal)).toList();
+        final overlapping = newDeck.where((m) => lastAnimals.contains(m.animal)).toList();
+        _deck = [..._deck, ...nonOverlapping, ...overlapping];
+      } else {
+        _deck = [..._deck, ...newDeck];
+      }
+    }
+
+    _matches = _deck
         .take(3)
         .map((m) => AnimalMatch(m.animal, m.food, m.animalName))
         .toList();
-    _lastRoundAnimals = _matches.map((m) => m.animal).toSet();
+    _deck.removeRange(0, 3);
     _foodsToFeed = _matches.map((m) => m.food).toList()..shuffle();
     setState(() {});
   }
@@ -101,8 +116,11 @@ class _FeedAnimalsGameState extends State<FeedAnimalsGame>
       AudioManager.instance.playEmojiSound(match.animal).then((_) {
         // 해당 이모지 매핑이 없는 동물은 munch 소리로 대체
       });
-      // 매핑 없는 동물(곰·사자·코끼리 등)은 추가로 munch
-      const noSoundAnimals = {'🐒', '🐼', '🦊', '🦁', '🐘', '🐸', '🦜', '🐧'};
+      // 매핑 없는 동물은 추가로 munch
+      const noSoundAnimals = {
+        '🐒', '🐼', '🦊', '🦁', '🐘', '🐸', '🦜', '🐧',
+        '🐭', '🐿️', '🐮', '🐷', '🦒', '🦛', '🦔', '🐥'
+      };
       if (noSoundAnimals.contains(match.animal)) {
         AudioManager.instance.playMunch();
       }
@@ -130,56 +148,59 @@ class _FeedAnimalsGameState extends State<FeedAnimalsGame>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Animated Nature Background
-          Positioned.fill(
-            child: AnimatedBuilder(
-              animation: _floatAnimation,
-              builder: (context, child) {
-                return CustomPaint(
-                  painter: _NatureBackgroundPainter(_floatAnimation.value),
-                );
-              },
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        body: Stack(
+          children: [
+            // Animated Nature Background
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: _floatAnimation,
+                builder: (context, child) {
+                  return CustomPaint(
+                    painter: _NatureBackgroundPainter(_floatAnimation.value),
+                  );
+                },
+              ),
             ),
-          ),
 
-          // Main content
-          SafeArea(
-            child: Column(
-              children: [
-                _buildHeader(context),
-                const SizedBox(height: 10),
-                _buildInstructionBanner(),
-                const Spacer(flex: 1),
-                _buildAnimalsRow(),
-                const Spacer(flex: 2),
-                _buildFoodTray(),
-                const SizedBox(height: 20),
-              ],
+            // Main content
+            SafeArea(
+              child: Column(
+                children: [
+                  _buildHeader(context),
+                  const SizedBox(height: 10),
+                  _buildInstructionBanner(),
+                  const Spacer(flex: 1),
+                  _buildAnimalsRow(),
+                  const Spacer(flex: 2),
+                  _buildFoodTray(),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
-          ),
 
-          // Confetti
-          Align(
-            alignment: Alignment.topCenter,
-            child: ConfettiWidget(
-              confettiController: _confettiController,
-              blastDirectionality: BlastDirectionality.explosive,
-              shouldLoop: false,
-              numberOfParticles: 30,
-              colors: const [
-                Color(0xFFFF6B6B),
-                Color(0xFF4ECDC4),
-                Color(0xFFFFE66D),
-                Color(0xFF95E1D3),
-                Color(0xFFF38181),
-                Color(0xFF6BCB77),
-              ],
+            // Confetti
+            Align(
+              alignment: Alignment.topCenter,
+              child: ConfettiWidget(
+                confettiController: _confettiController,
+                blastDirectionality: BlastDirectionality.explosive,
+                shouldLoop: false,
+                numberOfParticles: 30,
+                colors: const [
+                  Color(0xFFFF6B6B),
+                  Color(0xFF4ECDC4),
+                  Color(0xFFFFE66D),
+                  Color(0xFF95E1D3),
+                  Color(0xFFF38181),
+                  Color(0xFF6BCB77),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -246,36 +267,6 @@ class _FeedAnimalsGameState extends State<FeedAnimalsGame>
                   ),
                 ),
               ],
-            ),
-          ),
-          const Spacer(),
-          // Sound toggle
-          GestureDetector(
-            onTap: () {
-              setState(() => AudioManager.instance.toggleSound());
-            },
-            child: Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: const Color(0xFF95E1D3),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: KidsTheme.borderDark, width: 3),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0xFF5BB5A8),
-                    offset: Offset(0, 4),
-                    blurRadius: 0,
-                  ),
-                ],
-              ),
-              child: Icon(
-                AudioManager.instance.soundEnabled
-                    ? Icons.volume_up
-                    : Icons.volume_off,
-                color: Colors.white,
-                size: 24,
-              ),
             ),
           ),
         ],

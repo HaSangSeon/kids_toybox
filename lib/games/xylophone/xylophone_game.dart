@@ -661,7 +661,9 @@ class _XylophoneGameState extends State<XylophoneGame>
               return Transform.scale(
                 scale: scale,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                  constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFFFF6B9D), Color(0xFFFF8E53), Color(0xFFFFD93D)],
@@ -765,7 +767,9 @@ class _XylophoneGameState extends State<XylophoneGame>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Container(
-        padding: const EdgeInsets.all(5),
+        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.all(5),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.75),
           borderRadius: BorderRadius.circular(24),
@@ -820,7 +824,8 @@ class _XylophoneGameState extends State<XylophoneGame>
                           ]
                         : null,
                   ),
-                  child: Column(
+                  child: SingleChildScrollView(
+child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(tabs[i]['icon']!, style: const TextStyle(fontSize: 18)),
@@ -834,6 +839,7 @@ class _XylophoneGameState extends State<XylophoneGame>
                       ),
                     ],
                   ),
+),
                 ),
               ),
             );
@@ -848,7 +854,9 @@ class _XylophoneGameState extends State<XylophoneGame>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.80),
           borderRadius: BorderRadius.circular(20),
@@ -874,7 +882,9 @@ class _XylophoneGameState extends State<XylophoneGame>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(22),
@@ -991,7 +1001,9 @@ class _XylophoneGameState extends State<XylophoneGame>
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           gradient: LinearGradient(colors: gradient),
           borderRadius: BorderRadius.circular(16),
@@ -1023,7 +1035,9 @@ class _XylophoneGameState extends State<XylophoneGame>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(22),
@@ -1067,7 +1081,9 @@ class _XylophoneGameState extends State<XylophoneGame>
             if (_recorded.isNotEmpty) ...[
               const SizedBox(width: 10),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.purple.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(14),

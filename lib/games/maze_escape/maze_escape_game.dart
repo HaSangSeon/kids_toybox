@@ -44,7 +44,7 @@ const _kThemes = <MazeTheme>[
     wallColor: Color(0xFFFFB74D), wallBorderColor: Color(0xFFFFA726),
     floorColor: Color(0xFFFFFDF9), visitedColor: Color(0xFFFFE0B2),
     backgroundGradient: [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
-    bgEmoji: '☁️', stepEmoji: '✨',
+    bgEmoji: '☁️', stepEmoji: '🐾',
   ),
   MazeTheme(
     title: '바다 탐험 🐠', rows: 11, cols: 7,
@@ -52,7 +52,7 @@ const _kThemes = <MazeTheme>[
     wallColor: Color(0xFF4FC3F7), wallBorderColor: Color(0xFF29B6F6),
     floorColor: Color(0xFFF4FCFE), visitedColor: Color(0xFFB2EBF2),
     backgroundGradient: [Color(0xFFE0F7FA), Color(0xFFB2EBF2)],
-    bgEmoji: '🫧', stepEmoji: '💧',
+    bgEmoji: '🫧', stepEmoji: '🐾',
   ),
   MazeTheme(
     title: '꽃밭 나들이 🐝', rows: 13, cols: 7,
@@ -60,7 +60,7 @@ const _kThemes = <MazeTheme>[
     wallColor: Color(0xFF81C784), wallBorderColor: Color(0xFF66BB6A),
     floorColor: Color(0xFFF9FBF7), visitedColor: Color(0xFFC8E6C9),
     backgroundGradient: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
-    bgEmoji: '✨', stepEmoji: '🌸',
+    bgEmoji: '✨', stepEmoji: '🐾',
   ),
   MazeTheme(
     title: '우주 비행 🚀', rows: 13, cols: 9,
@@ -68,7 +68,7 @@ const _kThemes = <MazeTheme>[
     wallColor: Color(0xFFB39DDB), wallBorderColor: Color(0xFF9575CD),
     floorColor: Color(0xFFFAF8FF), visitedColor: Color(0xFFD1C4E9),
     backgroundGradient: [Color(0xFFEDE7F6), Color(0xFFD1C4E9)],
-    bgEmoji: '⭐', stepEmoji: '✨',
+    bgEmoji: '⭐', stepEmoji: '🐾',
   ),
   MazeTheme(
     title: '공룡 시대 🦕', rows: 15, cols: 9,
@@ -84,7 +84,7 @@ const _kThemes = <MazeTheme>[
     wallColor: Color(0xFF4DD0E1), wallBorderColor: Color(0xFF26C6DA),
     floorColor: Color(0xFFF7FCFC), visitedColor: Color(0xFFB2DFDB),
     backgroundGradient: [Color(0xFFE0F2F1), Color(0xFFB2DFDB)],
-    bgEmoji: '❄️', stepEmoji: '❄️',
+    bgEmoji: '❄️', stepEmoji: '🐾',
   ),
   MazeTheme(
     title: '마법의 성 🦄', rows: 17, cols: 9,
@@ -92,7 +92,7 @@ const _kThemes = <MazeTheme>[
     wallColor: Color(0xFFF06292), wallBorderColor: Color(0xFFEC407A),
     floorColor: Color(0xFFFDF7F9), visitedColor: Color(0xFFF8BBD0),
     backgroundGradient: [Color(0xFFFCE4EC), Color(0xFFF8BBD0)],
-    bgEmoji: '🌟', stepEmoji: '💖',
+    bgEmoji: '🌟', stepEmoji: '🐾',
   ),
 ];
 
@@ -400,7 +400,9 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
                     builder: (_, v, child) => Transform.scale(
                       scale: v,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+                        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
                             colors: [Color(0xFF43A047), Color(0xFF1B5E20)],
@@ -410,7 +412,8 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
                             BoxShadow(color: Colors.black.withAlpha(60), blurRadius: 20, offset: const Offset(0, 8)),
                           ],
                         ),
-                        child: Column(
+                        child: SingleChildScrollView(
+child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text('도착했어요! 🎉', style: GoogleFonts.jua(fontSize: 44, color: Colors.white)),
@@ -418,6 +421,7 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
                             Text('🎯 +50점 획득!', style: GoogleFonts.jua(fontSize: 24, color: Colors.yellowAccent)),
                           ],
                         ),
+),
                       ),
                     ),
                   ),
@@ -463,7 +467,9 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+              constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
               decoration: BoxDecoration(
                 color: const Color(0xFFFFD700).withAlpha(50),
                 borderRadius: BorderRadius.circular(20),
@@ -520,7 +526,7 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
                 child: Container(color: theme.floorColor),
               ),
 
-              // ── 지나온 타일 발자국 밝히기 ──
+              // ── 지나온 타일 아기자기한 발자국 밝히기 ──
               for (int r = 0; r < rows; r++)
                 for (int c = 0; c < cols; c++)
                   if (_visitedCells.contains("$r,$c") && _maze[r][c] == 0)
@@ -532,13 +538,16 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
                       child: Container(
                         margin: const EdgeInsets.all(1),
                         decoration: BoxDecoration(
-                          color: theme.visitedColor.withAlpha(160),
+                          color: theme.visitedColor.withAlpha(180),
                           borderRadius: BorderRadius.circular(cs * 0.25),
                         ),
                         child: Center(
-                          child: Opacity(
-                            opacity: 0.4,
-                            child: Text(theme.stepEmoji, style: TextStyle(fontSize: cs * 0.35)),
+                          child: Transform.rotate(
+                            angle: ((r + c) % 2 == 0) ? 0.22 : -0.22, // 아기자기한 왼발/오른발 회전
+                            child: Opacity(
+                              opacity: 0.7,
+                              child: Text(theme.stepEmoji, style: TextStyle(fontSize: cs * 0.42)),
+                            ),
                           ),
                         ),
                       ),

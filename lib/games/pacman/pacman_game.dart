@@ -877,7 +877,7 @@ class _PacmanGameState extends State<PacmanGame>
 
               // Title
               Text(
-                '👾 팩맨 미로 탐험 👾',
+                '👾 먹보 미로 탐험 👾',
                 style: GoogleFonts.jua(
                   fontSize: 22,
                   color: const Color(0xFFFDE047),
@@ -996,7 +996,8 @@ class _PacmanGameState extends State<PacmanGame>
       color: Colors.black.withValues(alpha: 0.75),
       child: Center(
         child: Container(
-          width: 320,
+          constraints: const BoxConstraints(maxWidth: 320, maxHeight: 600),
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: const Color(0xFF1E1B4B),
@@ -1010,9 +1011,10 @@ class _PacmanGameState extends State<PacmanGame>
               ),
             ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               // Emoji Badge
               Container(
                 width: 80,
@@ -1138,6 +1140,7 @@ class _PacmanGameState extends State<PacmanGame>
               ),
             ],
           ),
+          ), // SingleChildScrollView
         ),
       ),
     );
@@ -1148,7 +1151,8 @@ class _PacmanGameState extends State<PacmanGame>
       color: Colors.black.withValues(alpha: 0.75),
       child: Center(
         child: Container(
-          width: 320,
+          constraints: const BoxConstraints(maxWidth: 320, maxHeight: 600),
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: const Color(0xFF1E1B4B),
@@ -1162,9 +1166,10 @@ class _PacmanGameState extends State<PacmanGame>
               ),
             ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               Container(
                 width: 80,
                 height: 80,
@@ -1232,6 +1237,7 @@ class _PacmanGameState extends State<PacmanGame>
                 ],
               ),
             ],
+          ),
           ),
         ),
       ),

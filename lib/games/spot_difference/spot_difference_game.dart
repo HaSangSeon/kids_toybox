@@ -277,14 +277,17 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
       builder: (_) => Dialog(
         backgroundColor: Colors.transparent,
         child: Container(
-          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(32),
             border: Border.all(color: const Color(0xFFFFD700), width: 4),
             boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 8))],
           ),
-          child: Column(
+          child: SingleChildScrollView(
+child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text('🎉 🌟 🏆', style: TextStyle(fontSize: 44)),
@@ -309,7 +312,9 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
                   _startNewGame(resetRound: true);
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                  constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFF1DD1A1), Color(0xFF10AC84)],
@@ -325,6 +330,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
               ),
             ],
           ),
+),
         ),
       ),
     );
@@ -550,7 +556,9 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
                                 ),
                                 const SizedBox(width: 8),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                  constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                   decoration: BoxDecoration(
                                     gradient: const LinearGradient(
                                       colors: [Color(0xFFFFB300), Color(0xFFFF6F00)],
@@ -589,7 +597,9 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
                                 top: 10,
                                 left: 10,
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withValues(alpha: 0.9),
                                     borderRadius: BorderRadius.circular(12),
@@ -613,7 +623,9 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
                                 top: 10,
                                 left: 10,
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withValues(alpha: 0.9),
                                     borderRadius: BorderRadius.circular(12),
@@ -646,13 +658,16 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
                     return Transform.scale(
                       scale: val,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 16)],
                         ),
-                        child: Column(
+                        child: SingleChildScrollView(
+child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Text('🎯 🚀', style: TextStyle(fontSize: 48)),
@@ -663,6 +678,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
                             ),
                           ],
                         ),
+),
                       ),
                     );
                   },
@@ -795,7 +811,9 @@ class _ComboText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.amber.shade400,
         borderRadius: BorderRadius.circular(20),

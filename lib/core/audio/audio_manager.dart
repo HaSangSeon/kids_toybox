@@ -130,6 +130,28 @@ class AudioManager {
     });
   }
 
+  // 요리사 놀이 전용 사운드
+  Future<void> playCookDrop() async {
+    if (!_soundEnabled) return;
+    // 냄비에 재료 퐁당! 상큼한 소리
+    playEffect('audio/splash.wav', rate: 1.3);
+  }
+
+  Future<void> playCookStir() async {
+    if (!_soundEnabled) return;
+    // 냄비 휘젓는 톡톡 퐁당 소리
+    playEffect('audio/fish_bite.wav', rate: 1.2);
+  }
+
+  Future<void> playCookComplete() async {
+    if (!_soundEnabled) return;
+    // 요리 완성! 짠! 하고 화려하게 펼쳐지는 신나는 완성음
+    playEffect('audio/trace_success.wav');
+    Future.delayed(const Duration(milliseconds: 200), () {
+      playEffect('audio/chime.wav', rate: 1.25);
+    });
+  }
+
   // 각 조각의 이모지 매칭 사운드 재생
   Future<void> playEmojiSound(String emoji) {
     String filename;

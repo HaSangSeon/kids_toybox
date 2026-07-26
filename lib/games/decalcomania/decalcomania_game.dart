@@ -677,7 +677,8 @@ class _DecalcomaniaGameState extends State<DecalcomaniaGame>
                     Positioned(
                       left: 0, top: 0, bottom: 0, width: halfWidth,
                       child: Center(
-                        child: Column(
+                        child: SingleChildScrollView(
+child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Text('✏️', style: TextStyle(fontSize: 36)),
@@ -692,6 +693,7 @@ class _DecalcomaniaGameState extends State<DecalcomaniaGame>
                             ),
                           ],
                         ),
+),
                       ),
                     ),
 
@@ -700,7 +702,8 @@ class _DecalcomaniaGameState extends State<DecalcomaniaGame>
                     Positioned(
                       left: halfWidth, top: 0, bottom: 0, width: halfWidth,
                       child: Center(
-                        child: Column(
+                        child: SingleChildScrollView(
+child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Text('✨', style: TextStyle(fontSize: 36)),
@@ -715,6 +718,7 @@ class _DecalcomaniaGameState extends State<DecalcomaniaGame>
                             ),
                           ],
                         ),
+),
                       ),
                     ),
 
@@ -786,7 +790,9 @@ class _DecalcomaniaGameState extends State<DecalcomaniaGame>
                   Positioned(
                     left: 8, top: 8,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: const Color(0xFF8338EC).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(12),
@@ -803,7 +809,9 @@ class _DecalcomaniaGameState extends State<DecalcomaniaGame>
                   Positioned(
                     right: 8, top: 8,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFF6EB4).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(12),
@@ -830,7 +838,9 @@ class _DecalcomaniaGameState extends State<DecalcomaniaGame>
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.elasticOut,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
                                 colors: [Color(0xFFFF6EB4), Color(0xFF8338EC)],
@@ -876,7 +886,8 @@ class _DecalcomaniaGameState extends State<DecalcomaniaGame>
   Widget _buildBottomPanel() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
+      child: SingleChildScrollView(
+child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // ── 1행: 브러시 모드 선택 ──
@@ -1128,6 +1139,7 @@ class _DecalcomaniaGameState extends State<DecalcomaniaGame>
           ),
         ],
       ),
+),
     );
   }
 }

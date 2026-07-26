@@ -814,7 +814,8 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
       color: Colors.black.withValues(alpha: 0.65),
       child: Center(
         child: Container(
-          width: 320,
+          constraints: const BoxConstraints(maxWidth: 320, maxHeight: 600),
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.96),
@@ -822,9 +823,10 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
             border: Border.all(color: const Color(0xFFFFD700), width: 3.5),
             boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 8))],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               const Text('🎉 🔨 🏆', style: TextStyle(fontSize: 42)),
               const SizedBox(height: 10),
               Text(
@@ -947,6 +949,7 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
               ),
             ],
           ),
+          ), // SingleChildScrollView
         ),
       ),
     );

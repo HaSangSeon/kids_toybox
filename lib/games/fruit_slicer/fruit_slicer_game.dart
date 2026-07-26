@@ -749,14 +749,19 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // 동화 속 과일 동산 배경
-          Positioned.fill(
-            child: _buildWhimsicalBackground(),
-          ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        // 드래그 슬라이스로 인한 의도치 않은 뒤로가기/앱 이탈 방지
+      },
+      child: Scaffold(
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 동화 속 과일 동산 배경
+            Positioned.fill(
+              child: _buildWhimsicalBackground(),
+            ),
           
           // 게임 영역
           Positioned.fill(
@@ -926,7 +931,8 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
                     color: Colors.black.withValues(alpha: 0.55),
                     child: Center(
                       child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 24),
+                        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+                        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                         padding: const EdgeInsets.fromLTRB(24, 28, 24, 26),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.96),
@@ -945,9 +951,10 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
                             ),
                           ],
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
                             // Fruity Header Avatar Badge
                             Container(
                               padding: const EdgeInsets.all(12),
@@ -1151,6 +1158,7 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
                             ),
                           ],
                         ),
+                        ),
                       ),
                     ),
                   ),
@@ -1159,8 +1167,9 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
             ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _BladePainter extends CustomPainter {

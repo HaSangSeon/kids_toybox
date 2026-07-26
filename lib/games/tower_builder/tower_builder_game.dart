@@ -526,7 +526,9 @@ class _TowerBuilderGameState extends State<TowerBuilderGame>
                 // 탑을 가리지 않는 은은하고 고급스러운 터치 가이드 뱃지 (4층 미만 시 표출)
                 if (_started && !_isGameOver && _tower.length <= 4)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                    constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.85),
                       borderRadius: BorderRadius.circular(16),
@@ -587,7 +589,9 @@ class _TowerBuilderGameState extends State<TowerBuilderGame>
           const Spacer(),
           // 고급스러운 3D 젤리 타이틀
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xFFFFD54F), Color(0xFFFFB300)],
@@ -636,7 +640,9 @@ class _TowerBuilderGameState extends State<TowerBuilderGame>
 
   Widget _jellyBadge(String text, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(18),
@@ -656,14 +662,16 @@ class _TowerBuilderGameState extends State<TowerBuilderGame>
       color: Colors.black.withValues(alpha: 0.4),
       child: Center(
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 36),
+          constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 36),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(32),
             boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 20)],
           ),
-          child: Column(
+          child: SingleChildScrollView(
+child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text('🏰', style: TextStyle(fontSize: 56)),
@@ -688,6 +696,7 @@ class _TowerBuilderGameState extends State<TowerBuilderGame>
               ),
             ],
           ),
+),
         ),
       ),
     );
@@ -699,14 +708,16 @@ class _TowerBuilderGameState extends State<TowerBuilderGame>
       color: Colors.black.withValues(alpha: 0.65),
       child: Center(
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 36),
+          constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 36),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(32),
             boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 20)],
           ),
-          child: Column(
+          child: SingleChildScrollView(
+child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text('💥', style: TextStyle(fontSize: 48)),
@@ -728,6 +739,7 @@ class _TowerBuilderGameState extends State<TowerBuilderGame>
               ),
             ],
           ),
+),
         ),
       ),
     );

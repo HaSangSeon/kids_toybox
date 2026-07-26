@@ -76,7 +76,6 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
   int _themeIndex = 0;
   int _gridSize = 2; // Level 1: 2x2, Level 2: 3x3, Level 3: 3x3, Level 4: 4x4
   late List<int> _tiles;
-  int _moves = 0;
   bool _solved = false;
   bool _showPreview = false;
   bool _showNumbers = true;
@@ -123,20 +122,16 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
   void _applyLevelConfig() {
     switch (_currentLevel) {
       case 1:
-        _gridSize = 2; // 1단계: 2x2 (블록 3개, 입문)
+        _gridSize = 2; // 1단계: 2x2 (쉬움)
         _showNumbers = true;
         break;
       case 2:
-        _gridSize = 3; // 2단계: 3x3 (블록 8개, 보통)
+        _gridSize = 3; // 2단계: 3x3 (보통)
         _showNumbers = true;
         break;
       case 3:
-        _gridSize = 3; // 3단계: 3x3 (숫자 없이 그림 집중)
-        _showNumbers = false;
-        break;
-      case 4:
       default:
-        _gridSize = 4; // 4단계: 4x4 (블록 15개, 마스터)
+        _gridSize = 4; // 3단계: 4x4 (도전)
         _showNumbers = true;
         break;
     }
@@ -146,7 +141,6 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
     final n = _gridSize * _gridSize;
     // 정답 상태: 1, 2, 3, ..., N-1, 0 (0이 맨 마지막 빈칸)
     _tiles = List.generate(n, (i) => (i + 1) % n);
-    _moves = 0;
     _solved = false;
     _solvedCtrl.reset();
     _shuffle();
@@ -191,7 +185,6 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
     setState(() {
       _tiles[blank] = _tiles[tileIdx];
       _tiles[tileIdx] = 0;
-      _moves++;
     });
     if (_isSolved()) _onSolved();
   }
@@ -213,7 +206,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
     _confetti.play();
     
     // 별 코인 보상 밸런스 조정 (1단계: +1⭐, 2단계: +2⭐, 3단계: +3⭐, 4단계: +5⭐)
-    final coins = _currentLevel == 1 ? 1 : (_currentLevel == 2 ? 2 : (_currentLevel == 3 ? 3 : 5));
+    final coins = _currentLevel == 1 ? 1 : (_currentLevel == 2 ? 2 : 3);
     _coinsEarned = coins;
     PlayerDataManager.instance.addStarCoin(coins);
 
@@ -292,14 +285,11 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
             child: Column(
               children: [
                 _buildHeader(theme),
-                const SizedBox(height: 4),
-                _buildStats(theme),
                 const SizedBox(height: 6),
                 _buildLevelBar(theme),
                 const SizedBox(height: 6),
                 _buildThemeSelector(),
                 const SizedBox(height: 8),
-                // 🖼️ 퍼즐 판 바로 위에 배치된 큼직하고 예쁜 완성본 액자 카드!
                 _buildTargetPreviewCard(theme),
                 const SizedBox(height: 8),
                 Expanded(child: _buildPuzzleArea(theme)),
@@ -375,42 +365,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
     );
   }
 
-  // ── 통계 칩 ────────────────────────────────────────────────────────────
-  Widget _buildStats(_PuzzleTheme theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          _statChip(Icons.touch_app_rounded, '$_moves번 이동', Colors.white),
-          const SizedBox(width: 8),
-          ValueListenableBuilder<int>(
-            valueListenable: PlayerDataManager.instance.starCoinsNotifier,
-            builder: (_, coins, _) =>
-              _statChip(Icons.star_rounded, '$coins ⭐', const Color(0xFFFFD700)),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _statChip(IconData icon, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.25),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 16),
-          const SizedBox(width: 4),
-          Text(label, style: GoogleFonts.jua(fontSize: 13, color: Colors.white)),
-        ],
-      ),
-    );
-  }
 
   // ── 🖼️ 큼직한 완성본 액자 카드 ─────────────────────────────────────────
   Widget _buildTargetPreviewCard(_PuzzleTheme theme) {
@@ -488,7 +443,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
     );
   }
 
-  // ── ⭐️ 1~4 단계 레벨 선택 바 ─────────────────────────────────────────────
+  // ── ⭐️ 1~3 단계 레벨 선택 바 ─────────────────────────────────────────────
   Widget _buildLevelBar(_PuzzleTheme theme) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -500,10 +455,9 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
       ),
       child: Row(
         children: [
-          _levelTab(1, '1단계 (2×2)', '⭐ 아주 쉬움'),
+          _levelTab(1, '1단계 (2×2)', '⭐ 쉬움'),
           _levelTab(2, '2단계 (3×3)', '⭐⭐ 보통'),
-          _levelTab(3, '3단계 (그림)', '⭐⭐⭐ 집중'),
-          _levelTab(4, '4단계 (4×4)', '👑 도전'),
+          _levelTab(3, '3단계 (4×4)', '⭐⭐⭐ 도전'),
         ],
       ),
     );
@@ -538,7 +492,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
               Text(
                 title,
                 style: GoogleFonts.jua(
-                  fontSize: 12,
+                  fontSize: 13,
                   color: selected ? Colors.orange.shade900 : Colors.white,
                   fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                 ),
@@ -547,7 +501,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
               Text(
                 subtitle,
                 style: GoogleFonts.jua(
-                  fontSize: 9,
+                  fontSize: 10,
                   color: selected ? Colors.deepOrange : Colors.white.withValues(alpha: 0.9),
                 ),
               ),
@@ -741,7 +695,9 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
                       top: 4,
                       left: 4,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.55),
                           borderRadius: BorderRadius.circular(10),
@@ -770,7 +726,8 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
         child: ScaleTransition(
           scale: _solvedScale,
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 28),
+            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 28),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -783,7 +740,8 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
                 ),
               ],
             ),
-            child: Column(
+            child: SingleChildScrollView(
+child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('🎉 성공! 대단해요! 🎉', style: GoogleFonts.jua(fontSize: 26, color: theme.bg.last)),
@@ -869,6 +827,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
                 ),
               ],
             ),
+),
           ),
         ),
       ),
@@ -881,12 +840,15 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
       color: Colors.black.withValues(alpha: 0.65),
       child: Center(
         child: Container(
-          padding: const EdgeInsets.all(20),
+          constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
           ),
-          child: Column(
+          child: SingleChildScrollView(
+child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('🖼️ 완성될 그림 미리보기', style: GoogleFonts.jua(fontSize: 20, color: theme.bg.last)),
@@ -905,6 +867,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
               Text('이 모양으로 맞춰보세요!', style: GoogleFonts.jua(fontSize: 14, color: Colors.grey.shade600)),
             ],
           ),
+),
         ),
       ),
     );

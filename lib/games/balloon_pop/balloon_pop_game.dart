@@ -416,7 +416,7 @@ class GameEngine extends ChangeNotifier {
     // Check Stage Clear condition
     if (stageScore >= targetScore) {
       isStageCleared = true;
-      AudioManager.instance.playSuccess();
+      // AudioManager.instance.playSuccess(); // 사운드가 너무 시끄럽다는 피드백으로 제거
       HapticFeedback.heavyImpact();
     }
     
@@ -438,14 +438,29 @@ class GameEngine extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setStage(int newStage) {
+    stage = newStage.clamp(1, 5);
+    stageScore = 0;
+    isStageCleared = false;
+    isGameOver = false;
+    isCountingDown = true;
+    countdown = 3;
+    countdownTimer = 3.0;
+    freezeTimer = 0.0;
+    balloons.clear();
+    particles.clear();
+    floatingTexts.clear();
+    lastSpawnTime = DateTime.now();
+    notifyListeners();
+  }
+
   void reset() {
-    stage = 1;
     stageScore = 0;
     totalScore = 0;
     lives = 3;
     isStageCleared = false;
     isGameOver = false;
-    isCountingDown = false;
+    isCountingDown = true;
     countdown = 3;
     countdownTimer = 3.0;
     freezeTimer = 0.0;
@@ -468,6 +483,7 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
 
   bool _wasCleared = false;
   bool _wasGameOver = false;
+  bool _showStageSelect = true; // Open stage selection on game start!
   Duration _lastElapsed = Duration.zero;
 
   @override
@@ -591,106 +607,134 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.85),
-                        borderRadius: BorderRadius.circular(32),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 8),
-                          // Back Button
-                          GestureDetector(
-                            onTap: () {
-                              AudioManager.instance.playEffect('audio/click.wav');
-                              Navigator.of(context).pop();
-                            },
-                            child: Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.05),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  )
-                                ],
-                              ),
-                              child: const Icon(Icons.arrow_back, color: KidsTheme.textDark, size: 28),
+                    // 3 Distinct Floating Header Cards
+                    Row(
+                      children: [
+                        // Left: Back Button Card
+                        GestureDetector(
+                          onTap: () {
+                            AudioManager.instance.playEffect('audio/click.wav');
+                            Navigator.of(context).pop();
+                          },
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.10),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
                             ),
+                            child: const Icon(Icons.arrow_back_rounded, color: KidsTheme.textDark, size: 24),
                           ),
-                          
-                          // Central Info (Stage & Score)
-                          Expanded(
-                            child: ListenableBuilder(
-                              listenable: _engine,
-                              builder: (context, child) {
-                                return Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      '${_engine.stage}단계 🎈',
-                                      style: GoogleFonts.jua(fontSize: 22, color: KidsTheme.textDark),
-                                    ),
-                                    Text(
-                                      '목표: ${_engine.stageScore} / ${_engine.targetScore} (누적: ${_engine.totalScore}점)',
-                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: KidsTheme.orange),
-                                    ),
-                                  ],
-                                );
-                              }
-                            ),
-                          ),
-                          
-                          // Hearts
-                          ListenableBuilder(
+                        ),
+                        const SizedBox(width: 8),
+
+                        // Center: Stage Select Pill Card
+                        Expanded(
+                          child: ListenableBuilder(
                             listenable: _engine,
                             builder: (context, child) {
-                              return Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: List.generate(3, (index) {
-                                  final isHeartActive = index < _engine.lives;
-                                  return Icon(
-                                    Icons.favorite,
-                                    color: isHeartActive ? KidsTheme.red : Colors.grey.shade300,
-                                    size: 24,
-                                  );
-                                }),
+                              return GestureDetector(
+                                onTap: () {
+                                  AudioManager.instance.playClick();
+                                  setState(() {
+                                    _showStageSelect = true;
+                                  });
+                                },
+                                child: Container(
+                                  height: 44,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(22),
+                                    border: Border.all(color: const Color(0xFFFF9F1C), width: 2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.10),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        '${_engine.stage}단계 🎈',
+                                        style: GoogleFonts.jua(fontSize: 18, color: KidsTheme.textDark),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Icon(Icons.arrow_drop_down_circle_rounded, size: 18, color: Color(0xFFFF9F1C)),
+                                    ],
+                                  ),
+                                ),
                               );
-                            }
-                          ),
-                          const SizedBox(width: 12),
-                          
-                          // Refresh Button
-                          GestureDetector(
-                            onTap: () {
-                              AudioManager.instance.playEffect('audio/click.wav');
-                              _engine.reset();
                             },
-                            child: Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: KidsTheme.green.withValues(alpha: 0.15),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.refresh, color: KidsTheme.green, size: 28),
-                            ),
                           ),
-                          const SizedBox(width: 8),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 8),
+
+                        // Right: Hearts & Refresh Combined Pill Card
+                        Container(
+                          height: 44,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(22),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.10),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListenableBuilder(
+                                listenable: _engine,
+                                builder: (context, child) {
+                                  return Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: List.generate(3, (index) {
+                                      final isHeartActive = index < _engine.lives;
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 1.5),
+                                        child: Icon(
+                                          Icons.favorite,
+                                          color: isHeartActive ? KidsTheme.red : Colors.grey.shade300,
+                                          size: 20,
+                                        ),
+                                      );
+                                    }),
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                width: 1,
+                                height: 16,
+                                color: Colors.grey.shade300,
+                              ),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () {
+                                  AudioManager.instance.playEffect('audio/click.wav');
+                                  _engine.reset();
+                                },
+                                child: const Icon(Icons.refresh_rounded, color: KidsTheme.green, size: 24),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 10),
                     // Progress Bar
@@ -786,7 +830,8 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                       child: ScaleTransition(
                         scale: _clearScaleAnimation,
                         child: Container(
-                          width: 320,
+                          constraints: const BoxConstraints(maxWidth: 320, maxHeight: 600),
+                          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.96),
@@ -796,10 +841,11 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                               BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 8)),
                             ],
                           ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text('🎉 🎈 🏆', style: TextStyle(fontSize: 42)),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('🎉 🎈 🏆', style: TextStyle(fontSize: 42)),
                               const SizedBox(height: 10),
                               Text(
                                 '참 잘했어요!',
@@ -931,6 +977,7 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                             ],
                           ),
                         ),
+                        ),
                       ),
                     ),
                   ),
@@ -951,7 +998,8 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                       child: ScaleTransition(
                         scale: _gameOverScaleAnimation,
                         child: Container(
-                          width: 320,
+                          constraints: const BoxConstraints(maxWidth: 320, maxHeight: 600),
+                          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.96),
@@ -961,10 +1009,11 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                               BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 8)),
                             ],
                           ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text('🎈 😢 💥', style: TextStyle(fontSize: 42)),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('🎈 😢 💥', style: TextStyle(fontSize: 42)),
                               const SizedBox(height: 10),
                               Text(
                                 '풍선이 도망갔어요!',
@@ -1066,6 +1115,7 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                             ],
                           ),
                         ),
+                        ),
                       ),
                     ),
                   ),
@@ -1073,7 +1123,138 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
               },
             ),
 
+            // Stage Select Modal Overlay
+            if (_showStageSelect) _buildStageSelectOverlay(),
           ],
+        ),
+      ),
+    );
+  }
+
+  // ── Stage Select Overlay ──────────────────────────────────────────────────
+  Widget _buildStageSelectOverlay() {
+    final stagesInfo = [
+      (stage: 1, name: '1단계 (쉬움)', desc: '느린 풍선 / 목표 100점', color: const Color(0xFF4ADE80), icon: '🎈', isRecommend: true),
+      (stage: 2, name: '2단계 (보통)', desc: '보통 풍선 / 목표 150점', color: const Color(0xFF60A5FA), icon: '🎈🎈', isRecommend: false),
+      (stage: 3, name: '3단계 (신나게)', desc: '빠른 풍선 / 목표 200점', color: const Color(0xFFF59E0B), icon: '⚡', isRecommend: false),
+      (stage: 4, name: '4단계 (빠르게)', desc: '방해 풍선 추가 / 목표 250점', color: const Color(0xFFEC4899), icon: '💣', isRecommend: false),
+      (stage: 5, name: '5단계 (달인)', desc: '최고 난이도 / 목표 300점', color: const Color(0xFFA855F7), icon: '🏆', isRecommend: false),
+    ];
+
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.70),
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 340, maxHeight: 600),
+            margin: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(32),
+              boxShadow: const [
+                BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 8)),
+              ],
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('🎈', style: TextStyle(fontSize: 32)),
+                      const SizedBox(width: 8),
+                      Text(
+                        '단계 선택',
+                        style: GoogleFonts.jua(fontSize: 28, color: KidsTheme.textDark),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '하고 싶은 단계를 마음대로 골라보세요!',
+                    style: GoogleFonts.nunito(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  ...stagesInfo.map((info) {
+                    final bool isCurrent = _engine.stage == info.stage;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: GestureDetector(
+                        onTap: () {
+                          AudioManager.instance.playClick();
+                          _engine.setStage(info.stage);
+                          setState(() {
+                            _showStageSelect = false;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [info.color.withValues(alpha: 0.85), info.color],
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            border: isCurrent ? Border.all(color: Colors.yellow, width: 3) : null,
+                            boxShadow: [
+                              BoxShadow(
+                                color: info.color.withValues(alpha: 0.35),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Text(info.icon, style: const TextStyle(fontSize: 26)),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          info.name,
+                                          style: GoogleFonts.jua(fontSize: 18, color: Colors.white),
+                                        ),
+                                        if (info.isRecommend) ...[
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.yellow,
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              '🌟 추천',
+                                              style: GoogleFonts.jua(fontSize: 11, color: Colors.black87),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      info.desc,
+                                      style: GoogleFonts.nunito(fontSize: 12, color: Colors.white.withValues(alpha: 0.9), fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.play_circle_fill, color: Colors.white, size: 28),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

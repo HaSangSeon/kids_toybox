@@ -624,7 +624,9 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
               valueListenable: PlayerDataManager.instance.starCoinsNotifier,
               builder: (context, starCoins, child) {
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
@@ -932,7 +934,8 @@ class _LevelUpOverlayState extends State<_LevelUpOverlay> with SingleTickerProvi
           child: Center(
             child: ScaleTransition(
               scale: CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut),
-              child: Column(
+              child: SingleChildScrollView(
+child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
@@ -956,6 +959,7 @@ class _LevelUpOverlayState extends State<_LevelUpOverlay> with SingleTickerProvi
                   ),
                 ],
               ),
+),
             ),
           ),
         );

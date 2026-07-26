@@ -675,8 +675,8 @@ class _GachaShopScreenState extends State<GachaShopScreen>
     final categories = [
       (label: '🦕 공룡 점프', toys: const ['🦕', '🐉', '🦄', '🐢']),
       (label: '🏎️ 자동차', toys: const ['🚓', '🚒', '🚜', '🚑']),
-      (label: '🎣 낚시 놀이', toys: const ['🧲', '🔱', '🦈', '🦑']),
-      (label: '🟡 팩맨 탐험', toys: const ['🐥', '🐱', '🐶', '🐸']),
+      (label: '🏗️ 탑 쌓기', toys: const ['🧱', '🛢️', '📦', '🎁']),
+      (label: '🟡 먹보 미로', toys: const ['🐥', '🐱', '🐶', '🐸']),
       (label: '🐛 지렁이 탐험', toys: const ['🐍', '🐲', '🦄', '🐊']),
     ];
 

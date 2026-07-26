@@ -423,7 +423,9 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
                               Navigator.of(context).pop();
                             },
                             child: Container(
-                              padding: const EdgeInsets.all(9),
+                              constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.all(9),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(14),
@@ -434,7 +436,9 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.8),
                               borderRadius: BorderRadius.circular(20),
@@ -446,7 +450,9 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(14),
@@ -468,7 +474,8 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
                         child: Center(
                           child: ScaleTransition(
                             scale: _successScaleAnim,
-                            child: Column(
+                            child: SingleChildScrollView(
+child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
@@ -479,7 +486,9 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
                                 ),
                                 const SizedBox(height: 20),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                                  constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                                   decoration: BoxDecoration(
                                     color: KidsTheme.yellow,
                                     borderRadius: BorderRadius.circular(30),
@@ -495,6 +504,7 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
                                 ),
                               ],
                             ),
+),
                           ),
                         ),
                       ),

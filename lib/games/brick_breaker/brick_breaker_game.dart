@@ -1175,10 +1175,12 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
               BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 24, offset: const Offset(0, 8)),
             ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('💥', style: TextStyle(fontSize: 72)),
+          constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('💥', style: TextStyle(fontSize: 72)),
               const SizedBox(height: 8),
               Text('게임 오버!', style: AppFonts.jua(fontSize: 40, color: Colors.white)),
               const SizedBox(height: 8),
@@ -1206,6 +1208,7 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
               ),
             ],
           ),
+          ),
         ),
       ),
     );
@@ -1230,10 +1233,12 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
               BoxShadow(color: const Color(0xFFFF6B9D).withValues(alpha: 0.35), blurRadius: 24, offset: const Offset(0, 8)),
             ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('🎉', style: TextStyle(fontSize: 60)),
+          constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('🎉', style: TextStyle(fontSize: 80)),
               const SizedBox(height: 6),
               Text(
                 '우와! 클리어!',
@@ -1296,6 +1301,7 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
                 ),
               ),
             ],
+          ),
           ),
         ),
       ),

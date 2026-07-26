@@ -2,6 +2,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme/kids_theme.dart';
+import 'premium_purchase_modal.dart';
+import '../core/data/player_data_manager.dart';
 import '../core/audio/audio_manager.dart';
 import '../games/balloon_pop/balloon_pop_game.dart';
 import '../games/shape_coloring/shape_coloring_game.dart';
@@ -27,6 +29,8 @@ import '../games/block_builder/block_builder_game.dart';
 import '../games/pacman/pacman_game.dart';
 import '../games/snake/snake_game.dart';
 import '../games/slide_puzzle/slide_puzzle_game.dart';
+import '../games/color_mixing/color_mixing_game.dart';
+import '../games/cooking/cooking_game.dart';
 import '../core/data/player_data_manager.dart';
 import 'gacha_shop_screen.dart';
 import '../core/widgets/skin_select_modal.dart';
@@ -103,7 +107,7 @@ class _LobbyScreenState extends State<LobbyScreen>
   late AnimationController _cloudController;
   late AnimationController _bounceController;
   late AnimationController _starController;
-  bool _soundOn = true;
+  bool get _soundOn => AudioManager.instance.soundEnabled;
 
   late final List<_StarDot> _stars;
 
@@ -149,12 +153,9 @@ class _LobbyScreenState extends State<LobbyScreen>
 
   void _toggleSound() {
     setState(() {
-      _soundOn = !_soundOn;
-      if (_soundOn) {
-        AudioManager.instance.toggleSound();
+      AudioManager.instance.toggleSound();
+      if (AudioManager.instance.soundEnabled) {
         AudioManager.instance.playClick();
-      } else {
-        AudioManager.instance.toggleSound();
       }
     });
   }
@@ -404,89 +405,105 @@ class _LobbyScreenState extends State<LobbyScreen>
 
             const SizedBox(width: 8),
 
-            // Center: Cute 3D Toybox Title
+            // Center: Cute 3D Toybox Title (Easter Egg: Long press to toggle locks)
             Expanded(
-              child: ScaleTransition(
-                scale: Tween<double>(begin: 0.98, end: 1.02).animate(
-                  CurvedAnimation(
-                    parent: _bounceController,
-                    curve: Curves.easeInOut,
+              child: GestureDetector(
+                onLongPress: () {
+                  final bool isUnlocked = PlayerDataManager.instance.togglePremium();
+                  AudioManager.instance.playSuccess();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        isUnlocked ? '🔓 [이스터에그] 모든 유료 게임 해금 완료!' : '🔒 [이스터에그] 유료 게임 다시 잠금!',
+                        style: GoogleFonts.jua(fontSize: 16),
+                      ),
+                      backgroundColor: isUnlocked ? Colors.green : Colors.orange,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+                child: ScaleTransition(
+                  scale: Tween<double>(begin: 0.98, end: 1.02).animate(
+                    CurvedAnimation(
+                      parent: _bounceController,
+                      curve: Curves.easeInOut,
+                    ),
                   ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            '🧸',
-                            style: TextStyle(fontSize: 22),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '키즈 토이 박스',
-                            style: GoogleFonts.jua(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              foreground: Paint()
-                                ..style = PaintingStyle.fill
-                                ..color = const Color(0xFFFF5964),
-                              shadows: const [
-                                Shadow(
-                                  color: Color(0xFFFF9F1C),
-                                  offset: Offset(1.5, 1.5),
-                                  blurRadius: 0,
-                                ),
-                                Shadow(
-                                  color: Colors.black12,
-                                  offset: Offset(0, 4),
-                                  blurRadius: 8,
-                                ),
-                              ],
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              '🧸',
+                              style: TextStyle(fontSize: 22),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Text(
-                            '🎁',
-                            style: TextStyle(fontSize: 20),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    // Subtitle Capsule Tag
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFA855F7), Color(0xFFEC4899)],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFA855F7).withValues(alpha: 0.3),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        '✨ 미니 게임 천국 ✨',
-                        style: GoogleFonts.nunito(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: 0.4,
+                            const SizedBox(width: 4),
+                            Text(
+                              '키즈 토이 박스',
+                              style: GoogleFonts.jua(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                foreground: Paint()
+                                  ..style = PaintingStyle.fill
+                                  ..color = const Color(0xFFFF5964),
+                                shadows: const [
+                                  Shadow(
+                                    color: Color(0xFFFF9F1C),
+                                    offset: Offset(1.5, 1.5),
+                                    blurRadius: 0,
+                                  ),
+                                  Shadow(
+                                    color: Colors.black12,
+                                    offset: Offset(0, 4),
+                                    blurRadius: 8,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Text(
+                              '🎁',
+                              style: TextStyle(fontSize: 20),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 2),
+                      // Subtitle Capsule Tag
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFA855F7), Color(0xFFEC4899)],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFA855F7).withValues(alpha: 0.3),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          '✨ 미니 게임 천국 ✨',
+                          style: GoogleFonts.nunito(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -575,117 +592,160 @@ class _LobbyScreenState extends State<LobbyScreen>
   // ── Games Grid ────────────────────────────────────────────────────────────
   Widget _buildGamesGrid() {
     final games = _gameData();
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 0.88,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-      ),
-      itemCount: games.length,
-      itemBuilder: (context, i) => _buildGameTile(games[i]),
+    return ValueListenableBuilder<bool>(
+      valueListenable: PlayerDataManager.instance.isPremiumUnlockedNotifier,
+      builder: (context, isPremiumUnlocked, child) {
+        return GridView.builder(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            childAspectRatio: 0.88,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+          ),
+          itemCount: games.length,
+          itemBuilder: (context, i) => _buildGameTile(games[i], isPremiumUnlocked),
+        );
+      },
     );
   }
 
   // ── Game Tile ─────────────────────────────────────────────────────────────
-  Widget _buildGameTile(_GameData game) {
+  Widget _buildGameTile(_GameData game, bool isPremiumUnlocked) {
+    final bool isLocked = game.isPremium && !isPremiumUnlocked;
     return _TappableTile(
-      onTap: game.onTap,
-      child: Container(
-        decoration: KidsTheme.gradientDecoration(
-          colors: game.gradientColors,
-          borderRadius: 22,
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          children: [
-            // Top-right shine blob
-            Positioned(
-              top: -16,
-              right: -16,
-              child: Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.20),
-                ),
+      onTap: isLocked ? () {
+        AudioManager.instance.playClick();
+        PremiumPurchaseModal.show(context);
+      } : game.onTap,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Opacity(
+            opacity: isLocked ? 0.65 : 1.0,
+            child: Container(
+              decoration: KidsTheme.gradientDecoration(
+                colors: game.gradientColors,
+                borderRadius: 22,
               ),
-            ),
-            // Bottom-left small blob
-            Positioned(
-              bottom: -10,
-              left: -10,
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.15),
-                ),
-              ),
-            ),
-
-            // Content
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              clipBehavior: Clip.antiAlias,
+              child: Stack(
                 children: [
-                  game.emoji == '🟡'
-                      ? const PacmanIcon(size: 40)
-                      : Text(
-                          game.emoji,
-                          style: const TextStyle(fontSize: 40),
+                  Positioned(
+                    top: -16,
+                    right: -16,
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.20),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: -10,
+                    left: -10,
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.15),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: -15,
+                    bottom: -15,
+                    child: Transform.rotate(
+                      angle: -0.2,
+                      child: Text(
+                        game.emoji,
+                        style: TextStyle(
+                          fontSize: 80,
+                          color: Colors.black.withValues(alpha: 0.15),
                         ),
-                  const SizedBox(height: 6),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(
-                      game.title,
-                      style: GoogleFonts.jua(
-                        fontSize: 13,
-                        color: Colors.white,
-                        height: 1.15,
-                        shadows: const [
-                          Shadow(
-                            color: Colors.black26,
-                            blurRadius: 4,
-                            offset: Offset(0, 1),
+                      ),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          game.emoji == '🟡' ? const PacmanIcon(size: 42) : Text(game.emoji, style: const TextStyle(fontSize: 42)),
+                          const SizedBox(height: 6),
+                          Text(
+                            game.title,
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.jua(
+                              fontSize: 14,
+                              color: Colors.white,
+                              height: 1.2,
+                              shadows: const [
+                                Shadow(
+                                  color: Colors.black26,
+                                  offset: Offset(0, 1.5),
+                                  blurRadius: 2,
+                                )
+                              ],
+                            ),
+                            maxLines: 2,
                           ),
                         ],
                       ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
                     ),
                   ),
+                  if (game.isNew)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'NEW',
+                          style: GoogleFonts.nunito(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
-
-            // Trophy button (first game only)
-            if (game.onTrophyTap != null)
-              Positioned(
-                top: 6,
-                right: 6,
-                child: GestureDetector(
-                  onTap: game.onTrophyTap,
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.35),
-                      shape: BoxShape.circle,
+          ),
+          // Lock Overlay Badge (Always 100% sharp and visible)
+          if (isLocked)
+            Positioned(
+              top: 6,
+              right: 6,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
                     ),
-                    child: const Icon(
-                      Icons.emoji_events_rounded,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ),
+                  ],
                 ),
+                child: const Text('🔒', style: TextStyle(fontSize: 15)),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -698,7 +758,30 @@ class _LobbyScreenState extends State<LobbyScreen>
         emoji: '🎈',
         gradientColors: KidsTheme.gameGradients['pink']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BalloonPopGame())); },
-        onTrophyTap: () { AudioManager.instance.playClick(); _showHighScoresDialog(context); },
+      ),
+      _GameData(
+        title: '색깔 섞기',
+        emoji: '🎨',
+        gradientColors: KidsTheme.gameGradients['purple']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ColorMixingGame())); },
+      ),
+      _GameData(
+        title: '요리사 놀이',
+        emoji: '🍳',
+        gradientColors: KidsTheme.gameGradients['amber']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CookingGame())); },
+      ),
+      _GameData(
+        title: '직소 퍼즐',
+        emoji: '🧩',
+        gradientColors: KidsTheme.gameGradients['pink']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const JigsawPuzzleGame())); },
+      ),
+      _GameData(
+        title: '슬라이드 퍼즐',
+        emoji: '🔢',
+        gradientColors: KidsTheme.gameGradients['teal']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SlidePuzzleGame())); },
       ),
       _GameData(
         title: '모양 색칠',
@@ -735,12 +818,14 @@ class _LobbyScreenState extends State<LobbyScreen>
         emoji: '🐰',
         gradientColors: KidsTheme.gameGradients['green']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FeedAnimalsGame())); },
+        isPremium: true,
       ),
       _GameData(
         title: '두더지 잡기',
         emoji: '🐹',
         gradientColors: KidsTheme.gameGradients['brown']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WhackAMoleGame())); },
+        isPremium: true,
       ),
       _GameData(
         title: '공룡 점프',
@@ -757,36 +842,42 @@ class _LobbyScreenState extends State<LobbyScreen>
             },
           );
         },
+        isPremium: true,
       ),
       _GameData(
         title: '벽돌 깨기',
         emoji: '🎳',
         gradientColors: KidsTheme.gameGradients['indigo']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BrickBreakerGame())); },
+        isPremium: true,
       ),
       _GameData(
         title: '실로폰 연주',
         emoji: '🎹',
         gradientColors: KidsTheme.gameGradients['pink']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const XylophoneGame())); },
+        isPremium: true,
       ),
       _GameData(
         title: '비눗방울 톡톡',
         emoji: '🫧',
         gradientColors: KidsTheme.gameGradients['blue']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BubblePopGame())); },
+        isPremium: true,
       ),
       _GameData(
         title: '데칼코마니',
         emoji: '🦋',
         gradientColors: KidsTheme.gameGradients['pink']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DecalcomaniaGame())); },
+        isPremium: true,
       ),
       _GameData(
         title: '탑 쌓기',
         emoji: '🏗️',
         gradientColors: KidsTheme.gameGradients['purple']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TowerBuilderGame())); },
+        isPremium: true,
       ),
       _GameData(
         title: '요리조리 자동차',
@@ -796,6 +887,7 @@ class _LobbyScreenState extends State<LobbyScreen>
           AudioManager.instance.playClick();
           Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MiniRacingGame()));
         },
+        isPremium: true,
       ),
       _GameData(
         title: '낚시 놀이',
@@ -812,45 +904,44 @@ class _LobbyScreenState extends State<LobbyScreen>
             },
           );
         },
+        isPremium: true,
       ),
       _GameData(
         title: '점 잇기',
         emoji: '✏️',
         gradientColors: KidsTheme.gameGradients['lime']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ConnectDotsGame())); },
+        isPremium: true,
       ),
       _GameData(
         title: '따라 쓰기',
         emoji: '🖍️',
         gradientColors: KidsTheme.gameGradients['yellow']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TracingGame())); },
-      ),
-      _GameData(
-        title: '직소 퍼즐',
-        emoji: '🧩',
-        gradientColors: KidsTheme.gameGradients['pink']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const JigsawPuzzleGame())); },
+        isPremium: true,
       ),
       _GameData(
         title: '미로 찾기',
         emoji: '🧀',
         gradientColors: KidsTheme.gameGradients['green']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MazeEscapeGame())); },
+        isPremium: true,
       ),
       _GameData(
         title: '블럭 조립',
         emoji: '🧊',
         gradientColors: KidsTheme.gameGradients['orange']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BlockBuilderGame())); },
+        isPremium: true,
       ),
       _GameData(
-        title: '팩맨 탐험',
+        title: '먹보 미로',
         emoji: '🟡',
         gradientColors: KidsTheme.gameGradients['amber']!,
         onTap: () {
           SkinSelectModal.show(
             context,
-            gameTitle: '팩맨 탐험',
+            gameTitle: '먹보 미로',
             defaultSkin: '🟡',
             gameSkins: const ['🐥', '🐱', '🐶', '🐸'],
             onStart: (skin) {
@@ -858,6 +949,7 @@ class _LobbyScreenState extends State<LobbyScreen>
             },
           );
         },
+        isPremium: true,
       ),
       _GameData(
         title: '지렁이 탐험',
@@ -874,12 +966,7 @@ class _LobbyScreenState extends State<LobbyScreen>
             },
           );
         },
-      ),
-      _GameData(
-        title: '슬라이드 퍼즐',
-        emoji: '🧩',
-        gradientColors: KidsTheme.gameGradients['teal']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SlidePuzzleGame())); },
+        isPremium: true,
       ),
     ];
   }
@@ -940,6 +1027,8 @@ class _GameData {
   final List<Color> gradientColors;
   final VoidCallback onTap;
   final VoidCallback? onTrophyTap;
+  final bool isNew;
+  final bool isPremium;
 
   _GameData({
     required this.title,
@@ -947,5 +1036,7 @@ class _GameData {
     required this.gradientColors,
     required this.onTap,
     this.onTrophyTap,
+    this.isNew = false,
+    this.isPremium = false,
   });
 }

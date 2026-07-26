@@ -749,7 +749,9 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                       onTapDown: (_) => _dropHook(),
                       onTap: _dropHook,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
+                        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
                         decoration: BoxDecoration(
                           color: KidsTheme.orange,
                           borderRadius: BorderRadius.circular(36),
@@ -805,7 +807,9 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
     final progress = (_catchCount / target).clamp(0.0, 1.0);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.88),
         borderRadius: BorderRadius.circular(20),
@@ -818,7 +822,8 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
           ),
         ],
       ),
-      child: Column(
+      child: SingleChildScrollView(
+child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // ── 상단 툴바 행 ──
@@ -836,7 +841,9 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                   Navigator.of(context).pop();
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: KidsTheme.red.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
@@ -860,7 +867,9 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                   setState(() => _showCatalog = true);
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: const Color(0xFF7C3AED).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
@@ -879,7 +888,9 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
               const Spacer(),
               // 점수 표시
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: KidsTheme.orange.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
@@ -948,6 +959,7 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
           ],
         ],
       ),
+),
     );
   }
 
@@ -1091,14 +1103,16 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
         color: Colors.black.withValues(alpha: 0.45),
         child: Center(
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 32),
+            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 32),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(28),
               border: Border.all(color: KidsTheme.blue, width: 6),
             ),
-            child: Column(
+            child: SingleChildScrollView(
+child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text('⛵🎣', style: TextStyle(fontSize: 64)),
@@ -1110,7 +1124,9 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                 Text('⚠️ 상어와 바다 쓰레기는 피해요!', style: GoogleFonts.jua(fontSize: 14, color: KidsTheme.red)),
                 const SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(color: KidsTheme.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
                   child: Column(
                     children: [
@@ -1134,7 +1150,9 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                     GestureDetector(
                       onTap: () => setState(() => _showCatalog = true),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                         decoration: BoxDecoration(color: KidsTheme.purple, borderRadius: BorderRadius.circular(20)),
                         child: Text('📖 도감', style: GoogleFonts.jua(fontSize: 18, color: Colors.white)),
                       ),
@@ -1142,7 +1160,9 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                     GestureDetector(
                       onTap: () => _startGame(_screenSize),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
                         decoration: BoxDecoration(color: KidsTheme.green, borderRadius: BorderRadius.circular(20)),
                         child: Text('출발! 🚀', style: GoogleFonts.jua(fontSize: 18, color: Colors.white)),
                       ),
@@ -1151,6 +1171,7 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                 ),
               ],
             ),
+),
           ),
         ),
       ),
@@ -1165,7 +1186,8 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
         color: Colors.black.withValues(alpha: 0.55),
         child: Center(
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 28),
+            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 28),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -1173,7 +1195,8 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
               border: Border.all(color: KidsTheme.green, width: 6),
               boxShadow: [BoxShadow(color: KidsTheme.green.withValues(alpha: 0.3), blurRadius: 20, spreadRadius: 4)],
             ),
-            child: Column(
+            child: SingleChildScrollView(
+child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(_stageNames[_stage - 1], style: GoogleFonts.jua(fontSize: 18, color: _stageColors[_stage - 1])),
@@ -1204,7 +1227,9 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                     _nextStage();
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                    constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(colors: [Color(0xFF43A047), Color(0xFF1B5E20)]),
                       borderRadius: BorderRadius.circular(24),
@@ -1218,6 +1243,7 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                 ),
               ],
             ),
+),
           ),
         ),
       ),
@@ -1231,14 +1257,16 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
         color: Colors.black.withValues(alpha: 0.65),
         child: Center(
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 32),
+            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 32),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(28),
               border: Border.all(color: KidsTheme.orange, width: 5),
             ),
-            child: Column(
+            child: SingleChildScrollView(
+child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text('☠️🦈', style: TextStyle(fontSize: 64)),
@@ -1255,7 +1283,9 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                     GestureDetector(
                       onTap: () => setState(() => _showCatalog = true),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                         decoration: BoxDecoration(color: KidsTheme.purple, borderRadius: BorderRadius.circular(20)),
                         child: Text('📖 도감 확인', style: GoogleFonts.jua(fontSize: 18, color: Colors.white)),
                       ),
@@ -1263,7 +1293,9 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                     GestureDetector(
                       onTap: () => _startGame(_screenSize),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         decoration: BoxDecoration(color: KidsTheme.green, borderRadius: BorderRadius.circular(20)),
                         child: Text('다시 도전! 🔄', style: GoogleFonts.jua(fontSize: 18, color: Colors.white)),
                       ),
@@ -1272,6 +1304,7 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                 ),
               ],
             ),
+),
           ),
         ),
       ),
@@ -1285,7 +1318,8 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
         color: Colors.black.withValues(alpha: 0.7),
         child: Center(
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: const Color(0xFFE1F5FE),
@@ -1301,7 +1335,9 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                     GestureDetector(
                       onTap: () => setState(() => _showCatalog = false),
                       child: Container(
-                        padding: const EdgeInsets.all(6),
+                        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
                         child: const Icon(Icons.close, size: 20),
                       ),

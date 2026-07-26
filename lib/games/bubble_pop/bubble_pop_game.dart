@@ -460,13 +460,15 @@ class _BubblePopGameState extends State<BubblePopGame>
               Positioned(
                 top: 0, left: 0, right: 0,
                 child: SafeArea(
-                  child: Column(
+                  child: SingleChildScrollView(
+child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       _buildHeader(),
                       _buildWaveProgress(),
                     ],
                   ),
+),
                 ),
               ),
             ],
@@ -514,7 +516,9 @@ class _BubblePopGameState extends State<BubblePopGame>
           ),
           // 점수
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.85),
               borderRadius: BorderRadius.circular(20),
@@ -551,7 +555,9 @@ class _BubblePopGameState extends State<BubblePopGame>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.85),
                   borderRadius: BorderRadius.circular(10),
@@ -562,7 +568,9 @@ class _BubblePopGameState extends State<BubblePopGame>
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.85),
                   borderRadius: BorderRadius.circular(10),
@@ -614,13 +622,16 @@ class _BubblePopGameState extends State<BubblePopGame>
       child: Container(
         color: Colors.white.withOpacity(0.3),
         child: Center(
-          child: Column(
+          child: SingleChildScrollView(
+child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text('🎉', style: TextStyle(fontSize: 80)),
               const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.9),
                   borderRadius: BorderRadius.circular(24),
@@ -643,6 +654,7 @@ class _BubblePopGameState extends State<BubblePopGame>
               ),
             ],
           ),
+),
         ),
       ),
     );
@@ -652,14 +664,17 @@ class _BubblePopGameState extends State<BubblePopGame>
     return Positioned.fill(
       child: Center(
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+          constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.92),
             borderRadius: BorderRadius.circular(24),
             boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.2), blurRadius: 14)],
             border: Border.all(color: Colors.blue.shade100, width: 3),
           ),
-          child: Column(
+          child: SingleChildScrollView(
+child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
@@ -673,7 +688,9 @@ class _BubblePopGameState extends State<BubblePopGame>
               ),
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.purple.shade50,
                   borderRadius: BorderRadius.circular(16),
@@ -685,6 +702,7 @@ class _BubblePopGameState extends State<BubblePopGame>
               ),
             ],
           ),
+),
         ),
       ),
     );

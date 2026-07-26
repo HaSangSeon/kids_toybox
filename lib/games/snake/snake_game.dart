@@ -570,7 +570,9 @@ class _SnakeGameState extends State<SnakeGame>
             ],
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(16),
@@ -581,7 +583,9 @@ class _SnakeGameState extends State<SnakeGame>
               children: [
                 Text('점수: $_score점', style: GoogleFonts.jua(fontSize: 16, color: Colors.white)),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: const Color(0xFF059669),
                     borderRadius: BorderRadius.circular(12),
@@ -603,10 +607,12 @@ class _SnakeGameState extends State<SnakeGame>
       color: const Color(0xB3000000),
       child: Center(
         child: Container(
+          constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
           padding: const EdgeInsets.all(24),
-          margin: const EdgeInsets.symmetric(horizontal: 32),
           decoration: KidsTheme.toyDecoration(color: Colors.white, borderRadius: 28),
-          child: Column(
+          child: SingleChildScrollView(
+child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('⏸️ 일시 정지', style: GoogleFonts.jua(fontSize: 28, color: KidsTheme.textDark)),
@@ -622,6 +628,7 @@ class _SnakeGameState extends State<SnakeGame>
               ),
             ],
           ),
+),
         ),
       ),
     );
@@ -632,10 +639,12 @@ class _SnakeGameState extends State<SnakeGame>
       color: Colors.black87,
       child: Center(
         child: Container(
+          constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
           padding: const EdgeInsets.all(28),
-          margin: const EdgeInsets.symmetric(horizontal: 32),
           decoration: KidsTheme.toyDecoration(color: Colors.white, borderRadius: 32),
-          child: Column(
+          child: SingleChildScrollView(
+child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text('🎉', style: TextStyle(fontSize: 60)),
@@ -671,6 +680,7 @@ class _SnakeGameState extends State<SnakeGame>
               ),
             ],
           ),
+),
         ),
       ),
     );
@@ -681,10 +691,12 @@ class _SnakeGameState extends State<SnakeGame>
       color: Colors.black87,
       child: Center(
         child: Container(
+          constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
           padding: const EdgeInsets.all(28),
-          margin: const EdgeInsets.symmetric(horizontal: 32),
           decoration: KidsTheme.toyDecoration(color: Colors.white, borderRadius: 32),
-          child: Column(
+          child: SingleChildScrollView(
+child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text('💥', style: TextStyle(fontSize: 60)),
@@ -721,6 +733,7 @@ class _SnakeGameState extends State<SnakeGame>
               ),
             ],
           ),
+),
         ),
       ),
     );

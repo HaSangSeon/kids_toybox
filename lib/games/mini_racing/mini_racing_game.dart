@@ -1057,14 +1057,16 @@ class _MiniRacingGameState extends State<MiniRacingGame> with SingleTickerProvid
                         color: Colors.black.withValues(alpha: 0.65),
                         child: Center(
                           child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 32),
+                            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 32),
                             padding: const EdgeInsets.all(28),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(28),
                               border: Border.all(color: KidsTheme.orange, width: 5),
                             ),
-                            child: Column(
+                            child: SingleChildScrollView(
+child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 const Text('💥', style: TextStyle(fontSize: 72)),
@@ -1110,6 +1112,7 @@ class _MiniRacingGameState extends State<MiniRacingGame> with SingleTickerProvid
                                 ),
                               ],
                             ),
+),
                           ),
                         ),
                       ),
@@ -1132,14 +1135,16 @@ class _MiniRacingGameState extends State<MiniRacingGame> with SingleTickerProvid
         color: Colors.black.withValues(alpha: 0.75),
         child: Center(
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 24),
+            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 24),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(28),
               border: Border.all(color: KidsTheme.orange, width: 6),
             ),
-            child: Column(
+            child: SingleChildScrollView(
+child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text('🏎️', style: TextStyle(fontSize: 64)),
@@ -1287,7 +1292,9 @@ class _MiniRacingGameState extends State<MiniRacingGame> with SingleTickerProvid
                     }
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                    constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
                     decoration: BoxDecoration(
                       color: KidsTheme.green,
                       borderRadius: BorderRadius.circular(24),
@@ -1307,6 +1314,7 @@ class _MiniRacingGameState extends State<MiniRacingGame> with SingleTickerProvid
                 ),
               ],
             ),
+),
           ),
         ),
       ),

@@ -703,7 +703,8 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                   color: Colors.black.withValues(alpha: 0.55),
                   child: Center(
                     child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 24),
+                      constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+                      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                       padding: const EdgeInsets.fromLTRB(24, 28, 24, 26),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.96),
@@ -722,9 +723,10 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                           ),
                         ],
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                           // Crying Dino Header Icon Badge
                           Container(
                             padding: const EdgeInsets.all(12),
@@ -941,6 +943,7 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                             ],
                           ),
                         ],
+                      ),
                       ),
                     ),
                   ),

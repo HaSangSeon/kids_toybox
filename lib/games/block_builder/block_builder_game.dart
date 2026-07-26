@@ -710,7 +710,9 @@ class _BlockBuilderGameState extends State<BlockBuilderGame>
                               Navigator.pop(context);
                             },
                             child: Container(
-                              padding: const EdgeInsets.all(10),
+                              constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.all(10),
                               decoration: KidsTheme.toyDecoration(color: KidsTheme.red),
                               child: const Icon(Icons.arrow_back_ios_new_rounded,
                                   color: Colors.white, size: 22),
@@ -718,7 +720,9 @@ class _BlockBuilderGameState extends State<BlockBuilderGame>
                           ),
                           const SizedBox(width: 10),
                           Flexible(child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                             decoration: KidsTheme.toyDecoration(color: Colors.white),
                             child: Text(
                               '${level.emoji} ${level.name} 조립',
@@ -735,7 +739,9 @@ class _BlockBuilderGameState extends State<BlockBuilderGame>
                       Positioned(
                         top: 70, left: 16,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(
+                          constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.85),
@@ -834,11 +840,14 @@ class _BlockBuilderGameState extends State<BlockBuilderGame>
                             builder: (ctx2, v, child2) => Transform.scale(
                               scale: v,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(
+                                constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
+margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+padding: const EdgeInsets.symmetric(
                                     horizontal: 40, vertical: 24),
                                 decoration: KidsTheme.toyDecoration(
                                     color: KidsTheme.green, borderRadius: 32),
-                                child: Column(
+                                child: SingleChildScrollView(
+child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text('완성! 🎉',
@@ -852,6 +861,7 @@ class _BlockBuilderGameState extends State<BlockBuilderGame>
                                             height: 1.1)),
                                   ],
                                 ),
+),
                               ),
                             ),
                           ),
