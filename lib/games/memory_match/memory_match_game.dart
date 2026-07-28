@@ -147,6 +147,7 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
   // Level-up overlay
   bool _showLevelUp = false;
   int _nextLevelForOverlay = 0;
+  bool _showStageSelect = true; // 게임 진입 시 레벨 선택 화면 즉시 표시!
 
   // Match celebration: indices of cards currently flying away
   Set<int> _flyingIndices = {};
@@ -202,10 +203,19 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
 
       final theme = _themes[(level - 1) % _themes.length];
       int numCards = 4;
-      if (level == 2) numCards = 8;
-      if (level == 3) numCards = 12;
-      if (level == 4) numCards = 16;
-      if (level == 5) numCards = 20;
+      if (level == 1 || level == 2) {
+        numCards = 4;
+      } else if (level == 3 || level == 4) {
+        numCards = 6;
+      } else if (level == 5 || level == 6) {
+        numCards = 8;
+      } else if (level == 7 || level == 8) {
+        numCards = 10;
+      } else if (level == 9 || level == 10) {
+        numCards = 12;
+      } else {
+        numCards = 16;
+      }
 
       int numPairs = numCards ~/ 2;
       final pool = List<String>.from(theme.emojis)..shuffle(_random);
@@ -334,55 +344,11 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
     }
   }
 
-  // ─── Magic Hint ───
-  void _useHint() async {
-    if (_isProcessing || _isMemorizing || _isHintActive) return;
 
-    if (PlayerDataManager.instance.starCoins < 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('⭐ 별코인이 부족해요!', style: GoogleFonts.jua(fontSize: 16)),
-          backgroundColor: KidsTheme.pink,
-          duration: const Duration(seconds: 1),
-        ),
-      );
-      return;
-    }
-
-    PlayerDataManager.instance.spendStarCoins(1);
-
-    AudioManager.instance.playChime();
-    HapticFeedback.heavyImpact();
-    setState(() => _isHintActive = true);
-
-    final unMatchedIndices = <int>[];
-    for (int i = 0; i < _cards.length; i++) {
-      if (!_cards[i].isMatched && !_cards[i].isFaceUp) {
-        unMatchedIndices.add(i);
-      }
-    }
-
-    setState(() {
-      for (int i in unMatchedIndices) {
-        _cards[i] = _cards[i].copyWith(isFaceUp: true);
-      }
-    });
-
-    await Future.delayed(const Duration(milliseconds: 1500));
-
-    if (!mounted) return;
-    setState(() {
-      for (int i in unMatchedIndices) {
-        _cards[i] = _cards[i].copyWith(isFaceUp: false);
-      }
-      _isHintActive = false;
-    });
-  }
 
   int _getGridCrossAxisCount() {
     if (_cards.length <= 4) return 2;
-    if (_cards.length <= 8) return 4;
-    if (_cards.length <= 12) return 4;
+    if (_cards.length <= 6) return 3;
     return 4;
   }
 
@@ -529,7 +495,48 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
+
+                // 🗺️ 하단 레벨 선택 버튼 (유아가 쉽게 터치할 수 있는 큼직한 오렌지 버튼)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 14.0),
+                  child: GestureDetector(
+                    onTap: () {
+                      AudioManager.instance.playClick();
+                      setState(() {
+                        _showStageSelect = true;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF9800), Color(0xFFFF5722)],
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: Colors.white, width: 2.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.orange.withValues(alpha: 0.4),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('🗺️', style: TextStyle(fontSize: 20)),
+                          const SizedBox(width: 6),
+                          Text(
+                            '다른 레벨 선택하기',
+                            style: GoogleFonts.jua(fontSize: 18, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -558,7 +565,154 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
               colors: const [Colors.red, Colors.blue, Colors.green, Colors.yellow, Colors.purple, Colors.pink],
             ),
           ),
+
+          // ── Level select overlay ──
+          if (_showStageSelect) _buildStageSelectOverlay(),
         ],
+      ),
+    );
+  }
+
+  // ── Stage Select Overlay ──────────────────────────────────────────────────
+  Widget _buildStageSelectOverlay() {
+    final stageInfos = [
+      (stage: 1, name: '1단계', icon: '🌊', sub: '카드 4개', color: const Color(0xFF29B6F6)),
+      (stage: 2, name: '2단계', icon: '🐱', sub: '카드 4개', color: const Color(0xFFFFB300)),
+      (stage: 3, name: '3단계', icon: '🚀', sub: '카드 6개', color: const Color(0xFF7E57C2)),
+      (stage: 4, name: '4단계', icon: '🐥', sub: '카드 6개', color: const Color(0xFF81C784)),
+      (stage: 5, name: '5단계', icon: '🍰', sub: '카드 8개', color: const Color(0xFFEC407A)),
+      (stage: 6, name: '6단계', icon: '🌸', sub: '카드 8개', color: const Color(0xFFAB47BC)),
+      (stage: 7, name: '7단계', icon: '👑', sub: '카드 10개', color: const Color(0xFF8E24AA)),
+      (stage: 8, name: '8단계', icon: '🦕', sub: '카드 10개', color: const Color(0xFF4CAF50)),
+      (stage: 9, name: '9단계', icon: '☃️', sub: '카드 12개', color: const Color(0xFF29B6F6)),
+      (stage: 10, name: '10단계', icon: '🐞', sub: '카드 12개', color: const Color(0xFF7CB342)),
+      (stage: 11, name: '11단계', icon: '🎡', sub: '카드 16개', color: const Color(0xFFFB8C00)),
+      (stage: 12, name: '12단계', icon: '🏆', sub: '카드 16개', color: const Color(0xFF3F51B5)),
+    ];
+
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.70),
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 340, maxHeight: 600),
+            margin: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(32),
+              boxShadow: const [
+                BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 8)),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        AudioManager.instance.playClick();
+                        setState(() {
+                          _showStageSelect = false;
+                        });
+                      },
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close_rounded, size: 20, color: KidsTheme.textDark),
+                      ),
+                    ),
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('🃏', style: TextStyle(fontSize: 26)),
+                          const SizedBox(width: 6),
+                          Text(
+                            '레벨 선택',
+                            style: GoogleFonts.jua(fontSize: 22, color: KidsTheme.textDark),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 36),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '하고 싶은 레벨을 마음대로 골라보세요!',
+                  style: GoogleFonts.nunito(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: GridView.builder(
+                    padding: EdgeInsets.zero,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 1.15,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                    ),
+                    itemCount: stageInfos.length,
+                    itemBuilder: (context, index) {
+                      final info = stageInfos[index];
+                      final bool isCurrent = _currentLevel == info.stage;
+
+                      return GestureDetector(
+                        onTap: () {
+                          AudioManager.instance.playClick();
+                          setState(() {
+                            _showStageSelect = false;
+                          });
+                          _startLevel(info.stage);
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [info.color.withValues(alpha: 0.88), info.color],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(22),
+                            border: isCurrent ? Border.all(color: Colors.yellow, width: 3.5) : null,
+                            boxShadow: [
+                              BoxShadow(
+                                color: info.color.withValues(alpha: 0.35),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(info.icon, style: const TextStyle(fontSize: 38)),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${info.stage}단계',
+                                style: GoogleFonts.jua(fontSize: 15, color: Colors.white),
+                              ),
+                              Text(
+                                info.sub,
+                                style: GoogleFonts.jua(fontSize: 11, color: Colors.white.withValues(alpha: 0.85)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -611,7 +765,7 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
-                      '${theme.icon} ${theme.name} (Lv $_currentLevel)',
+                      '${theme.icon} ${theme.name}',
                       style: GoogleFonts.jua(fontSize: 20, color: KidsTheme.textDark),
                     ),
                   ),
@@ -619,54 +773,31 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
               ),
             ),
             
-            // 별코인 카운터
-            ValueListenableBuilder<int>(
-              valueListenable: PlayerDataManager.instance.starCoinsNotifier,
-              builder: (context, starCoins, child) {
-                return Container(
-                  constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('⭐', style: TextStyle(fontSize: 14)),
-                      const SizedBox(width: 4),
-                      Text(
-                        '$starCoins',
-                        style: GoogleFonts.jua(
-                          fontSize: 14,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            const SizedBox(width: 8),
-
-            // 힌트 요술봉 버튼
+            // 상단 우측 레벨 선택 버튼
             GestureDetector(
-              onTap: _useHint,
+              onTap: () {
+                AudioManager.instance.playClick();
+                setState(() {
+                  _showStageSelect = true;
+                });
+              },
               child: Container(
-                width: 44,
-                height: 44,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: KidsTheme.yellow,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
+                  gradient: const LinearGradient(
+                    colors: [KidsTheme.purple, Color(0xFFAB47BC)],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
                   boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                 ),
-                child: const Center(child: Text('🪄', style: TextStyle(fontSize: 22))),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('🗺️', style: TextStyle(fontSize: 16)),
+                    const SizedBox(width: 4),
+                    Text('단계', style: GoogleFonts.jua(fontSize: 15, color: Colors.white)),
+                  ],
+                ),
               ),
             ),
           ],

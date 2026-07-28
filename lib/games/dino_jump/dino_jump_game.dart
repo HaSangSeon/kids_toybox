@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/audio/audio_manager.dart';
 import '../../core/theme/kids_theme.dart';
-import '../../core/data/player_data_manager.dart';
 
 class DinoJumpGame extends StatefulWidget {
   final String playerEmoji;
@@ -645,7 +644,13 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                             angle: rotation,
                             child: Text(
                               obs.emoji,
-                              style: TextStyle(fontSize: obs.size),
+                              style: TextStyle(
+                                fontSize: obs.size,
+                                shadows: const [
+                                  Shadow(color: Colors.white, blurRadius: 10),
+                                  Shadow(color: Colors.black38, offset: Offset(1, 2), blurRadius: 4),
+                                ],
+                              ),
                             ),
                           ),
                         );

@@ -444,7 +444,7 @@ child: Column(
 
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withOpacity(0.65),
+        color: Colors.black.withValues(alpha: 0.65),
         child: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 340),
@@ -521,12 +521,12 @@ child: Column(
   Widget _buildStageSelectOverlay() {
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withOpacity(0.70),
+        color: Colors.black.withValues(alpha: 0.70),
         child: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 340, maxHeight: 580),
             margin: const EdgeInsets.all(20),
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(32),
@@ -538,99 +538,97 @@ child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('🔍', style: TextStyle(fontSize: 32)),
-                    const SizedBox(width: 8),
-                    Text(
-                      '탐험 테마 선택',
-                      style: GoogleFonts.jua(fontSize: 26, color: KidsTheme.textDark),
+                    GestureDetector(
+                      onTap: () {
+                        AudioManager.instance.playClick();
+                        setState(() {
+                          _showStageSelect = false;
+                        });
+                      },
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close_rounded, size: 20, color: KidsTheme.textDark),
+                      ),
                     ),
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('🔍', style: TextStyle(fontSize: 26)),
+                          const SizedBox(width: 6),
+                          Text(
+                            '탐험 테마 선택',
+                            style: GoogleFonts.jua(fontSize: 22, color: KidsTheme.textDark),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 36), // Right symmetry spacer
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   '놀러 가고 싶은 장소를 마음대로 골라보세요!',
-                  style: GoogleFonts.nunito(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                  style: GoogleFonts.nunito(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
                 Expanded(
-                  child: ListView.builder(
+                  child: GridView.builder(
+                    padding: EdgeInsets.zero,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 1.15,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                    ),
                     itemCount: _themes.length,
                     itemBuilder: (context, index) {
                       final theme = _themes[index];
                       final bool isCurrent = _currentLevel == (index + 1);
                       final Color mainColor = theme.bgGradient.first;
-                      final bool isRecommend = index == 0;
 
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: GestureDetector(
-                          onTap: () {
-                            AudioManager.instance.playClick();
-                            _startLevel(index + 1);
-                            setState(() {
-                              _showStageSelect = false;
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [mainColor.withOpacity(0.9), theme.bgGradient.last],
+                      return GestureDetector(
+                        onTap: () {
+                          AudioManager.instance.playClick();
+                          _startLevel(index + 1);
+                          setState(() {
+                            _showStageSelect = false;
+                          });
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [mainColor.withValues(alpha: 0.9), theme.bgGradient.last],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(22),
+                            border: isCurrent ? Border.all(color: Colors.yellow, width: 3.5) : null,
+                            boxShadow: [
+                              BoxShadow(
+                                color: mainColor.withValues(alpha: 0.35),
+                                blurRadius: 6,
+                                offset: const Offset(0, 3),
                               ),
-                              borderRadius: BorderRadius.circular(20),
-                              border: isCurrent ? Border.all(color: Colors.yellow, width: 3) : null,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: mainColor.withOpacity(0.35),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                Text(theme.icon, style: const TextStyle(fontSize: 28)),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Text(
-                                            theme.name,
-                                            style: GoogleFonts.jua(fontSize: 17, color: Colors.white),
-                                          ),
-                                          if (isRecommend) ...[
-                                            const SizedBox(width: 6),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: Colors.yellow,
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              child: Text(
-                                                '🌟 추천',
-                                                style: GoogleFonts.jua(fontSize: 11, color: Colors.black87),
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        '숨은 친구 4명 찾기 🔍',
-                                        style: GoogleFonts.nunito(fontSize: 12, color: Colors.white.withOpacity(0.9), fontWeight: FontWeight.bold),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const Icon(Icons.play_circle_fill, color: Colors.white, size: 28),
-                              ],
-                            ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(theme.icon, style: const TextStyle(fontSize: 44)),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${index + 1}단계',
+                                style: GoogleFonts.jua(fontSize: 16, color: Colors.white),
+                              ),
+                            ],
                           ),
                         ),
                       );

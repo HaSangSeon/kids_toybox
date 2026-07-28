@@ -1134,11 +1134,11 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
   // ── Stage Select Overlay ──────────────────────────────────────────────────
   Widget _buildStageSelectOverlay() {
     final stagesInfo = [
-      (stage: 1, name: '1단계 (쉬움)', desc: '느린 풍선 / 목표 100점', color: const Color(0xFF4ADE80), icon: '🎈', isRecommend: true),
-      (stage: 2, name: '2단계 (보통)', desc: '보통 풍선 / 목표 150점', color: const Color(0xFF60A5FA), icon: '🎈🎈', isRecommend: false),
-      (stage: 3, name: '3단계 (신나게)', desc: '빠른 풍선 / 목표 200점', color: const Color(0xFFF59E0B), icon: '⚡', isRecommend: false),
-      (stage: 4, name: '4단계 (빠르게)', desc: '방해 풍선 추가 / 목표 250점', color: const Color(0xFFEC4899), icon: '💣', isRecommend: false),
-      (stage: 5, name: '5단계 (달인)', desc: '최고 난이도 / 목표 300점', color: const Color(0xFFA855F7), icon: '🏆', isRecommend: false),
+      (stage: 1, name: '1단계', desc: '기본 풍선 / 목표 100점', color: const Color(0xFF4ADE80), icon: '🎈', isRecommend: true),
+      (stage: 2, name: '2단계', desc: '황금 풍선 등장 / 목표 150점', color: const Color(0xFF60A5FA), icon: '⭐', isRecommend: false),
+      (stage: 3, name: '3단계', desc: '바람 추가 / 목표 200점', color: const Color(0xFFF59E0B), icon: '⚡', isRecommend: false),
+      (stage: 4, name: '4단계', desc: '방해 풍선 추가 / 목표 250점', color: const Color(0xFFEC4899), icon: '💣', isRecommend: false),
+      (stage: 5, name: '5단계', desc: '최고 난이도 / 목표 300점', color: const Color(0xFFA855F7), icon: '🏆', isRecommend: false),
     ];
 
     return Positioned.fill(
@@ -1146,9 +1146,9 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
         color: Colors.black.withValues(alpha: 0.70),
         child: Center(
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 340, maxHeight: 600),
+            constraints: const BoxConstraints(maxWidth: 340, maxHeight: 580),
             margin: const EdgeInsets.all(20),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(32),
@@ -1156,33 +1156,66 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                 BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 8)),
               ],
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('🎈', style: TextStyle(fontSize: 32)),
-                      const SizedBox(width: 8),
-                      Text(
-                        '단계 선택',
-                        style: GoogleFonts.jua(fontSize: 28, color: KidsTheme.textDark),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        AudioManager.instance.playClick();
+                        setState(() {
+                          _showStageSelect = false;
+                        });
+                      },
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close_rounded, size: 20, color: KidsTheme.textDark),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '하고 싶은 단계를 마음대로 골라보세요!',
-                    style: GoogleFonts.nunito(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  ...stagesInfo.map((info) {
-                    final bool isCurrent = _engine.stage == info.stage;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: GestureDetector(
+                    ),
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('🎈', style: TextStyle(fontSize: 26)),
+                          const SizedBox(width: 6),
+                          Text(
+                            '단계 선택',
+                            style: GoogleFonts.jua(fontSize: 22, color: KidsTheme.textDark),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 36),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '하고 싶은 단계를 마음대로 골라보세요!',
+                  style: GoogleFonts.nunito(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: GridView.builder(
+                    padding: EdgeInsets.zero,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 1.15,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                    ),
+                    itemCount: stagesInfo.length,
+                    itemBuilder: (context, index) {
+                      final info = stagesInfo[index];
+                      final bool isCurrent = _engine.stage == info.stage;
+
+                      return GestureDetector(
                         onTap: () {
                           AudioManager.instance.playClick();
                           _engine.setStage(info.stage);
@@ -1191,13 +1224,14 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                           });
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [info.color.withValues(alpha: 0.85), info.color],
+                              colors: [info.color.withValues(alpha: 0.88), info.color],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
-                            borderRadius: BorderRadius.circular(20),
-                            border: isCurrent ? Border.all(color: Colors.yellow, width: 3) : null,
+                            borderRadius: BorderRadius.circular(22),
+                            border: isCurrent ? Border.all(color: Colors.yellow, width: 3.5) : null,
                             boxShadow: [
                               BoxShadow(
                                 color: info.color.withValues(alpha: 0.35),
@@ -1206,53 +1240,23 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                               ),
                             ],
                           ),
-                          child: Row(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(info.icon, style: const TextStyle(fontSize: 26)),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          info.name,
-                                          style: GoogleFonts.jua(fontSize: 18, color: Colors.white),
-                                        ),
-                                        if (info.isRecommend) ...[
-                                          const SizedBox(width: 6),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: Colors.yellow,
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              '🌟 추천',
-                                              style: GoogleFonts.jua(fontSize: 11, color: Colors.black87),
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      info.desc,
-                                      style: GoogleFonts.nunito(fontSize: 12, color: Colors.white.withValues(alpha: 0.9), fontWeight: FontWeight.bold),
-                                    ),
-                                  ],
-                                ),
+                              Text(info.icon, style: const TextStyle(fontSize: 44)),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${info.stage}단계',
+                                style: GoogleFonts.jua(fontSize: 16, color: Colors.white),
                               ),
-                              const Icon(Icons.play_circle_fill, color: Colors.white, size: 28),
                             ],
                           ),
                         ),
-                      ),
-                    );
-                  }),
-                ],
-              ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ),

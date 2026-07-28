@@ -32,12 +32,6 @@ class _NoteData {
   });
 }
 
-class _RecordedNote {
-  final int millis;
-  final String noteId;
-  const _RecordedNote(this.millis, this.noteId);
-}
-
 // 동요 악보
 class _SongNote {
   final String noteId;
@@ -62,7 +56,7 @@ class _Sparkle {
   double vx, vy;
   double size;
   Color color;
-  double life; // 0~1
+  double life;
   _Sparkle({
     required this.x,
     required this.y,
@@ -75,7 +69,7 @@ class _Sparkle {
 }
 
 // ──────────────────────────────────────────────
-//  메인 위젯
+//  메인 위젯 (유아/어린이 전용 간결한 무지개 실로폰)
 // ──────────────────────────────────────────────
 class XylophoneGame extends StatefulWidget {
   const XylophoneGame({super.key});
@@ -86,7 +80,7 @@ class XylophoneGame extends StatefulWidget {
 
 class _XylophoneGameState extends State<XylophoneGame>
     with TickerProviderStateMixin {
-  // ── 8개 건반 정의 ──
+  // ── 8개 무지개 건반 정의 ──
   static const _notes = [
     _NoteData(
       id: 'C4', label: '도', solfege: 'Do',
@@ -130,10 +124,10 @@ class _XylophoneGameState extends State<XylophoneGame>
     ),
   ];
 
-  // 동요 목록
+  // 인기 동요 목록
   static const _songs = [
     _SongData(
-      title: '반짝반짝 작은별',
+      title: '작은별',
       emoji: '⭐',
       notes: [
         _SongNote('C4', 500), _SongNote('C4', 500),
@@ -150,33 +144,30 @@ class _XylophoneGameState extends State<XylophoneGame>
       title: '나비야',
       emoji: '🦋',
       notes: [
-        _SongNote('C4', 400), _SongNote('E4', 400), _SongNote('G4', 400),
-        _SongNote('E4', 400), _SongNote('C4', 400),
-        _SongNote('D4', 400), _SongNote('F4', 400), _SongNote('A4', 400),
-        _SongNote('F4', 400), _SongNote('D4', 400),
-        _SongNote('E4', 400), _SongNote('G4', 400), _SongNote('B4', 400),
-        _SongNote('G4', 400), _SongNote('E4', 400),
-        _SongNote('C4', 800),
+        _SongNote('G4', 400), _SongNote('E4', 400), _SongNote('E4', 600),
+        _SongNote('F4', 400), _SongNote('D4', 400), _SongNote('D4', 600),
+        _SongNote('C4', 400), _SongNote('D4', 400), _SongNote('E4', 400), _SongNote('F4', 400),
+        _SongNote('G4', 400), _SongNote('G4', 400), _SongNote('G4', 600),
       ],
     ),
     _SongData(
       title: '곰 세마리',
       emoji: '🐻',
       notes: [
-        _SongNote('C4', 400), _SongNote('D4', 400), _SongNote('E4', 400), _SongNote('C4', 400),
-        _SongNote('C4', 400), _SongNote('D4', 400), _SongNote('E4', 400), _SongNote('C4', 400),
-        _SongNote('E4', 400), _SongNote('F4', 400), _SongNote('G4', 800),
-        _SongNote('E4', 400), _SongNote('F4', 400), _SongNote('G4', 800),
+        _SongNote('C4', 400), _SongNote('C4', 400), _SongNote('C4', 400), _SongNote('C4', 400), _SongNote('C4', 600),
+        _SongNote('E4', 400), _SongNote('G4', 400), _SongNote('G4', 400), _SongNote('E4', 400), _SongNote('C4', 600),
+        _SongNote('G4', 400), _SongNote('G4', 400), _SongNote('E4', 400), _SongNote('C4', 400),
+        _SongNote('D4', 400), _SongNote('D4', 400), _SongNote('C4', 800),
       ],
     ),
     _SongData(
       title: '비행기',
       emoji: '✈️',
       notes: [
-        _SongNote('G4', 400), _SongNote('E4', 400), _SongNote('E4', 400), _SongNote('E4', 600),
-        _SongNote('G4', 400), _SongNote('E4', 400), _SongNote('E4', 400), _SongNote('E4', 600),
-        _SongNote('A4', 400), _SongNote('A4', 400), _SongNote('G4', 400), _SongNote('G4', 600),
-        _SongNote('E4', 400), _SongNote('E4', 400), _SongNote('D4', 400), _SongNote('C4', 800),
+        _SongNote('E4', 400), _SongNote('D4', 400), _SongNote('C4', 400), _SongNote('D4', 400),
+        _SongNote('E4', 400), _SongNote('E4', 400), _SongNote('E4', 600),
+        _SongNote('D4', 400), _SongNote('D4', 400), _SongNote('D4', 600),
+        _SongNote('E4', 400), _SongNote('G4', 400), _SongNote('G4', 600),
       ],
     ),
   ];
@@ -189,18 +180,13 @@ class _XylophoneGameState extends State<XylophoneGame>
   late final AnimationController _bgController;
   late final AnimationController _titleController;
 
-  bool _isRecording = false;
-  bool _isPlayingBack = false;
-  bool _isSongMode = false;
   bool _isSongPlaying = false;
-  int _currentMode = 0; // 0=자유연주, 1=동요모드, 2=녹음모드
-  final List<_RecordedNote> _recorded = [];
-  int? _recordingStartMs;
-  Timer? _playbackTimer;
+  int _currentMode = 0; // 0=자유연주, 1=동요연주
+  int _songModeState = 0; // 0=idle, 1=auto-listening, 2=guided-play
 
   int _activeSongIndex = 0;
   int _songStep = 0; // 동요 가이드 현재 스텝
-  List<int> _highlightedKeys = []; // 현재 눌러야 할 키 인덱스들
+  List<int> _highlightedKeys = []; // 현재 가이드 키 인덱스들
 
   final List<_Sparkle> _sparkles = [];
   late Timer _sparkleTimer;
@@ -249,7 +235,7 @@ class _XylophoneGameState extends State<XylophoneGame>
       p.setVolume(1.0);
     }
 
-    // 반짝이 파티클 업데이트
+    // 반짝이 파티클 타이머
     _sparkleTimer = Timer.periodic(const Duration(milliseconds: 50), (_) {
       if (_sparkles.isEmpty) return;
       setState(() {
@@ -268,16 +254,21 @@ class _XylophoneGameState extends State<XylophoneGame>
   void dispose() {
     _bgController.dispose();
     _titleController.dispose();
-    for (final c in _animControllers) c.dispose();
-    for (final c in _glowControllers) c.dispose();
-    for (final p in _players) p.dispose();
-    _playbackTimer?.cancel();
+    for (final c in _animControllers) {
+      c.dispose();
+    }
+    for (final c in _glowControllers) {
+      c.dispose();
+    }
+    for (final p in _players) {
+      p.dispose();
+    }
     _sparkleTimer.cancel();
     _noteNameTimer?.cancel();
     super.dispose();
   }
 
-  // ── 반짝이 파티클 생성 ──
+  // ── 반짝이 생성 ──
   void _spawnSparkles(double x, double y, Color color) {
     for (int i = 0; i < 12; i++) {
       final angle = _rand.nextDouble() * pi * 2;
@@ -293,7 +284,7 @@ class _XylophoneGameState extends State<XylophoneGame>
   }
 
   // ── 건반 연주 ──
-  Future<void> _playNote(int index, {bool record = true, bool fromSong = false}) async {
+  Future<void> _playNote(int index, {bool fromSong = false}) async {
     if (!AudioManager.instance.soundEnabled) return;
 
     try {
@@ -315,22 +306,12 @@ class _XylophoneGameState extends State<XylophoneGame>
       if (mounted) setState(() => _lastNoteName = '');
     });
 
-    if (record && _isRecording) {
-      final now = DateTime.now().millisecondsSinceEpoch;
-      _recordingStartMs ??= now;
-      setState(() {
-        _recorded.add(_RecordedNote(now - _recordingStartMs!, _notes[index].id));
-      });
-    }
-
-    // 동요 모드: 다음 스텝으로
     if (fromSong) {
-      setState(() => _highlightedKeys = []);
       return;
     }
 
-    // 동요 가이드 모드에서 건반 눌렀을 때 체크
-    if (_isSongMode && _isSongPlaying && _highlightedKeys.contains(index)) {
+    // 동요 따라치기 모드에서 탭했을 때 다음 노트로 진행
+    if (_currentMode == 1 && _songModeState == 2 && _highlightedKeys.contains(index)) {
       _onSongKeyTapped(index);
     }
   }
@@ -342,7 +323,6 @@ class _XylophoneGameState extends State<XylophoneGame>
       _songStep++;
     });
     if (_songStep >= song.notes.length) {
-      // 곡 완주!
       _finishSong();
     } else {
       _showNextSongNote();
@@ -360,30 +340,31 @@ class _XylophoneGameState extends State<XylophoneGame>
   }
 
   void _startSong() {
+    _stopSong();
     setState(() {
+      _songModeState = 2;
       _isSongPlaying = true;
       _songStep = 0;
       _highlightedKeys = [];
     });
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) _showNextSongNote();
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted && _songModeState == 2) _showNextSongNote();
     });
   }
 
   void _finishSong() {
     setState(() {
+      _songModeState = 0;
       _isSongPlaying = false;
       _highlightedKeys = [];
     });
-    AudioManager.instance.playSuccess();
     _showCompletionEffect();
   }
 
   void _showCompletionEffect() {
-    // 다 쳤을 때 화면 전체 반짝이
     final size = MediaQuery.of(context).size;
     setState(() {
-      for (int i = 0; i < 30; i++) {
+      for (int i = 0; i < 35; i++) {
         _sparkles.add(_Sparkle(
           x: _rand.nextDouble() * size.width,
           y: _rand.nextDouble() * size.height * 0.5,
@@ -401,77 +382,45 @@ class _XylophoneGameState extends State<XylophoneGame>
 
   void _stopSong() {
     setState(() {
+      _songModeState = 0;
       _isSongPlaying = false;
       _highlightedKeys = [];
       _songStep = 0;
     });
-    _playbackTimer?.cancel();
   }
 
-  // 동요 자동재생 (AI가 쳐줌)
+  // 동요 자동으로 들어보기 (AI가 연주)
   void _autoPlaySong() async {
-    if (_isSongPlaying) return;
+    _stopSong();
     final song = _songs[_activeSongIndex];
-    setState(() { _isSongPlaying = true; _songStep = 0; });
+    setState(() {
+      _songModeState = 1;
+      _isSongPlaying = true;
+      _songStep = 0;
+    });
 
     for (int i = 0; i < song.notes.length; i++) {
-      if (!mounted || !_isSongPlaying) break;
+      if (!mounted || _songModeState != 1) break;
       final noteIdx = _notes.indexWhere((n) => n.id == song.notes[i].noteId);
       if (noteIdx >= 0) {
-        setState(() => _highlightedKeys = [noteIdx]);
-        await _playNote(noteIdx, record: false, fromSong: true);
+        if (mounted) {
+          setState(() {
+            _highlightedKeys = [noteIdx];
+            _songStep = i;
+          });
+        }
+        await _playNote(noteIdx, fromSong: true);
         await Future.delayed(Duration(milliseconds: song.notes[i].durationMs));
-        if (mounted) setState(() => _highlightedKeys = []);
-        await Future.delayed(const Duration(milliseconds: 60));
       }
     }
-    if (mounted) {
-      setState(() { _isSongPlaying = false; _highlightedKeys = []; });
-      AudioManager.instance.playSuccess();
-    }
-  }
-
-  // ── 녹음 ──
-  void _toggleRecording() {
-    if (_isPlayingBack) return;
-    setState(() {
-      if (_isRecording) {
-        _isRecording = false;
-        AudioManager.instance.playChime();
-      } else {
-        _isRecording = true;
-        _recorded.clear();
-        _recordingStartMs = null;
-        AudioManager.instance.playClick();
-      }
-    });
-  }
-
-  void _playback() {
-    if (_recorded.isEmpty || _isRecording || _isPlayingBack) return;
-    setState(() => _isPlayingBack = true);
-    int idx = 0;
-    final notes = List<_RecordedNote>.from(_recorded);
-    void scheduleNext() {
-      if (idx >= notes.length) {
-        if (mounted) setState(() => _isPlayingBack = false);
-        return;
-      }
-      final delay = idx == 0 ? 0 : notes[idx].millis - notes[idx - 1].millis;
-      _playbackTimer = Timer(Duration(milliseconds: delay), () {
-        if (!mounted || !_isPlayingBack) return;
-        final noteIdx = _notes.indexWhere((n) => n.id == notes[idx].noteId);
-        if (noteIdx >= 0) _playNote(noteIdx, record: false);
-        idx++;
-        scheduleNext();
+    if (mounted && _songModeState == 1) {
+      setState(() {
+        _songModeState = 0;
+        _isSongPlaying = false;
+        _highlightedKeys = [];
       });
+      _showCompletionEffect();
     }
-    scheduleNext();
-  }
-
-  void _stopPlayback() {
-    _playbackTimer?.cancel();
-    if (mounted) setState(() => _isPlayingBack = false);
   }
 
   // ── 배경 음표 ──
@@ -492,29 +441,27 @@ class _XylophoneGameState extends State<XylophoneGame>
     return Scaffold(
       body: Stack(
         children: [
-          // ── 배경 그라데이션 (파스텔 무지개) ──
+          // ── 파스텔 무지개 배경 ──
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Color(0xFFFFB3C6), // 핑크
-                  Color(0xFFFFD3A5), // 오렌지
-                  Color(0xFFFFF6A5), // 노랑
-                  Color(0xFFB8F0B8), // 연두
-                  Color(0xFFB3DEFF), // 하늘
-                  Color(0xFFD9B3FF), // 보라
+                  Color(0xFFFFB3C6),
+                  Color(0xFFFFD3A5),
+                  Color(0xFFFFF6A5),
+                  Color(0xFFB8F0B8),
+                  Color(0xFFB3DEFF),
+                  Color(0xFFD9B3FF),
                 ],
                 stops: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
               ),
             ),
           ),
-
-          // ── 반투명 흰색 오버레이 ──
           Container(color: Colors.white.withValues(alpha: 0.20)),
 
-          // ── 배경 떠다니는 이모지 ──
+          // ── 배경 음표 애니메이션 ──
           ..._bgDecos.map((n) {
             return AnimatedBuilder(
               animation: _bgController,
@@ -573,60 +520,55 @@ class _XylophoneGameState extends State<XylophoneGame>
                 ),
               )),
 
-          // ── 메인 UI ──
+          // ── 메인 UI (어린이 맞춤 직관적 레이아웃) ──
           SafeArea(
             child: Column(
               children: [
-                // 헤더
                 _buildHeader(),
-
-                const SizedBox(height: 6),
-
-                // 모드 탭
+                const SizedBox(height: 2),
                 _buildModeTabs(),
+                const SizedBox(height: 4),
 
-                const SizedBox(height: 8),
-
-                // 모드별 컨텐츠
                 if (_currentMode == 0) _buildFreePlayHint(),
                 if (_currentMode == 1) _buildSongModePanel(),
-                if (_currentMode == 2) _buildRecordPanel(),
 
-                // 연주 중인 음 이름 표시
+                // 연주 중인 음 이름 표시 (위쪽 마진 여유 있게 추가)
                 AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
+                  duration: const Duration(milliseconds: 200),
                   child: _lastNoteName.isEmpty
-                      ? const SizedBox(height: 40)
+                      ? const SizedBox(height: 38)
                       : Container(
                           key: ValueKey(_lastNoteName),
-                          margin: const EdgeInsets.symmetric(vertical: 6),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                          margin: const EdgeInsets.only(top: 14, bottom: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            borderRadius: BorderRadius.circular(20),
+                            color: Colors.white.withValues(alpha: 0.92),
+                            borderRadius: BorderRadius.circular(18),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.pink.withValues(alpha: 0.3),
-                                blurRadius: 12,
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
                               ),
                             ],
                           ),
                           child: Text(
                             '🎵 $_lastNoteName',
                             style: GoogleFonts.jua(
-                              fontSize: 20,
+                              fontSize: 17,
                               color: KidsTheme.textDark,
                             ),
                           ),
                         ),
                 ),
 
-                const Spacer(),
-
-                // 실로폰 건반
-                _buildXylophone(size),
-
-                const SizedBox(height: 20),
+                // 실로폰 건반 (반응형 자동 확장)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _buildXylophone(size),
+                  ),
+                ),
               ],
             ),
           ),
@@ -635,13 +577,12 @@ class _XylophoneGameState extends State<XylophoneGame>
     );
   }
 
-  // ── 헤더 ──
+  // ── 상단 헤더 (음소거 버튼 제거 및 타이틀 정렬) ──
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       child: Row(
         children: [
-          // 뒤로가기 버튼
           _buildCircleBtn(
             child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
             color: Colors.pink.shade300,
@@ -650,10 +591,8 @@ class _XylophoneGameState extends State<XylophoneGame>
               Navigator.of(context).pop();
             },
           ),
-
           const Expanded(child: SizedBox()),
 
-          // 타이틀
           AnimatedBuilder(
             animation: _titleController,
             builder: (_, __) {
@@ -661,9 +600,7 @@ class _XylophoneGameState extends State<XylophoneGame>
               return Transform.scale(
                 scale: scale,
                 child: Container(
-                  constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFFFF6B9D), Color(0xFFFF8E53), Color(0xFFFFD93D)],
@@ -687,12 +624,8 @@ padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                         style: GoogleFonts.jua(
                           fontSize: 22,
                           color: Colors.white,
-                          shadows: [
-                            const Shadow(
-                              color: Colors.black26,
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
+                          shadows: const [
+                            Shadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
                           ],
                         ),
                       ),
@@ -707,21 +640,8 @@ padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
 
           const Expanded(child: SizedBox()),
 
-          // 사운드 버튼
-          _buildCircleBtn(
-            child: Icon(
-              AudioManager.instance.soundEnabled
-                  ? Icons.volume_up_rounded
-                  : Icons.volume_off_rounded,
-              color: Colors.white,
-              size: 20,
-            ),
-            color: Colors.purple.shade300,
-            onTap: () {
-              AudioManager.instance.toggleSound();
-              setState(() {});
-            },
-          ),
+          // 대칭을 맞추기 위한 빈 공간 (음소거 버튼 제거)
+          const SizedBox(width: 44, height: 44),
         ],
       ),
     );
@@ -757,26 +677,23 @@ padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
     );
   }
 
-  // ── 모드 탭 ──
+  // ── 2단 간결 모드 탭 (자유연주 / 동요연주) ──
   Widget _buildModeTabs() {
     final tabs = [
-      {'icon': '🎸', 'label': '자유연주'},
-      {'icon': '🎼', 'label': '동요연주'},
-      {'icon': '🔴', 'label': '녹음하기'},
+      {'icon': '🎹', 'label': '자유 연주'},
+      {'icon': '🎶', 'label': '동요 연주'},
     ];
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.all(5),
+        padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.75),
+          color: Colors.white.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 10,
+              blurRadius: 8,
               offset: const Offset(0, 3),
             ),
           ],
@@ -789,57 +706,47 @@ padding: const EdgeInsets.all(5),
                 onTap: () {
                   if (_currentMode == i) return;
                   AudioManager.instance.playClick();
-                  _stopPlayback();
                   _stopSong();
                   setState(() {
                     _currentMode = i;
-                    if (_isRecording) {
-                      _isRecording = false;
-                    }
                   });
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeInOut,
-                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
                     gradient: selected
                         ? LinearGradient(
-                            colors: [
-                              [Colors.pink.shade400, Colors.deepOrange.shade300],
-                              [Colors.blue.shade400, Colors.purple.shade300],
-                              [Colors.red.shade400, Colors.pink.shade300],
-                            ][i],
+                            colors: i == 0
+                                ? [const Color(0xFFFF6B9D), const Color(0xFFFF8E53)]
+                                : [const Color(0xFF667EEA), const Color(0xFF764BA2)],
                           )
                         : null,
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(20),
                     boxShadow: selected
                         ? [
                             BoxShadow(
-                              color: [Colors.pink, Colors.blue, Colors.red][i]
-                                  .withValues(alpha: 0.4),
+                              color: (i == 0 ? Colors.orange : Colors.indigo).withValues(alpha: 0.35),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
                           ]
                         : null,
                   ),
-                  child: SingleChildScrollView(
-child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(tabs[i]['icon']!, style: const TextStyle(fontSize: 18)),
-                      const SizedBox(height: 1),
+                      const SizedBox(width: 6),
                       Text(
                         tabs[i]['label']!,
                         style: GoogleFonts.jua(
-                          fontSize: 12,
+                          fontSize: 15,
                           color: selected ? Colors.white : KidsTheme.textDark,
                         ),
                       ),
                     ],
                   ),
-),
                 ),
               ),
             );
@@ -849,26 +756,24 @@ child: Column(
     );
   }
 
-  // ── 자유 연주 힌트 ──
+  // ── 자유 연주 안내 ──
   Widget _buildFreePlayHint() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.80),
+          color: Colors.white.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('👆', style: TextStyle(fontSize: 20)),
+            const Text('👆', style: TextStyle(fontSize: 18)),
             const SizedBox(width: 8),
             Text(
-              '건반을 눌러 소리를 내봐요!',
-              style: GoogleFonts.jua(fontSize: 16, color: KidsTheme.textDark),
+              '건반을 톡톡 눌러서 예쁜 멜로디를 만들어봐요!',
+              style: GoogleFonts.jua(fontSize: 14, color: KidsTheme.textDark),
             ),
           ],
         ),
@@ -876,30 +781,29 @@ padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
     );
   }
 
-  // ── 동요 모드 패널 ──
+  // ── 동요 연주 패널 (유아 맞춤 직관적 카드) ──
   Widget _buildSongModePanel() {
-    final song = _songs[_activeSongIndex];
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.85),
+          color: Colors.white.withValues(alpha: 0.90),
           borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: Colors.blue.withValues(alpha: 0.1),
+              color: Colors.blue.withValues(alpha: 0.12),
               blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // 동요 선택 스크롤
+            // 동요 선택 가로 칩 카드
             SizedBox(
-              height: 48,
+              height: 44,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: _songs.length,
@@ -925,18 +829,21 @@ padding: const EdgeInsets.all(12),
                         color: sel ? null : Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(20),
                         border: sel
-                            ? null
+                            ? Border.all(color: Colors.yellowAccent, width: 2)
                             : Border.all(color: Colors.grey.shade300),
+                        boxShadow: sel
+                            ? [BoxShadow(color: Colors.indigo.withValues(alpha: 0.3), blurRadius: 6)]
+                            : [],
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(s.emoji, style: const TextStyle(fontSize: 16)),
+                          Text(s.emoji, style: const TextStyle(fontSize: 17)),
                           const SizedBox(width: 6),
                           Text(
                             s.title,
                             style: GoogleFonts.jua(
-                              fontSize: 13,
+                              fontSize: 14,
                               color: sel ? Colors.white : KidsTheme.textDark,
                             ),
                           ),
@@ -947,45 +854,54 @@ padding: const EdgeInsets.all(12),
                 },
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
 
-            // 연주 / 따라치기 버튼
+            // 들어보기 vs 직접 쳐보기 2개의 직관적 액션 버튼
             Row(
               children: [
                 Expanded(
                   child: _buildActionBtn(
-                    emoji: '▶️',
-                    label: _isSongPlaying ? '중지' : '들어보기',
-                    gradient: [const Color(0xFF56CCF2), const Color(0xFF2F80ED)],
-                    onTap: _isSongPlaying ? _stopSong : _autoPlaySong,
+                    emoji: _songModeState == 1 ? '⏹️' : '▶️',
+                    label: _songModeState == 1 ? '중지하기' : '들어보기',
+                    gradient: _songModeState == 1
+                        ? [const Color(0xFFFF5252), const Color(0xFFFF7961)]
+                        : [const Color(0xFF56CCF2), const Color(0xFF2F80ED)],
+                    onTap: _songModeState == 1 ? _stopSong : _autoPlaySong,
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: _buildActionBtn(
-                    emoji: '🎹',
-                    label: _isSongPlaying ? '그만하기' : '따라치기',
-                    gradient: [const Color(0xFFf093fb), const Color(0xFFf5576c)],
-                    onTap: () {
-                      if (_isSongPlaying) {
-                        _stopSong();
-                      } else {
-                        _startSong();
-                      }
-                    },
+                    emoji: _songModeState == 2 ? '⏹️' : '✨',
+                    label: _songModeState == 2 ? '그만하기' : '직접 쳐보기',
+                    gradient: _songModeState == 2
+                        ? [const Color(0xFFFF5252), const Color(0xFFFF7961)]
+                        : [const Color(0xFFFF758C), const Color(0xFFFF7EB3)],
+                    onTap: _songModeState == 2 ? _stopSong : _startSong,
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 6),
 
-            if (_isSongPlaying && _highlightedKeys.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  '💡 반짝이는 건반을 눌러봐요! (${_songStep + 1}/${_songs[_activeSongIndex].notes.length})',
-                  style: GoogleFonts.jua(fontSize: 13, color: Colors.deepPurple),
+            // 고정 높이의 안정적인 상태 안내 문구 (깜빡임 완벽 차단)
+            Container(
+              height: 22,
+              alignment: Alignment.center,
+              child: Text(
+                _songModeState == 1
+                    ? '🎶 동요를 감상하는 중이에요...'
+                    : (_songModeState == 2 && _highlightedKeys.isNotEmpty
+                        ? '💡 반짝이는 건반을 톡톡! (${_songStep + 1}/${_songs[_activeSongIndex].notes.length})'
+                        : '🎵 동요를 선택하고 들어보거나 연주해봐요!'),
+                style: GoogleFonts.jua(
+                  fontSize: 13,
+                  color: _songModeState == 1
+                      ? Colors.blue.shade700
+                      : (_songModeState == 2 ? Colors.purple.shade700 : KidsTheme.textDark),
                 ),
               ),
+            ),
           ],
         ),
       ),
@@ -1001,16 +917,14 @@ padding: const EdgeInsets.all(12),
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: 9),
         decoration: BoxDecoration(
           gradient: LinearGradient(colors: gradient),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
               color: gradient.first.withValues(alpha: 0.4),
-              blurRadius: 8,
+              blurRadius: 6,
               offset: const Offset(0, 3),
             ),
           ],
@@ -1030,350 +944,248 @@ padding: const EdgeInsets.symmetric(vertical: 10),
     );
   }
 
-  // ── 녹음 패널 ──
-  Widget _buildRecordPanel() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.85),
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // 녹음 버튼
-            _buildCtrlBtn(
-              emoji: _isRecording ? '⏹️' : '🔴',
-              label: _isRecording ? '녹음중지' : '녹음시작',
-              gradient: _isRecording
-                  ? [Colors.red.shade400, Colors.red.shade700]
-                  : [Colors.grey.shade400, Colors.grey.shade600],
-              onTap: _toggleRecording,
-              pulse: _isRecording,
-            ),
-
-            if (_recorded.isNotEmpty && !_isRecording) ...[
-              const SizedBox(width: 10),
-              _buildCtrlBtn(
-                emoji: _isPlayingBack ? '⏹️' : '▶️',
-                label: _isPlayingBack ? '중지' : '재생',
-                gradient: _isPlayingBack
-                    ? [Colors.orange.shade400, Colors.deepOrange]
-                    : [Colors.green.shade400, Colors.teal],
-                onTap: _isPlayingBack ? _stopPlayback : _playback,
-              ),
-              const SizedBox(width: 10),
-              _buildCtrlBtn(
-                emoji: '🗑️',
-                label: '삭제',
-                gradient: [Colors.blueGrey.shade300, Colors.blueGrey.shade500],
-                onTap: () {
-                  setState(() => _recorded.clear());
-                  AudioManager.instance.playClick();
-                },
-              ),
-            ],
-
-            if (_recorded.isNotEmpty) ...[
-              const SizedBox(width: 10),
-              Container(
-                constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.purple.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Text(
-                  '🎵 ${_recorded.length}음',
-                  style: GoogleFonts.jua(fontSize: 14, color: Colors.purple.shade700),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCtrlBtn({
-    required String emoji,
-    required String label,
-    required List<Color> gradient,
-    required VoidCallback onTap,
-    bool pulse = false,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(colors: gradient),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: gradient.first.withValues(alpha: pulse ? 0.6 : 0.3),
-              blurRadius: pulse ? 14 : 6,
-              spreadRadius: pulse ? 2 : 0,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 15)),
-            const SizedBox(width: 4),
-            Text(label, style: GoogleFonts.jua(fontSize: 13, color: Colors.white)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── 실로폰 건반 ──
+  // ── 실로폰 건반 (반응형 동적 높이) ──
   Widget _buildXylophone(Size size) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Column(
-        children: [
-          // 상단 볼트 (실로폰 연결 바)
-          Container(
-            height: 14,
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFB8860B), Color(0xFFDAA520), Color(0xFFB8860B)],
-              ),
-              borderRadius: BorderRadius.circular(7),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.brown.withValues(alpha: 0.4),
-                  blurRadius: 6,
-                  offset: const Offset(0, 3),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableH = (constraints.maxHeight - 36).clamp(100.0, 400.0);
+        const maxBarH = 290.0;
+        final scaleFactor = (availableH / maxBarH).clamp(0.40, 1.0);
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              // 상단 볼트 바
+              Container(
+                height: 12,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFB8860B), Color(0xFFDAA520), Color(0xFFB8860B)],
+                  ),
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.brown.withValues(alpha: 0.4),
+                      blurRadius: 5,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 4),
+              ),
+              const SizedBox(height: 3),
 
-          // 건반
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: List.generate(_notes.length, (i) {
-              final note = _notes[i];
-              final isHighlighted = _highlightedKeys.contains(i);
+              // 건반 목록
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: List.generate(_notes.length, (i) {
+                  final note = _notes[i];
+                  final isHighlighted = _highlightedKeys.contains(i);
+                  final barH = note.barHeight * scaleFactor;
 
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: AnimatedBuilder(
-                    animation: _glowControllers[i],
-                    builder: (_, __) {
-                      final glow = _glowControllers[i].value;
-                      return ScaleTransition(
-                        scale: _scaleAnims[i],
-                        child: GestureDetector(
-                          onTapDown: (details) {
-                            _playNote(i);
-                            // 반짝이 파티클 생성
-                            final box = context.findRenderObject() as RenderBox?;
-                            if (box != null) {
-                              final pos = box.localToGlobal(Offset.zero);
-                              _spawnSparkles(
-                                details.globalPosition.dx - pos.dx,
-                                details.globalPosition.dy - pos.dy,
-                                note.color,
-                              );
-                            }
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            height: note.barHeight.toDouble(),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: isHighlighted
-                                    ? [
-                                        Colors.white,
-                                        note.lightColor,
-                                        note.color,
-                                      ]
-                                    : [
-                                        note.lightColor,
-                                        note.color,
-                                        note.color.withValues(alpha: 0.8),
-                                      ],
-                              ),
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(18),
-                                bottom: Radius.circular(10),
-                              ),
-                              border: Border.all(
-                                color: isHighlighted
-                                    ? Colors.white
-                                    : Colors.white.withValues(alpha: 0.6),
-                                width: isHighlighted ? 3.5 : 2,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: note.color.withValues(
-                                      alpha: isHighlighted ? 0.8 : 0.4 + glow * 0.4),
-                                  blurRadius: isHighlighted ? 20 : 8 + glow * 12,
-                                  spreadRadius: isHighlighted ? 4 : glow * 3,
-                                  offset: const Offset(0, 4),
-                                ),
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.12),
-                                  blurRadius: 3,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                // 반짝이 효과 (하이라이트 시)
-                                if (isHighlighted)
-                                  AnimatedOpacity(
-                                    opacity: isHighlighted ? 1.0 : 0.0,
-                                    duration: const Duration(milliseconds: 200),
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(alpha: 0.3),
-                                        borderRadius: const BorderRadius.vertical(
-                                          top: Radius.circular(16),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-
-                                Column(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    // 상단 이모지
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 8),
-                                      child: Text(
-                                        note.emoji,
-                                        style: TextStyle(
-                                          fontSize: note.barHeight > 200 ? 16 : 12,
-                                        ),
-                                      ),
-                                    ),
-
-                                    // 음 이름
-                                    Column(
-                                      children: [
-                                        Text(
-                                          note.label,
-                                          style: GoogleFonts.jua(
-                                            fontSize: note.barHeight > 200 ? 22 : 18,
-                                            color: Colors.white,
-                                            shadows: [
-                                              const Shadow(
-                                                color: Colors.black38,
-                                                offset: Offset(1, 1),
-                                                blurRadius: 3,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Text(
-                                          note.solfege,
-                                          style: GoogleFonts.jua(
-                                            fontSize: note.barHeight > 200 ? 11 : 9,
-                                            color: Colors.white.withValues(alpha: 0.85),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-
-                                    // 하단 볼트
-                                    Padding(
-                                      padding: const EdgeInsets.only(bottom: 8),
-                                      child: Container(
-                                        width: 12,
-                                        height: 12,
-                                        decoration: BoxDecoration(
-                                          gradient: RadialGradient(
-                                            colors: [
-                                              Colors.white.withValues(alpha: 0.9),
-                                              Colors.white.withValues(alpha: 0.3),
-                                            ],
-                                          ),
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(alpha: 0.2),
-                                              blurRadius: 3,
-                                              offset: const Offset(0, 1),
-                                            ),
+                  return Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2.5),
+                      child: AnimatedBuilder(
+                        animation: _glowControllers[i],
+                        builder: (_, __) {
+                          final glow = _glowControllers[i].value;
+                          return ScaleTransition(
+                            scale: _scaleAnims[i],
+                            child: GestureDetector(
+                              onTapDown: (details) {
+                                _playNote(i);
+                                final box = context.findRenderObject() as RenderBox?;
+                                if (box != null) {
+                                  final pos = box.localToGlobal(Offset.zero);
+                                  _spawnSparkles(
+                                    details.globalPosition.dx - pos.dx,
+                                    details.globalPosition.dy - pos.dy,
+                                    note.color,
+                                  );
+                                }
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                height: barH,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: isHighlighted
+                                        ? [
+                                            Colors.white,
+                                            note.lightColor,
+                                            note.color,
+                                          ]
+                                        : [
+                                            note.lightColor,
+                                            note.color,
+                                            note.color.withValues(alpha: 0.8),
                                           ],
-                                        ),
-                                      ),
+                                  ),
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(16),
+                                    bottom: Radius.circular(9),
+                                  ),
+                                  border: Border.all(
+                                    color: isHighlighted
+                                        ? Colors.white
+                                        : Colors.white.withValues(alpha: 0.6),
+                                    width: isHighlighted ? 3.5 : 2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: note.color.withValues(
+                                          alpha: isHighlighted ? 0.8 : 0.4 + glow * 0.4),
+                                      blurRadius: isHighlighted ? 18 : 6 + glow * 10,
+                                      spreadRadius: isHighlighted ? 3 : glow * 2,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.12),
+                                      blurRadius: 3,
+                                      offset: const Offset(0, 4),
                                     ),
                                   ],
                                 ),
-
-                                // 하이라이트 깜빡이는 테두리
-                                if (isHighlighted)
-                                  TweenAnimationBuilder<double>(
-                                    tween: Tween(begin: 0.0, end: 1.0),
-                                    duration: const Duration(milliseconds: 500),
-                                    builder: (_, v, __) => Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: const BorderRadius.vertical(
-                                          top: Radius.circular(16),
-                                          bottom: Radius.circular(8),
-                                        ),
-                                        border: Border.all(
-                                          color: Colors.white.withValues(alpha: v),
-                                          width: 3,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    if (isHighlighted)
+                                      AnimatedOpacity(
+                                        opacity: isHighlighted ? 1.0 : 0.0,
+                                        duration: const Duration(milliseconds: 200),
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withValues(alpha: 0.3),
+                                            borderRadius: const BorderRadius.vertical(
+                                              top: Radius.circular(14),
+                                            ),
+                                          ),
                                         ),
                                       ),
+
+                                    Column(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 6),
+                                          child: Text(
+                                            note.emoji,
+                                            style: TextStyle(
+                                              fontSize: barH > 160 ? 15 : 11,
+                                            ),
+                                          ),
+                                        ),
+
+                                        Column(
+                                          children: [
+                                            Text(
+                                              note.label,
+                                              style: GoogleFonts.jua(
+                                                fontSize: barH > 160 ? 20 : 15,
+                                                color: Colors.white,
+                                                shadows: const [
+                                                  Shadow(
+                                                    color: Colors.black38,
+                                                    offset: Offset(1, 1),
+                                                    blurRadius: 3,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Text(
+                                              note.solfege,
+                                              style: GoogleFonts.jua(
+                                                fontSize: barH > 160 ? 10 : 8,
+                                                color: Colors.white.withValues(alpha: 0.85),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                        Padding(
+                                          padding: const EdgeInsets.only(bottom: 6),
+                                          child: Container(
+                                            width: 10,
+                                            height: 10,
+                                            decoration: BoxDecoration(
+                                              gradient: RadialGradient(
+                                                colors: [
+                                                  Colors.white.withValues(alpha: 0.9),
+                                                  Colors.white.withValues(alpha: 0.3),
+                                                ],
+                                              ),
+                                              shape: BoxShape.circle,
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withValues(alpha: 0.2),
+                                                  blurRadius: 2,
+                                                  offset: const Offset(0, 1),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                              ],
+
+                                    if (isHighlighted)
+                                      TweenAnimationBuilder<double>(
+                                        tween: Tween(begin: 0.0, end: 1.0),
+                                        duration: const Duration(milliseconds: 500),
+                                        builder: (_, v, __) => Container(
+                                          decoration: BoxDecoration(
+                                            borderRadius: const BorderRadius.vertical(
+                                              top: Radius.circular(14),
+                                              bottom: Radius.circular(7),
+                                            ),
+                                            border: Border.all(
+                                              color: Colors.white.withValues(alpha: v),
+                                              width: 3,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              );
-            }),
-          ),
-
-          const SizedBox(height: 4),
-
-          // 하단 볼트 바
-          Container(
-            height: 14,
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFB8860B), Color(0xFFDAA520), Color(0xFFB8860B)],
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                }),
               ),
-              borderRadius: BorderRadius.circular(7),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.brown.withValues(alpha: 0.4),
-                  blurRadius: 6,
-                  offset: const Offset(0, 3),
+
+              const SizedBox(height: 3),
+
+              // 하단 볼트 바
+              Container(
+                height: 12,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFB8860B), Color(0xFFDAA520), Color(0xFFB8860B)],
+                  ),
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.brown.withValues(alpha: 0.4),
+                      blurRadius: 5,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

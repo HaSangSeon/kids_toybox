@@ -101,7 +101,6 @@ class _TracingGameState extends State<TracingGame> with TickerProviderStateMixin
   TracingCategory _selectedCategory = TracingCategory.shapes;
   MagicBrushType _selectedBrush = MagicBrushType.rainbow;
 
-  int _score = 0;
   int _categoryIndex = 0;
   bool _isLevelClear = false;
 
@@ -394,7 +393,6 @@ class _TracingGameState extends State<TracingGame> with TickerProviderStateMixin
 
     setState(() {
       _isLevelClear = true;
-      _score += 20;
       _mascotMessage = '우와! ${_currentShape.name} 완공 축하해! 🌟🎉';
     });
 
@@ -414,7 +412,6 @@ class _TracingGameState extends State<TracingGame> with TickerProviderStateMixin
     if (star.popped) return;
     setState(() {
       star.popped = true;
-      _score += 5;
     });
     AudioManager.instance.playPop();
     HapticFeedback.lightImpact();
@@ -557,41 +554,77 @@ class _TracingGameState extends State<TracingGame> with TickerProviderStateMixin
   }
 
   Widget _buildBackground() {
-    Color topColor;
-    Color bottomColor;
+    List<Color> gradientColors;
 
     switch (_selectedCategory) {
       case TracingCategory.shapes:
-        topColor = const Color(0xFFFFF3E0);
-        bottomColor = const Color(0xFFFFE0B2);
+        gradientColors = [const Color(0xFFFFF4E6), const Color(0xFFFFE0B2), const Color(0xFFFFD180)];
         break;
       case TracingCategory.numbers:
-        topColor = const Color(0xFFE8F5E9);
-        bottomColor = const Color(0xFFA5D6A7);
+        gradientColors = [const Color(0xFFE8F8F5), const Color(0xFFA3E4D7), const Color(0xFF76D7C4)];
         break;
       case TracingCategory.hangul:
-        topColor = const Color(0xFFE0F7FA);
-        bottomColor = const Color(0xFF80DEEA);
+        gradientColors = [const Color(0xFFEBF5FB), const Color(0xFFA9CCE3), const Color(0xFF7FB3D5)];
         break;
       case TracingCategory.alphabet:
-        topColor = const Color(0xFFF3E5F5);
-        bottomColor = const Color(0xFFCE93D8);
+        gradientColors = [const Color(0xFFF5EEF8), const Color(0xFFD7BDE2), const Color(0xFFBB8FCE)];
         break;
       case TracingCategory.objects:
-        topColor = const Color(0xFF1A1C2E);
-        bottomColor = const Color(0xFF373B5E);
+        gradientColors = [const Color(0xFF2E1A47), const Color(0xFF1F2421), const Color(0xFF141923)];
         break;
     }
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 500),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [topColor, bottomColor],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+    final isDark = _selectedCategory == TracingCategory.objects;
+    final floatOffset = sin(_hueTime * 2) * 6;
+
+    return Stack(
+      children: [
+        // Gradient background
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 500),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: gradientColors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
         ),
-      ),
+
+        // Floating Cute Decorative Doodles
+        Positioned(
+          top: 40 + floatOffset,
+          left: 20,
+          child: Opacity(
+            opacity: isDark ? 0.3 : 0.2,
+            child: Text(isDark ? '✨' : '☁️', style: const TextStyle(fontSize: 42)),
+          ),
+        ),
+        Positioned(
+          top: 100 - floatOffset,
+          right: 30,
+          child: Opacity(
+            opacity: isDark ? 0.3 : 0.25,
+            child: Text(isDark ? '🌟' : '🎈', style: const TextStyle(fontSize: 38)),
+          ),
+        ),
+        Positioned(
+          bottom: 120 + floatOffset,
+          left: 25,
+          child: Opacity(
+            opacity: isDark ? 0.3 : 0.2,
+            child: Text(isDark ? '🪐' : '🌸', style: const TextStyle(fontSize: 36)),
+          ),
+        ),
+        Positioned(
+          bottom: 80 - floatOffset,
+          right: 25,
+          child: Opacity(
+            opacity: isDark ? 0.3 : 0.25,
+            child: Text(isDark ? '🚀' : '🎨', style: const TextStyle(fontSize: 40)),
+          ),
+        ),
+      ],
     );
   }
 
@@ -651,25 +684,8 @@ class _TracingGameState extends State<TracingGame> with TickerProviderStateMixin
             ),
           ),
 
-          // Star score counter
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.amber.shade100,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.amber.shade300, width: 2),
-            ),
-            child: Row(
-              children: [
-                const Text('⭐', style: TextStyle(fontSize: 16)),
-                const SizedBox(width: 6),
-                Text(
-                  '$_score',
-                  style: GoogleFonts.jua(fontSize: 18, color: Colors.amber.shade900),
-                ),
-              ],
-            ),
-          ),
+          // Right Spacer balancing close button (Star icon removed as requested!)
+          const SizedBox(width: 68),
         ],
       ),
     );
@@ -845,25 +861,30 @@ class _TracingGameState extends State<TracingGame> with TickerProviderStateMixin
         final val = _livingObjectController.value;
         final emoji = _currentShape.emoji;
 
-        // Custom animation based on emoji object
-        double dx = size.width / 2 - 50;
-        double dy = size.height / 2 - 50;
-        double scale = 1.0 + (sin(val * pi * 3) * 0.3);
-        double rotate = 0.0;
+        // Upper stage area animation for floating living emoji
+        double dx = size.width / 2 - 45;
+        double dy = (size.height * 0.16) - (sin(val * pi * 2) * 12);
+        double scale = 1.0 + (sin(val * pi * 3) * 0.18);
+        double rotate = sin(val * pi * 4) * 0.12;
 
         if (emoji == '🚗') {
-          dx = -100 + (val * (size.width + 200));
-          dy = size.height * 0.5;
+          dx = -80 + (val * (size.width + 160));
+          dy = size.height * 0.14;
         } else if (emoji == '🚀') {
-          dy = (size.height * 0.7) - (val * (size.height * 0.8));
-          dx = size.width * 0.5 - 50;
-        } else if (emoji == '🐱' || emoji == '🐻') {
-          rotate = sin(val * pi * 4) * 0.25;
+          dy = (size.height * 0.35) - (val * (size.height * 0.4));
+          dx = size.width * 0.5 - 45;
         }
 
         return Stack(
           children: [
-            // Floating Living Emoji
+            // Darkened backdrop blur overlay for clear popup readability
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.35),
+              ),
+            ),
+
+            // Upper Floating Living Emoji
             Positioned(
               left: dx,
               top: dy,
@@ -872,91 +893,150 @@ class _TracingGameState extends State<TracingGame> with TickerProviderStateMixin
                 child: Transform.scale(
                   scale: scale,
                   child: Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: Colors.white,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.amber.withValues(alpha: 0.6),
-                          blurRadius: 30,
-                          spreadRadius: 10,
+                          color: Colors.amber.withValues(alpha: 0.7),
+                          blurRadius: 25,
+                          spreadRadius: 8,
                         ),
                       ],
                     ),
-                    child: Text(emoji, style: const TextStyle(fontSize: 70)),
+                    child: Text(emoji, style: const TextStyle(fontSize: 60)),
                   ),
                 ),
               ),
             ),
 
-            // Congratulations Toast
+            // Completion Dialog Box (Centered below emoji, perfectly aligned without overlapping!)
             Center(
-              child: GestureDetector(
-                onTap: () {
-                  if (_isLevelClear) _nextLevel();
-                },
+              child: SingleChildScrollView(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 18),
-                  decoration: KidsTheme.toyDecoration(
-                    color: KidsTheme.green,
-                    borderRadius: 36,
+                  width: 320,
+                  margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  padding: const EdgeInsets.all(22),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(32),
+                    border: Border.all(color: Colors.amber.shade300, width: 3),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.25),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        '참 잘했어요! 🌟',
-                        style: GoogleFonts.jua(fontSize: 38, color: Colors.white),
+                      // Badge Title
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.amber.shade400, Colors.deepOrange.shade400],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.amber.shade300.withValues(alpha: 0.5),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          '🎉 참 잘했어요! 🎉',
+                          style: GoogleFonts.jua(fontSize: 24, color: Colors.white),
+                        ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
+
+                      Text(
+                        '${_currentShape.name} 완성! ✨',
+                        style: GoogleFonts.jua(fontSize: 20, color: const Color(0xFF333333)),
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Action Buttons Row (neatly aligned without any overlapping)
                       Row(
-                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          GestureDetector(
-                            onTap: () {
+                          // Retry button
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange.shade100,
+                              foregroundColor: Colors.orange.shade900,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            onPressed: () {
+                              AudioManager.instance.playClick();
+                              setState(() {
+                                _isLevelClear = false;
+                                _userPath.clear();
+                                _targetPointIndex = 0;
+                              });
+                            },
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.refresh_rounded, size: 18),
+                                const SizedBox(width: 4),
+                                Text('다시하기', style: GoogleFonts.jua(fontSize: 14)),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+
+                          // Exit button
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey.shade200,
+                              foregroundColor: Colors.grey.shade800,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            onPressed: () {
                               AudioManager.instance.playClick();
                               Navigator.of(context).pop();
                             },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.25),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.white, width: 1.5),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.home_rounded, color: Colors.white, size: 18),
-                                  const SizedBox(width: 4),
-                                  Text('나가기 🏠', style: GoogleFonts.jua(fontSize: 16, color: Colors.white)),
-                                ],
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.home_rounded, size: 18),
+                                const SizedBox(width: 4),
+                                Text('나가기', style: GoogleFonts.jua(fontSize: 14)),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          GestureDetector(
-                            onTap: () {
+                          const SizedBox(width: 8),
+
+                          // Next level button
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green.shade500,
+                              foregroundColor: Colors.white,
+                              elevation: 3,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            onPressed: () {
                               if (_isLevelClear) _nextLevel();
                             },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.amber.shade400,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 4, offset: const Offset(0, 2)),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.arrow_forward_rounded, color: KidsTheme.textDark, size: 18),
-                                  const SizedBox(width: 4),
-                                  Text('다음 단계 ⚡', style: GoogleFonts.jua(fontSize: 16, color: KidsTheme.textDark)),
-                                ],
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('다음 ⚡', style: GoogleFonts.jua(fontSize: 15)),
+                                const SizedBox(width: 2),
+                                const Icon(Icons.arrow_forward_rounded, size: 18),
+                              ],
                             ),
                           ),
                         ],

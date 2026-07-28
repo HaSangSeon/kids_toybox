@@ -147,14 +147,16 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
     final dt = ((elapsed.inMicroseconds - _lastElapsed.inMicroseconds) / 1e6)
         .clamp(0.0, 0.05);
     _lastElapsed = elapsed;
+    if (!mounted) return;
+
     setState(() {
       _skyTime += dt;
-      if (_isPlaying && !_isGameOver) {
+      if (_effects.isNotEmpty) {
         for (final e in _effects) {
           e.yOffset -= 65.0 * dt;
           e.opacity -= 1.6 * dt;
         }
-        _effects.removeWhere((e) => e.opacity <= 0);
+        _effects.removeWhere((e) => e.opacity <= 0.0);
       }
     });
   }
@@ -178,6 +180,9 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
     });
 
     _lastElapsed = Duration.zero;
+    if (!_ticker.isTicking) {
+      _ticker.start();
+    }
     _gameTimer?.cancel();
     _gameTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_timeLeft > 0) {
@@ -322,11 +327,21 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
         break;
     }
 
-    _effects.add(TapEffect(
+    final effect = TapEffect(
       position: details.globalPosition,
       text: popText,
       color: popColor,
-    ));
+    );
+    _effects.add(effect);
+
+    // 팝업 점수가 안 사라지는 문제 완전 방지 (700ms 후 자동 삭제)
+    Timer(const Duration(milliseconds: 700), () {
+      if (mounted) {
+        setState(() {
+          _effects.remove(effect);
+        });
+      }
+    });
 
     setState(() {});
   }
@@ -555,7 +570,6 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
                 AudioManager.instance.playClick();
                 _gameTimer?.cancel();
                 _spawnTimer?.cancel();
-                _ticker.stop();
                 setState(() => _showLevelSelect = true);
               },
               child: Container(

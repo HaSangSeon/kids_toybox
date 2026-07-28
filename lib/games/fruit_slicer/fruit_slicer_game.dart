@@ -135,9 +135,26 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
   int _fruitIdCounter = 0;
   double _spawnTimer = 0;
   Duration _lastElapsed = Duration.zero;
+  int _currentLevel = 1;
+  bool _showStageSelect = true; // 진입 시 바로 레벨 선택 화면 노출
   bool _isGameOver = false;
   int _currentStrokeSlices = 0; // For Combo tracking
   double _freezeTimer = 0.0;
+
+  void _resetGame() {
+    setState(() {
+      _score = 0;
+      _lives = 3;
+      _fruits.clear();
+      _particles.clear();
+      _slicedPieces.clear();
+      _floatingTexts.clear();
+      _bladeTrail.clear();
+      _spawnTimer = 0;
+      _freezeTimer = 0.0;
+      _isGameOver = false;
+    });
+  }
 
   @override
   void initState() {
@@ -157,7 +174,7 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
   }
 
   void _onTick(Duration elapsed) {
-    if (_isGameOver) return;
+    if (_isGameOver || _showStageSelect) return;
     
     final double dt = (elapsed.inMicroseconds - _lastElapsed.inMicroseconds) / 1000000.0;
     _lastElapsed = elapsed;
@@ -173,8 +190,14 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
       final double movementDelta = deltaTime * slowFactor;
 
       _spawnTimer += deltaTime;
-      final double currentSpawnInterval = (2.2 - (_score / 150) * 0.3).clamp(1.3, 2.2);
-      if (_spawnTimer > currentSpawnInterval) {
+      double spawnInterval = 1.8;
+      if (_currentLevel == 1) spawnInterval = 2.0;
+      else if (_currentLevel == 2) spawnInterval = 1.6;
+      else if (_currentLevel == 3) spawnInterval = 1.3;
+      else if (_currentLevel == 4) spawnInterval = 1.0;
+      else spawnInterval = 0.8;
+
+      if (_spawnTimer > spawnInterval) {
         _spawnTimer = 0;
         _spawnFruit();
       }
@@ -251,8 +274,20 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
   }
 
   void _spawnSingleFruit({double? overrideX, double? overrideVy, double? overrideVx}) {
-    // 폭탄 등장 확률도 점수에 따라 점진적으로 증가 (초반엔 5%로 아주 낮음)
-    final double bombChance = (0.05 + (_score / 400) * 0.07).clamp(0.05, 0.12);
+    // 폭탄 등장 확률 (1단계는 폭탄 완전히 없음!)
+    double bombChance = 0.0;
+    if (_currentLevel == 1) {
+      bombChance = 0.0;
+    } else if (_currentLevel == 2) {
+      bombChance = 0.05;
+    } else if (_currentLevel == 3) {
+      bombChance = 0.07;
+    } else if (_currentLevel == 4) {
+      bombChance = 0.09;
+    } else {
+      bombChance = 0.12;
+    }
+
     final double rand = _random.nextDouble();
 
     FruitType type = FruitType.normal;
@@ -631,14 +666,14 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Glossy 3D Exit Button
+              // 뒤로가기 버튼
               GestureDetector(
                 onTap: () {
                   AudioManager.instance.playClick();
                   Navigator.of(context).pop();
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFFFF6B6B), Color(0xFFEE5253)],
@@ -655,30 +690,21 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
                       ),
                     ],
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.home_rounded, color: Colors.white, size: 20),
-                      const SizedBox(width: 4),
-                      Text(
-                        '메인',
-                        style: GoogleFonts.jua(
-                          fontSize: 15,
-                          color: Colors.white,
-                          shadows: const [Shadow(color: Colors.black26, offset: Offset(0, 1), blurRadius: 2)],
-                        ),
-                      ),
+                      Icon(Icons.arrow_back, color: Colors.white, size: 20),
                     ],
                   ),
                 ),
               ),
 
-              // 3D Star Score Pill (Center)
+              // 3D Fruit Score Pill (Center - Watermelon Icon)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFFFFD54F), Color(0xFFFFB300)],
+                    colors: [Color(0xFFFF7043), Color(0xFFF4511E)],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),
@@ -686,7 +712,7 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
                   border: Border.all(color: Colors.white, width: 2),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFFB300).withValues(alpha: 0.4),
+                      color: const Color(0xFFFF5722).withValues(alpha: 0.4),
                       blurRadius: 8,
                       offset: const Offset(0, 3),
                     ),
@@ -695,10 +721,10 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('⭐', style: TextStyle(fontSize: 17)),
+                    const Text('🍉', style: TextStyle(fontSize: 18)),
                     const SizedBox(width: 4),
                     Text(
-                      '$_score',
+                      '$_score점',
                       style: GoogleFonts.jua(
                         fontSize: 18,
                         color: Colors.white,
@@ -709,35 +735,49 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
                 ),
               ),
 
-              // 3D Glowing Hearts Container (Right)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFEBEE),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFFF8A80), width: 1.5),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: List.generate(3, (index) {
-                    final isActive = index < _lives;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2),
-                      child: AnimatedScale(
-                        scale: isActive ? 1.0 : 0.7,
-                        duration: const Duration(milliseconds: 300),
-                        child: Text(
-                          isActive ? '❤️' : '🖤',
-                          style: TextStyle(
-                            fontSize: 17,
-                            shadows: isActive
-                                ? [Shadow(color: Colors.red.withValues(alpha: 0.5), blurRadius: 6, offset: const Offset(0, 2))]
-                                : [],
-                          ),
+              // 상단 우측 레벨 선택 버튼 (아기자기하고 고급스러운 3D 뱃지)
+              GestureDetector(
+                onTap: () {
+                  AudioManager.instance.playClick();
+                  setState(() {
+                    _showStageSelect = true;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFAB47BC), Color(0xFF8E24AA)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF8E24AA).withValues(alpha: 0.35),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('🗺️', style: TextStyle(fontSize: 16)),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$_currentLevel단계',
+                        style: GoogleFonts.jua(
+                          fontSize: 15,
+                          color: Colors.white,
+                          shadows: const [Shadow(color: Colors.black26, offset: Offset(0, 1), blurRadius: 2)],
                         ),
                       ),
-                    );
-                  }),
+                      const SizedBox(width: 2),
+                      const Icon(Icons.arrow_drop_down_rounded, color: Colors.white, size: 20),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -1032,7 +1072,7 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
                                   Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Text('⭐', style: TextStyle(fontSize: 26)),
+                                      const Text('🍉', style: TextStyle(fontSize: 28)),
                                       const SizedBox(width: 6),
                                       Text(
                                         '$_score',
@@ -1056,8 +1096,10 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
                             const SizedBox(height: 20),
 
                             // 3D Glossy Action Buttons
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                            Wrap(
+                              alignment: WrapAlignment.center,
+                              spacing: 8,
+                              runSpacing: 8,
                               children: [
                                 // Exit Button
                                 GestureDetector(
@@ -1066,74 +1108,99 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
                                     Navigator.of(context).pop();
                                   },
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                                     decoration: BoxDecoration(
                                       gradient: const LinearGradient(
                                         colors: [Color(0xFFFF6B6B), Color(0xFFEE5253)],
                                         begin: Alignment.topCenter,
                                         end: Alignment.bottomCenter,
                                       ),
-                                      borderRadius: BorderRadius.circular(22),
-                                      border: Border.all(color: Colors.white, width: 2.5),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(color: Colors.white, width: 2),
                                       boxShadow: [
                                         BoxShadow(
                                           color: const Color(0xFFFF6B6B).withValues(alpha: 0.4),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 5),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
                                         ),
                                       ],
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.home_rounded, color: Colors.white, size: 22),
+                                        const Icon(Icons.home_rounded, color: Colors.white, size: 20),
                                         const SizedBox(width: 4),
                                         Text(
                                           '메인으로',
-                                          style: GoogleFonts.jua(
-                                            fontSize: 17,
-                                            color: Colors.white,
-                                            shadows: const [
-                                              Shadow(color: Colors.black26, offset: Offset(0, 1), blurRadius: 2),
-                                            ],
-                                          ),
+                                          style: GoogleFonts.jua(fontSize: 15, color: Colors.white),
                                         ),
                                       ],
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 10),
+
+                                // Stage Select Button
+                                GestureDetector(
+                                  onTap: () {
+                                    AudioManager.instance.playClick();
+                                    setState(() {
+                                      _showStageSelect = true;
+                                      _isGameOver = false;
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [KidsTheme.purple, Color(0xFFAB47BC)],
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(color: Colors.white, width: 2),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: KidsTheme.purple.withValues(alpha: 0.4),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Text('🗺️', style: TextStyle(fontSize: 16)),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '레벨 선택',
+                                          style: GoogleFonts.jua(fontSize: 15, color: Colors.white),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
 
                                 // Restart Button
                                 GestureDetector(
                                   onTap: () {
                                     AudioManager.instance.playClick();
-                                    setState(() {
-                                      _score = 0;
-                                      _lives = 3;
-                                      _fruits.clear();
-                                      _slicedPieces.clear();
-                                      _particles.clear();
-                                      _floatingTexts.clear();
-                                      _freezeTimer = 0.0;
-                                      _isGameOver = false;
-                                    });
+                                    _resetGame();
                                   },
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
                                     decoration: BoxDecoration(
                                       gradient: const LinearGradient(
                                         colors: [Color(0xFF10B981), Color(0xFF059669)],
                                         begin: Alignment.topCenter,
                                         end: Alignment.bottomCenter,
                                       ),
-                                      borderRadius: BorderRadius.circular(22),
-                                      border: Border.all(color: Colors.white, width: 2.5),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(color: Colors.white, width: 2),
                                       boxShadow: [
                                         BoxShadow(
                                           color: const Color(0xFF10B981).withValues(alpha: 0.4),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 5),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
                                         ),
                                       ],
                                     ),
@@ -1142,13 +1209,7 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
                                       children: [
                                         Text(
                                           '다시 하기 🔄',
-                                          style: GoogleFonts.jua(
-                                            fontSize: 17,
-                                            color: Colors.white,
-                                            shadows: const [
-                                              Shadow(color: Colors.black26, offset: Offset(0, 1), blurRadius: 2),
-                                            ],
-                                          ),
+                                          style: GoogleFonts.jua(fontSize: 15, color: Colors.white),
                                         ),
                                       ],
                                     ),
@@ -1165,11 +1226,183 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
                 ),
               ),
             ),
-        ],
+            // Stage Select Overlay
+            if (_showStageSelect)
+              _buildStageSelectOverlay(),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
+
+  // ── Stage Select Overlay ──────────────────────────────────────────────────
+  Widget _buildStageSelectOverlay() {
+    final stagesInfo = [
+      (stage: 1, name: '1단계: 과일 동산', desc: '쉬움 🍉 - 폭탄 없음! 느긋하고 편안하게', color: const Color(0xFF4ADE80), icon: '🍉'),
+      (stage: 2, name: '2단계: 과일 잔치', desc: '보통 🍊 - 황금 과일과 하트! 폭탄 찔끔', color: const Color(0xFF60A5FA), icon: '🍊'),
+      (stage: 3, name: '3단계: 수박 파티', desc: '신남 🍍 - 3번 베는 대왕 수박 & 빙결 아이템', color: const Color(0xFFF59E0B), icon: '🍍'),
+      (stage: 4, name: '4단계: 과일 폭풍', desc: '매운맛 🍓 - 빠른 과일 쏟아짐 & 폭탄 주의', color: const Color(0xFFEC4899), icon: '🍓'),
+      (stage: 5, name: '5단계: 싹둑 마스터', desc: '달인 🏆 - 초고속 마스터 콤보 모드!', color: const Color(0xFFA855F7), icon: '🏆'),
+    ];
+
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.70),
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 580),
+            margin: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(32),
+              boxShadow: const [
+                BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 8)),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        AudioManager.instance.playClick();
+                        setState(() {
+                          _showStageSelect = false;
+                        });
+                      },
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close_rounded, size: 20, color: KidsTheme.textDark),
+                      ),
+                    ),
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('⚔️', style: TextStyle(fontSize: 24)),
+                          const SizedBox(width: 6),
+                          Text(
+                            '레벨 선택',
+                            style: GoogleFonts.jua(fontSize: 22, color: KidsTheme.textDark),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 36),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '하고 싶은 레벨을 골라 신나게 싹둑 해보세요!',
+                  style: GoogleFonts.nunito(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 14),
+                Expanded(
+                  child: ListView.separated(
+                    padding: EdgeInsets.zero,
+                    itemCount: stagesInfo.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final info = stagesInfo[index];
+                      final bool isCurrent = _currentLevel == info.stage;
+
+                      return GestureDetector(
+                        onTap: () {
+                          AudioManager.instance.playClick();
+                          setState(() {
+                            _currentLevel = info.stage;
+                            _showStageSelect = false;
+                            _resetGame();
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [info.color.withValues(alpha: 0.88), info.color],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            border: isCurrent ? Border.all(color: Colors.yellowAccent, width: 3.5) : Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: info.color.withValues(alpha: 0.35),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: const BoxDecoration(
+                                  color: Colors.white24,
+                                  shape: BoxShape.circle,
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(info.icon, style: const TextStyle(fontSize: 24)),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          info.name,
+                                          style: GoogleFonts.jua(fontSize: 17, color: Colors.white),
+                                        ),
+                                        if (isCurrent) ...[
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.yellowAccent,
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            child: Text(
+                                              '선택됨',
+                                              style: GoogleFonts.jua(fontSize: 11, color: Colors.black87),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      info.desc,
+                                      style: GoogleFonts.jua(fontSize: 12, color: Colors.white.withValues(alpha: 0.95)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 26),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _BladePainter extends CustomPainter {

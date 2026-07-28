@@ -114,11 +114,30 @@ class _BubblePopGameState extends State<BubblePopGame>
 
   int _score = 0;
   int _wave = 1;
+  int _level = 1;
+  bool _showLevelSelect = true; // 게임 첫 진입 시 레벨 선택 창 바로 팝업!
   int _wavePopped = 0;
   
   WaveTheme? _currentTheme;
   WaveTheme get _theme => _currentTheme ??= _getThemeForWave(_wave);
   int get _waveTarget => _theme.targetCount;
+
+  void _selectLevel(int level) {
+    setState(() {
+      _level = level;
+      _wave = level;
+      _score = 0;
+      _wavePopped = 0;
+      _bubbles.clear();
+      _particles.clear();
+      _popups.clear();
+      _currentTheme = _getThemeForWave(level);
+      _showLevelSelect = false;
+      _waveClear = false;
+      _waiting = true;
+      _waitTimer = 0;
+    });
+  }
 
   WaveTheme _getThemeForWave(int wave) {
     final List<List<String>> emojiSets = [
@@ -130,19 +149,21 @@ class _BubblePopGameState extends State<BubblePopGame>
     ];
 
     final titles = [
-      '새콤달콤 과일 사냥! 🍎',
-      '귀여운 동물 친구들! 🐰',
-      '바다 속 친구들! 🐠',
-      '달콤한 과자 파티! 🍭',
-      '빵빵 탈것 모으기! 🚀',
+      '1단계: 새콤달콤 과일 사냥! 🍎',
+      '2단계: 귀여운 동물 친구들! 🐰',
+      '3단계: 바다 속 친구들! 🐠',
+      '4단계: 달콤한 과자 파티! 🍭',
+      '5단계: 빵빵 탈것 모으기! 🚀',
     ];
+
+    final targetCounts = [8, 12, 18, 25, 35];
 
     final setIndex = (wave - 1) % emojiSets.length;
     final emojis = emojiSets[setIndex];
     
     final random = Random(wave + 123);
     final targetEmoji = emojis[random.nextInt(emojis.length)];
-    final targetCount = 3 + (wave - 1); // 3, 4, 5...
+    final targetCount = targetCounts[setIndex];
 
     return WaveTheme(
       title: titles[setIndex],
@@ -161,31 +182,34 @@ class _BubblePopGameState extends State<BubblePopGame>
   bool _waiting = false;       // 다음 웨이브 대기 중
   double _waitTimer = 0;       // 대기 타이머
 
-  // 스폰 쿨다운 (아이들이 답답하지 않게 조율)
+  // 스폰 쿨다운 (단계별 스피드 조율)
   double _spawnCooldown = 0;
   double get _spawnInterval {
-    return (2.2 - (_wave - 1) * 0.2).clamp(1.0, 2.2);
+    switch (_wave) {
+      case 1: return 2.0;
+      case 2: return 1.5;
+      case 3: return 1.1;
+      case 4: return 0.7;
+      case 5: default: return 0.45; // 5단계: 초고속 펑펑 버블 폭풍 스폰!
+    }
   }
 
   // 화면에 띄울 최대 동시 비눗방울 수
-  int get _maxBubbles => 4 + _wave; // 1웨이브=5개, 2웨이브=6개...
-
-  // 이모지 풀
-  static const List<String> _emojis = [
-    '🌈', '⭐', '🦋', '🌸', '🍭', '🎈', '🌟', '🎀',
-    '🐝', '🦄', '🍬', '🌺', '🐠', '🎵', '🍓', '🌙',
-  ];
+  int get _maxBubbles {
+    switch (_wave) {
+      case 1: return 5;
+      case 2: return 6;
+      case 3: return 8;
+      case 4: return 10;
+      case 5: default: return 14; // 5단계: 화면에 14개 버블 가득!
+    }
+  }
 
   // 버블 색상 (반투명 무지개)
   static const List<Color> _bubbleColors = [
-    Color(0xFFFF6B9D), // pink
-    Color(0xFF7C4DFF), // purple
-    Color(0xFF2979FF), // blue
-    Color(0xFF00BCD4), // cyan
-    Color(0xFF00C853), // green
-    Color(0xFFFFB300), // amber
-    Color(0xFFFF5722), // orange
-    Color(0xFFE91E63), // rose
+    Color(0xFFFF8A80), Color(0xFFFFD180), Color(0xFFFFFF8D),
+    Color(0xFFB9F6CA), Color(0xFF80D8FF), Color(0xFFB388FF),
+    Color(0xFFFF80AB),
   ];
 
   @override
@@ -203,7 +227,7 @@ class _BubblePopGameState extends State<BubblePopGame>
   // ── Tick ─────────────────────────────────────────────────────────────────
 
   void _onTick(Duration elapsed) {
-    if (_screenSize == Size.zero) return;
+    if (_screenSize == Size.zero || _showLevelSelect) return;
     if (_lastTime == Duration.zero) {
       _lastTime = elapsed;
       return;
@@ -223,7 +247,7 @@ class _BubblePopGameState extends State<BubblePopGame>
       // 웨이브 클리어 연출 대기 중
       if (_waveClear) {
         _waveClearTimer += dt;
-        if (_waveClearTimer > 2.0) {
+        if (_waveClearTimer > 2.5) {
           _waveClear = false;
           _waveClearTimer = 0;
           _startNextWave();
@@ -304,16 +328,43 @@ class _BubblePopGameState extends State<BubblePopGame>
   void _spawnBubble() {
     if (_screenSize == Size.zero) return;
 
-    // 웨이브가 낮을수록 크게 (더 쉽게 터치)
-    final minSize = (90.0 - _wave * 5).clamp(60.0, 90.0);
-    final maxSize = (130.0 - _wave * 4).clamp(80.0, 130.0);
-    final size = minSize + _random.nextDouble() * (maxSize - minSize);
+    final double minSize, maxSize, minSpeed, maxSpeed, amplitude;
 
+    switch (_wave) {
+      case 1:
+        minSize = 85.0; maxSize = 125.0;
+        minSpeed = 80.0; maxSpeed = 130.0;
+        amplitude = 14.0;
+        break;
+      case 2:
+        minSize = 75.0; maxSize = 115.0;
+        minSpeed = 110.0; maxSpeed = 170.0;
+        amplitude = 18.0;
+        break;
+      case 3:
+        minSize = 65.0; maxSize = 105.0;
+        minSpeed = 140.0; maxSpeed = 220.0;
+        amplitude = 24.0;
+        break;
+      case 4:
+        minSize = 55.0; maxSize = 95.0;
+        minSpeed = 180.0; maxSpeed = 280.0;
+        amplitude = 30.0;
+        break;
+      case 5:
+      default:
+        minSize = 45.0; maxSize = 85.0; // 5단계: 민첩한 소형 스피드 버블!
+        minSpeed = 230.0; maxSpeed = 360.0; // 5단계: 초고속 솟구침!
+        amplitude = 38.0; // 5단계: 역동적인 지그재그 흔들림!
+        break;
+    }
+
+    final size = minSize + _random.nextDouble() * (maxSize - minSize);
     final x = _random.nextDouble() * (_screenSize.width - size);
     final color = _bubbleColors[_random.nextInt(_bubbleColors.length)];
     
     final String emoji;
-    // 아이들이 답답하지 않게 목표 수집 이모지가 스폰될 확률을 40%로 대폭 상향
+    // 목표 수집 이모지가 스폰될 확률 40%
     if (_random.nextDouble() < 0.40) {
       emoji = _theme.targetEmoji;
     } else {
@@ -323,13 +374,8 @@ class _BubblePopGameState extends State<BubblePopGame>
           : _theme.targetEmoji;
     }
 
-    // 웨이브가 낮을수록 느리게 올라옴 (기본 속도 상향조정)
-    final minSpeed = (100.0 + (_wave - 1) * 15).clamp(100.0, 220.0);
-    final maxSpeed = minSpeed + 50;
     final speed = minSpeed + _random.nextDouble() * (maxSpeed - minSpeed);
 
-    // 헤더 영역(상단 ~130px) 위로 사라지기 전까지만 활성화되므로
-    // 스폰은 화면 하단 바깥에서 시작 → 자연스럽게 헤더 위로 지나쳐 사라짐
     _bubbles.add(Bubble(
       id: '${DateTime.now().microsecondsSinceEpoch}${_random.nextInt(999)}',
       x: x,
@@ -337,7 +383,7 @@ class _BubblePopGameState extends State<BubblePopGame>
       size: size,
       speed: speed,
       phase: _random.nextDouble() * pi * 2,
-      amplitude: 12 + _random.nextDouble() * 20,
+      amplitude: amplitude,
       color: color,
       emoji: emoji,
     ));
@@ -360,7 +406,6 @@ class _BubblePopGameState extends State<BubblePopGame>
     final cx = bubble.x + bubble.size / 2;
     final cy = bubble.y + bubble.size / 2;
     
-    // 비눗방울 터질 때 물방울 파티클 (더 많고, 반짝이게)
     final particleCount = isTarget ? 14 : 10;
     for (int i = 0; i < particleCount; i++) {
       final angle = (i / particleCount) * 2 * pi + _random.nextDouble() * 0.4;
@@ -376,7 +421,6 @@ class _BubblePopGameState extends State<BubblePopGame>
       ));
     }
 
-    // 팝업 텍스트: 맞추면 점수, 틀리면 조용히 💨 (빠르게 사라짐)
     _popups.add(ScorePopup(
       x: cx, y: cy - bubble.size / 2,
       text: isTarget ? '+${15 * _wave}' : '💨',
@@ -384,13 +428,10 @@ class _BubblePopGameState extends State<BubblePopGame>
       opacity: isTarget ? 1.0 : 0.7,
     ));
 
-    // 사운드 – 비눗방울 고유 "퍽" 소리
     if (isTarget) {
-      // 맞는 방울: 피치 살짝 랜덤 (상쾌한 퍽!)
       final pitch = 1.0 + _random.nextDouble() * 0.4;
       AudioManager.instance.playEffect('audio/bubble_pop.wav', rate: pitch);
     } else {
-      // 틀린 방울: 낮은 피치로 풀 죽은 느낌
       AudioManager.instance.playEffect('audio/bubble_pop.wav', rate: 0.65);
     }
     HapticFeedback.lightImpact();
@@ -409,6 +450,7 @@ class _BubblePopGameState extends State<BubblePopGame>
 
   void _startNextWave() {
     _wave++;
+    _level = _wave;
     _currentTheme = _getThemeForWave(_wave);
     _wavePopped = 0;
     _waiting = true;
@@ -456,21 +498,22 @@ class _BubblePopGameState extends State<BubblePopGame>
               // ── Waiting overlay ────────────────────────────────────────
               if (_waiting) _buildWaitingOverlay(),
 
-              // ── Header & progress (맨 위에 렌더링 → 버블에 가리지 않음) ──
+              // ── Header & progress ─────────────────────────────────────
               Positioned(
                 top: 0, left: 0, right: 0,
                 child: SafeArea(
-                  child: SingleChildScrollView(
-child: Column(
+                  child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       _buildHeader(),
                       _buildWaveProgress(),
                     ],
                   ),
-),
                 ),
               ),
+
+              // ── Level Select Overlay ───────────────────────────────────
+              if (_showLevelSelect) _buildLevelSelectOverlay(),
             ],
           );
         },
@@ -482,7 +525,7 @@ child: Column(
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       child: Row(
         children: [
           // 뒤로가기
@@ -492,33 +535,68 @@ child: Column(
               Navigator.of(context).pop();
             },
             child: Container(
-              width: 48, height: 48,
+              width: 44, height: 44,
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.85),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: Colors.white, width: 2),
                 boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 3))],
               ),
               child: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF5C6BC0), size: 20),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
+
           // 타이틀
           Expanded(
             child: Text(
               '비눗방울 톡톡 🫧',
               style: GoogleFonts.jua(
-                fontSize: 26,
+                fontSize: 22,
                 color: Colors.white,
                 shadows: [const Shadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2))],
               ),
             ),
           ),
+
+          // 레벨 선택 배지
+          GestureDetector(
+            onTap: () {
+              AudioManager.instance.playClick();
+              setState(() => _showLevelSelect = true);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF7C4DFF), Color(0xFFB388FF)],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.purple.withOpacity(0.35),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '🫧 $_level단계 ▾',
+                    style: GoogleFonts.jua(fontSize: 14, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+
           // 점수
           Container(
-            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.85),
               borderRadius: BorderRadius.circular(20),
@@ -528,11 +606,11 @@ padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('🎯', style: TextStyle(fontSize: 18)),
+                const Text('🎯', style: TextStyle(fontSize: 15)),
                 const SizedBox(width: 4),
                 Text(
                   '$_score',
-                  style: GoogleFonts.jua(fontSize: 22, color: const Color(0xFF5C6BC0)),
+                  style: GoogleFonts.jua(fontSize: 17, color: const Color(0xFF5C6BC0)),
                 ),
               ],
             ),
@@ -555,34 +633,30 @@ padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.85),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   '🎯 미션: ${_theme.targetEmoji} 를 $_waveTarget개 모으세요!',
-                  style: GoogleFonts.jua(fontSize: 14, color: Colors.purple.shade700),
+                  style: GoogleFonts.jua(fontSize: 13, color: Colors.purple.shade700),
                 ),
               ),
               Container(
-                constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.85),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   '🫧 수집: $_wavePopped / $_waveTarget',
-                  style: GoogleFonts.jua(fontSize: 14, color: const Color(0xFF5C6BC0)),
+                  style: GoogleFonts.jua(fontSize: 13, color: const Color(0xFF5C6BC0)),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
@@ -615,46 +689,206 @@ padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     );
   }
 
+  // ── Level Select Overlay ───────────────────────────────────────────────────
+
+  Widget _buildLevelSelectOverlay() {
+    final levels = [
+      {'level': 1, 'name': '1단계', 'desc': '🍎 과일 동산 (느긋하고 크게! 8개)', 'emoji': '🍎', 'color': Colors.pink.shade400},
+      {'level': 2, 'name': '2단계', 'desc': '🐰 동물 농장 (통통 신나게! 12개)', 'emoji': '🐰', 'color': Colors.orange.shade400},
+      {'level': 3, 'name': '3단계', 'desc': '🐠 바다 탐험 (빠르고 넘치게! 18개)', 'emoji': '🐠', 'color': Colors.blue.shade400},
+      {'level': 4, 'name': '4단계', 'desc': '🍭 과자 나라 (스피드 버블! 25개)', 'emoji': '🍭', 'color': Colors.purple.shade400},
+      {'level': 5, 'name': '5단계', 'desc': '🚀 우주 여행 (초고속 마스터! 35개⚡)', 'emoji': '🚀', 'color': Colors.deepOrange.shade400},
+    ];
+
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.55),
+        alignment: Alignment.center,
+        child: SingleChildScrollView(
+          child: Container(
+            width: 330,
+            margin: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.purple.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '🗺️ 난이도 레벨 선택',
+                      style: GoogleFonts.jua(fontSize: 22, color: const Color(0xFF333333)),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 26),
+                      onPressed: () {
+                        setState(() {
+                          _showLevelSelect = false;
+                          if (_bubbles.isEmpty && !_waiting) {
+                            _selectLevel(1);
+                          }
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Column(
+                  children: levels.map((lvl) {
+                    final isSelected = _level == lvl['level'];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: GestureDetector(
+                        onTap: () {
+                          AudioManager.instance.playClick();
+                          _selectLevel(lvl['level'] as int);
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            gradient: isSelected
+                                ? LinearGradient(
+                                    colors: [lvl['color'] as Color, (lvl['color'] as Color).withOpacity(0.8)],
+                                  )
+                                : null,
+                            color: isSelected ? null : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: isSelected ? Colors.transparent : Colors.grey.shade300,
+                              width: 2,
+                            ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: (lvl['color'] as Color).withOpacity(0.4),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ]
+                                : [],
+                          ),
+                          child: Row(
+                            children: [
+                              Text(lvl['emoji'] as String, style: const TextStyle(fontSize: 24)),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      lvl['name'] as String,
+                                      style: GoogleFonts.jua(
+                                        fontSize: 17,
+                                        color: isSelected ? Colors.white : const Color(0xFF333333),
+                                      ),
+                                    ),
+                                    Text(
+                                      lvl['desc'] as String,
+                                      style: GoogleFonts.jua(
+                                        fontSize: 12,
+                                        color: isSelected ? Colors.white.withOpacity(0.9) : Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (isSelected)
+                                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 24),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // ── Wave clear overlay ─────────────────────────────────────────────────────
 
   Widget _buildWaveClearOverlay() {
     return Positioned.fill(
       child: Container(
-        color: Colors.white.withOpacity(0.3),
+        color: Colors.black.withOpacity(0.4),
         child: Center(
-          child: SingleChildScrollView(
-child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('🎉', style: TextStyle(fontSize: 80)),
-              const SizedBox(height: 8),
-              Container(
-                constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: const Color(0xFF7C4DFF).withOpacity(0.4), width: 2),
-                  boxShadow: [BoxShadow(color: const Color(0xFF7C4DFF).withOpacity(0.3), blurRadius: 16)],
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(color: const Color(0xFF7C4DFF).withOpacity(0.3), blurRadius: 16),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('🎉', style: TextStyle(fontSize: 64)),
+                const SizedBox(height: 8),
+                Text(
+                  '$_level단계 미션 성공! 🌟',
+                  style: GoogleFonts.jua(fontSize: 28, color: const Color(0xFF5C6BC0)),
                 ),
-                child: Column(
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      '웨이브 $_wave 미션 성공! 🌟',
-                      style: GoogleFonts.jua(fontSize: 30, color: const Color(0xFF5C6BC0)),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple.shade400,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      onPressed: () {
+                        AudioManager.instance.playClick();
+                        setState(() => _showLevelSelect = true);
+                      },
+                      child: Text(
+                        '🗺️ 레벨 선택',
+                        style: GoogleFonts.jua(fontSize: 15, color: Colors.white),
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '다음 미션 준비중...',
-                      style: GoogleFonts.jua(fontSize: 18, color: Colors.grey),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF5C6BC0),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                      ),
+                      onPressed: () {
+                        AudioManager.instance.playClick();
+                        _waveClear = false;
+                        _waveClearTimer = 0;
+                        _startNextWave();
+                      },
+                      child: Text(
+                        '🎮 다음 단계',
+                        style: GoogleFonts.jua(fontSize: 15, color: Colors.white),
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-),
         ),
       ),
     );
@@ -664,45 +898,39 @@ padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
     return Positioned.fill(
       child: Center(
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.92),
+            color: Colors.white.withOpacity(0.94),
             borderRadius: BorderRadius.circular(24),
             boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.2), blurRadius: 14)],
             border: Border.all(color: Colors.blue.shade100, width: 3),
           ),
-          child: SingleChildScrollView(
-child: Column(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                '🌊 웨이브 $_wave',
+                '🫧 레벨 $_level',
                 style: GoogleFonts.jua(fontSize: 22, color: Colors.blue.shade800),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 _theme.title,
-                style: GoogleFonts.jua(fontSize: 26, color: Colors.purple.shade700),
+                style: GoogleFonts.jua(fontSize: 24, color: Colors.purple.shade700),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               Container(
-                constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.purple.shade50,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
                   '🎯 미션: ${_theme.targetEmoji} 를 $_waveTarget개 모으기!',
-                  style: GoogleFonts.jua(fontSize: 18, color: Colors.purple.shade800),
+                  style: GoogleFonts.jua(fontSize: 16, color: Colors.purple.shade800),
                 ),
               ),
             ],
           ),
-),
         ),
       ),
     );
