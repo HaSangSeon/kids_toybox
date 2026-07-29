@@ -592,29 +592,6 @@ class _BubblePopGameState extends State<BubblePopGame>
               ),
             ),
           ),
-          const SizedBox(width: 8),
-
-          // 점수
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.85),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white, width: 2),
-              boxShadow: [BoxShadow(color: Colors.amber.withOpacity(0.3), blurRadius: 8)],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('🎯', style: TextStyle(fontSize: 15)),
-                const SizedBox(width: 4),
-                Text(
-                  '$_score',
-                  style: GoogleFonts.jua(fontSize: 17, color: const Color(0xFF5C6BC0)),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );

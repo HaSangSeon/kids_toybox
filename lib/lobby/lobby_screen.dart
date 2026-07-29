@@ -394,13 +394,12 @@ class _LobbyScreenState extends State<LobbyScreen>
         ),
         child: Row(
           children: [
-            // Left: Sound button
-            _buildIconButton(
-              icon: _soundOn ? Icons.volume_up_rounded : Icons.volume_off_rounded,
-              color: _soundOn
-                  ? const Color(0xFF4ADE80)
-                  : const Color(0xFFFC8181),
-              onTap: _toggleSound,
+            // Left: Star coins (Placed on top-left so game back button spamming hits non-tappable star coins)
+            ValueListenableBuilder<int>(
+              valueListenable: PlayerDataManager.instance.starCoinsNotifier,
+              builder: (context, starCoins, child) {
+                return _buildStarCoinBadge(starCoins);
+              },
             ),
 
             const SizedBox(width: 8),
@@ -510,12 +509,13 @@ class _LobbyScreenState extends State<LobbyScreen>
 
             const SizedBox(width: 8),
 
-            // Right: Star coins
-            ValueListenableBuilder<int>(
-              valueListenable: PlayerDataManager.instance.starCoinsNotifier,
-              builder: (context, starCoins, child) {
-                return _buildStarCoinBadge(starCoins);
-              },
+            // Right: Sound button (Moved to top-right to prevent accidental mute toggles)
+            _buildIconButton(
+              icon: _soundOn ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+              color: _soundOn
+                  ? const Color(0xFF4ADE80)
+                  : const Color(0xFFFC8181),
+              onTap: _toggleSound,
             ),
           ],
         ),

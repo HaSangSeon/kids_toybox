@@ -717,6 +717,32 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
     );
   }
 
+  void _useMagicWand() {
+    if (_isProcessing || _isMemorizing || _isHintActive) return;
+    AudioManager.instance.playChime();
+
+    setState(() {
+      _isHintActive = true;
+      for (int i = 0; i < _cards.length; i++) {
+        if (!_cards[i].isMatched) {
+          _cards[i] = _cards[i].copyWith(isFaceUp: true);
+        }
+      }
+    });
+
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (!mounted) return;
+      setState(() {
+        for (int i = 0; i < _cards.length; i++) {
+          if (!_cards[i].isMatched && !_flippedIndices.contains(i)) {
+            _cards[i] = _cards[i].copyWith(isFaceUp: false);
+          }
+        }
+        _isHintActive = false;
+      });
+    });
+  }
+
   // ── Header widget ──
   Widget _buildHeader(_LevelTheme theme) {
     return Padding(
@@ -773,29 +799,25 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
               ),
             ),
             
-            // 상단 우측 레벨 선택 버튼
+            // 🪄 상단 우측 마법봉 힌트 버튼
             GestureDetector(
-              onTap: () {
-                AudioManager.instance.playClick();
-                setState(() {
-                  _showStageSelect = true;
-                });
-              },
+              onTap: _useMagicWand,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [KidsTheme.purple, Color(0xFFAB47BC)],
+                    colors: [Color(0xFFFFD54F), Color(0xFFFFB300)],
                   ),
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white, width: 1.5),
                   boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('🗺️', style: TextStyle(fontSize: 16)),
+                    const Text('🪄', style: TextStyle(fontSize: 16)),
                     const SizedBox(width: 4),
-                    Text('단계', style: GoogleFonts.jua(fontSize: 15, color: Colors.white)),
+                    Text('힌트', style: GoogleFonts.jua(fontSize: 15, color: Colors.white)),
                   ],
                 ),
               ),

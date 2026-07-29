@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -139,6 +140,7 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
   int _totalScore = 0;
   int _levelIdx = 0;
   bool _isLevelClear = false;
+  Timer? _nextLevelTimer;
 
   late List<List<int>> _maze;
   MazeTheme get _theme => _kThemes[_levelIdx % _kThemes.length];
@@ -184,6 +186,7 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
 
   @override
   void dispose() {
+    _nextLevelTimer?.cancel();
     _confetti.dispose();
     _bounceCtrl.dispose();
     _goalGlowCtrl.dispose();
@@ -301,15 +304,22 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
       AudioManager.instance.playMazeClear();
       HapticFeedback.heavyImpact();
 
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) {
-          setState(() {
-            _levelIdx++;
-            _loadLevel();
-          });
+      _nextLevelTimer?.cancel();
+      _nextLevelTimer = Timer(const Duration(seconds: 5), () {
+        if (mounted && _isLevelClear) {
+          _nextLevel();
         }
       });
     }
+  }
+
+  void _nextLevel() {
+    _nextLevelTimer?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _levelIdx++;
+      _loadLevel();
+    });
   }
 
   @override
@@ -331,20 +341,47 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
         ),
         child: Stack(
           children: [
-            // ── 둥둥 떠다니는 감성 배경 아이콘 ──
+            // ── 둥둥 떠다니는 아기자기 감성 배경 아이콘 ──
             AnimatedBuilder(
               animation: _floatingBgCtrl,
               builder: (_, child) {
-                final offsetY = sin(_floatingBgCtrl.value * pi) * 10;
+                final offsetY = sin(_floatingBgCtrl.value * pi) * 12;
+                final val = _floatingBgCtrl.value;
                 return Stack(
                   children: [
-                    for (int i = 0; i < 14; i++)
+                    // 구름 및 별 반짝이 데코
+                    Positioned(
+                      top: 40 + offsetY,
+                      left: 20 + val * 30,
+                      child: const Opacity(opacity: 0.35, child: Text('☁️', style: TextStyle(fontSize: 48))),
+                    ),
+                    Positioned(
+                      top: 120 - offsetY,
+                      right: 25 + val * 20,
+                      child: const Opacity(opacity: 0.35, child: Text('🎈', style: TextStyle(fontSize: 42))),
+                    ),
+                    Positioned(
+                      bottom: 140 + offsetY,
+                      left: 30 - val * 20,
+                      child: const Opacity(opacity: 0.35, child: Text('✨', style: TextStyle(fontSize: 36))),
+                    ),
+                    Positioned(
+                      bottom: 80 - offsetY,
+                      right: 35 + val * 25,
+                      child: Opacity(opacity: 0.35, child: Text(theme.bgEmoji, style: const TextStyle(fontSize: 44))),
+                    ),
+
+                    // 테마별 아기자기 아이템 둥둥
+                    for (int i = 0; i < 16; i++)
                       Positioned(
-                        left: (15 + i * 65.0) % (MediaQuery.of(context).size.width - 40),
-                        top: (50 + i * 85.0 + (i.isEven ? offsetY : -offsetY)) % (MediaQuery.of(context).size.height - 50),
+                        left: (10 + i * 55.0 + (i.isEven ? val * 20 : -val * 20)) % (MediaQuery.of(context).size.width - 40),
+                        top: (60 + i * 75.0 + (i.isEven ? offsetY : -offsetY)) % (MediaQuery.of(context).size.height - 60),
                         child: Opacity(
-                          opacity: 0.22,
-                          child: Text(theme.bgEmoji, style: TextStyle(fontSize: 26 + (i % 3) * 8.0)),
+                          opacity: 0.30,
+                          child: Text(
+                            i % 4 == 0 ? theme.bgEmoji : (i % 4 == 1 ? theme.goalEmoji : (i % 4 == 2 ? '☁️' : '✨')),
+                            style: TextStyle(fontSize: 24 + (i % 3) * 6.0),
+                          ),
                         ),
                       ),
                   ],
@@ -392,36 +429,86 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
             // ── 클리어 배너 ──
             if (_isLevelClear)
               Positioned.fill(
-                child: Center(
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0.0, end: 1.0),
-                    duration: const Duration(milliseconds: 500),
-                    curve: Curves.elasticOut,
-                    builder: (_, v, child) => Transform.scale(
-                      scale: v,
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF43A047), Color(0xFF1B5E20)],
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.65),
+                  child: Center(
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.elasticOut,
+                      builder: (_, v, child) => Transform.scale(
+                        scale: v,
+                        child: Container(
+                          constraints: const BoxConstraints(maxWidth: 320, maxHeight: 500),
+                          margin: const EdgeInsets.all(20),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 26),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF43A047), Color(0xFF1B5E20)],
+                            ),
+                            borderRadius: BorderRadius.circular(32),
+                            border: Border.all(color: const Color(0xFFFFD700), width: 3.5),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withAlpha(60), blurRadius: 20, offset: const Offset(0, 8)),
+                            ],
                           ),
-                          borderRadius: BorderRadius.circular(32),
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withAlpha(60), blurRadius: 20, offset: const Offset(0, 8)),
-                          ],
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('${theme.playerEmoji} 🎉 ${theme.goalEmoji}', style: const TextStyle(fontSize: 42)),
+                                const SizedBox(height: 10),
+                                Text('도착했어요!', style: GoogleFonts.jua(fontSize: 30, color: Colors.white)),
+                                const SizedBox(height: 4),
+                                Text('🎯 +50점 획득!', style: GoogleFonts.jua(fontSize: 20, color: Colors.yellowAccent)),
+                                const SizedBox(height: 18),
+
+                                // 🚀 다음 단계로 넘어 가기! (왕 커다란 초록 버튼)
+                                GestureDetector(
+                                  onTap: () {
+                                    AudioManager.instance.playClick();
+                                    _nextLevel();
+                                  },
+                                  child: Container(
+                                    height: 54,
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFF00E676), Color(0xFF00C853)],
+                                      ),
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(color: Colors.white, width: 2.5),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFF00C853).withValues(alpha: 0.4),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Center(
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              '다음 단계로 넘어 가기!',
+                                              style: GoogleFonts.jua(fontSize: 19, color: Colors.white),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            const Text('➡️', style: TextStyle(fontSize: 22)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        child: SingleChildScrollView(
-child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('도착했어요! 🎉', style: GoogleFonts.jua(fontSize: 44, color: Colors.white)),
-                            const SizedBox(height: 4),
-                            Text('🎯 +50점 획득!', style: GoogleFonts.jua(fontSize: 24, color: Colors.yellowAccent)),
-                          ],
-                        ),
-),
                       ),
                     ),
                   ),
@@ -439,6 +526,7 @@ child: Column(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       child: Container(
         height: 54,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
         decoration: BoxDecoration(
           color: isDark ? Colors.white.withAlpha(30) : Colors.white.withAlpha(220),
           borderRadius: BorderRadius.circular(27),
@@ -447,7 +535,6 @@ child: Column(
         ),
         child: Row(
           children: [
-            const SizedBox(width: 6),
             GestureDetector(
               onTap: () { AudioManager.instance.playClick(); Navigator.pop(context); },
               child: Container(
@@ -463,20 +550,41 @@ child: Column(
               child: Text(
                 _theme.title,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.jua(fontSize: 22, color: textColor),
+                style: GoogleFonts.jua(fontSize: 20, color: textColor),
               ),
             ),
-            Container(
-              constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFD700).withAlpha(50),
-                borderRadius: BorderRadius.circular(20),
+
+            // 상단 우측 깔끔한 다시 시작 (리셋) 버튼
+            GestureDetector(
+              onTap: () {
+                AudioManager.instance.playClick();
+                _loadLevel();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFF9F1C), Color(0xFFFFBF69)],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
+                    const SizedBox(width: 4),
+                    Text(
+                      '다시 시작',
+                      style: GoogleFonts.jua(fontSize: 14, color: Colors.white),
+                    ),
+                  ],
+                ),
               ),
-              child: Text('🎯 $_totalScore', style: GoogleFonts.jua(fontSize: 18, color: isDark ? const Color(0xFFFFD700) : KidsTheme.orange)),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 4),
           ],
         ),
       ),

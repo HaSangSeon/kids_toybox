@@ -296,7 +296,7 @@ class _SplashScreenState extends State<SplashScreen>
                             children: [
                               const Text('🎠 ', style: TextStyle(fontSize: 16)),
                               Text(
-                                '신나는 22가지 미니게임 세상!',
+                                '신나는 미니게임 세상!',
                                 style: GoogleFonts.jua(
                                   fontSize: 16,
                                   color: Colors.white,
