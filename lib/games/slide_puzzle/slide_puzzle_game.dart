@@ -74,12 +74,15 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
   // ── 레벨 & 상태 변수 ────────────────────────────────────────────────────────
   int _currentLevel = 1; // 1단계 ~ 4단계
   int _themeIndex = 0;
-  int _gridSize = 2; // Level 1: 2x2, Level 2: 3x3, Level 3: 3x3, Level 4: 4x4
+  int _gridSize = 2; // Level 1: 2x2, Level 2: 3x3 (쉬움), Level 3: 3x3 (보통), Level 4: 4x4 (도전)
   late List<int> _tiles;
   bool _solved = false;
   bool _showPreview = false;
   bool _showNumbers = true;
   int _coinsEarned = 0;
+
+  int? _hintTileIdx;
+  double _ghostOpacity = 0.25;
 
   // ── 애니메이션 ─────────────────────────────────────────────────────────────
   late ConfettiController _confetti;
@@ -122,16 +125,20 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
   void _applyLevelConfig() {
     switch (_currentLevel) {
       case 1:
-        _gridSize = 2; // 1단계: 2x2 (쉬움)
+        _gridSize = 2; // 1단계: 2x2 (초간단)
         _showNumbers = true;
         break;
       case 2:
-        _gridSize = 3; // 2단계: 3x3 (보통)
+        _gridSize = 3; // 2단계: 3x3 (아주 쉬움 - 12걸음 셔플)
         _showNumbers = true;
         break;
       case 3:
+        _gridSize = 3; // 3단계: 3x3 (보통 - 22걸음 셔플)
+        _showNumbers = true;
+        break;
+      case 4:
       default:
-        _gridSize = 4; // 3단계: 4x4 (도전)
+        _gridSize = 4; // 4단계: 4x4 (도전 - 35걸음 셔플)
         _showNumbers = true;
         break;
     }
@@ -142,6 +149,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
     // 정답 상태: 1, 2, 3, ..., N-1, 0 (0이 맨 마지막 빈칸)
     _tiles = List.generate(n, (i) => (i + 1) % n);
     _solved = false;
+    _hintTileIdx = null;
     _solvedCtrl.reset();
     _shuffle();
   }
@@ -149,14 +157,26 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
   void _shuffle() {
     final rng = Random();
     int blank = _tiles.indexOf(0);
-    final shuffleSteps = _gridSize == 2 ? 20 : (_gridSize == 3 ? 120 : 250);
+
+    int shuffleSteps = 6;
+    if (_currentLevel == 1) shuffleSteps = 6;
+    else if (_currentLevel == 2) shuffleSteps = 12;
+    else if (_currentLevel == 3) shuffleSteps = 22;
+    else shuffleSteps = 35;
+
+    int lastBlank = -1;
     for (int i = 0; i < shuffleSteps; i++) {
       final neighbors = _getNeighbors(blank);
-      final next = neighbors[rng.nextInt(neighbors.length)];
+      final validNeighbors = neighbors.where((n) => n != lastBlank).toList();
+      final pool = validNeighbors.isNotEmpty ? validNeighbors : neighbors;
+      final next = pool[rng.nextInt(pool.length)];
+
+      lastBlank = blank;
       _tiles[blank] = _tiles[next];
       _tiles[next] = 0;
       blank = next;
     }
+    _hintTileIdx = null;
     if (_isSolved()) _shuffle();
   }
 
@@ -172,6 +192,61 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
     return neighbors;
   }
 
+  // ── 🪄 스마트 힌트 (Manhattan Distance Solver) ──────────────────────────
+  int? _findBestHintMove() {
+    if (_solved) return null;
+    final blank = _tiles.indexOf(0);
+    final neighbors = _getNeighbors(blank);
+    int bestDist = 999999;
+    int? bestTile;
+
+    for (final neighbor in neighbors) {
+      final tempTiles = List<int>.from(_tiles);
+      tempTiles[blank] = tempTiles[neighbor];
+      tempTiles[neighbor] = 0;
+
+      final dist = _calculateManhattanDistance(tempTiles);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestTile = neighbor;
+      }
+    }
+    return bestTile;
+  }
+
+  int _calculateManhattanDistance(List<int> tiles) {
+    int totalDist = 0;
+    final n = _gridSize;
+    for (int i = 0; i < tiles.length; i++) {
+      final val = tiles[i];
+      if (val == 0) continue;
+      final targetIdx = val - 1;
+      final currentRow = i ~/ n;
+      final currentCol = i % n;
+      final targetRow = targetIdx ~/ n;
+      final targetCol = targetIdx % n;
+      totalDist += (currentRow - targetRow).abs() + (currentCol - targetCol).abs();
+    }
+    return totalDist;
+  }
+
+  void _triggerHint() {
+    if (_solved) return;
+    final best = _findBestHintMove();
+    if (best != null) {
+      AudioManager.instance.playClick();
+      setState(() {
+        if (_hintTileIdx == best) {
+          // 힌트 버튼 두 번 누르면 자동으로 1칸 슬라이드 이동!
+          _onTileTap(best);
+          _hintTileIdx = null;
+        } else {
+          _hintTileIdx = best;
+        }
+      });
+    }
+  }
+
   void _onTileTap(int tileIdx) {
     if (_solved) return;
     final blank = _tiles.indexOf(0);
@@ -185,6 +260,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
     setState(() {
       _tiles[blank] = _tiles[tileIdx];
       _tiles[tileIdx] = 0;
+      _hintTileIdx = null;
     });
     if (_isSolved()) _onSolved();
   }
@@ -285,14 +361,12 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
             child: Column(
               children: [
                 _buildHeader(theme),
-                const SizedBox(height: 6),
-                _buildLevelBar(theme),
-                const SizedBox(height: 6),
-                _buildThemeSelector(),
                 const SizedBox(height: 8),
                 _buildTargetPreviewCard(theme),
                 const SizedBox(height: 8),
                 Expanded(child: _buildPuzzleArea(theme)),
+                const SizedBox(height: 8),
+                _buildBottomControlBar(theme),
                 const SizedBox(height: 10),
               ],
             ),
@@ -312,6 +386,116 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
                 Colors.pink, Colors.yellow, Colors.cyan,
                 Colors.orange, Colors.purple, Colors.green,
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── 하단 스마트 컨트롤 바 ───────────────────────────────────────────────
+  Widget _buildBottomControlBar(_PuzzleTheme theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // 🪄 도와줘요! (힌트)
+          GestureDetector(
+            onTap: _triggerHint,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFFD700), Color(0xFFFF8C00)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.amber.withValues(alpha: 0.4),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Text('🪄', style: TextStyle(fontSize: 20)),
+                  const SizedBox(width: 6),
+                  Text(
+                    _hintTileIdx != null ? '한번 더 누르면 쏙!' : '도와줘요!',
+                    style: GoogleFonts.jua(fontSize: 15, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 8),
+
+          // 👁️ 그림 가이드 (투명도 토글)
+          GestureDetector(
+            onTap: () {
+              AudioManager.instance.playClick();
+              setState(() {
+                _ghostOpacity = _ghostOpacity > 0.3 ? 0.15 : 0.48;
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: BoxDecoration(
+                color: _ghostOpacity > 0.3 ? Colors.white : Colors.white.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: Row(
+                children: [
+                  const Text('👁️', style: TextStyle(fontSize: 18)),
+                  const SizedBox(width: 4),
+                  Text(
+                    '그림힌트',
+                    style: GoogleFonts.jua(
+                      fontSize: 13,
+                      color: _ghostOpacity > 0.3 ? theme.bg.last : Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 8),
+
+          // 🔢 숫자 표시 토글
+          GestureDetector(
+            onTap: () {
+              AudioManager.instance.playClick();
+              setState(() {
+                _showNumbers = !_showNumbers;
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: BoxDecoration(
+                color: _showNumbers ? Colors.white : Colors.white.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: Row(
+                children: [
+                  const Text('🔢', style: TextStyle(fontSize: 18)),
+                  const SizedBox(width: 4),
+                  Text(
+                    '숫자',
+                    style: GoogleFonts.jua(
+                      fontSize: 13,
+                      color: _showNumbers ? theme.bg.last : Colors.white,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -359,13 +543,159 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
             ),
           ),
           const Spacer(),
-          const SizedBox(width: 44), // 균형을 위한 여백
+          GestureDetector(
+            onTap: () {
+              AudioManager.instance.playClick();
+              _showPuzzleSettingsDialog();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade600,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('⭐', style: TextStyle(fontSize: 16)),
+                  const SizedBox(width: 4),
+                  Text('난이도', style: GoogleFonts.jua(fontSize: 13, color: Colors.white)),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
+  void _showPuzzleSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            backgroundColor: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('⭐ 난이도 & 그림 선택 🎨', style: GoogleFonts.jua(fontSize: 21, color: Colors.black87)),
+                  const SizedBox(height: 14),
 
+                  Text('⭐ 난이도 선택', style: GoogleFonts.jua(fontSize: 16, color: Colors.orange.shade800)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _dialogPuzzleLevelBtn(setModalState, 1, '1단계\n(2x2)'),
+                      const SizedBox(width: 6),
+                      _dialogPuzzleLevelBtn(setModalState, 2, '2단계\n(3x3 쉬움)'),
+                      const SizedBox(width: 6),
+                      _dialogPuzzleLevelBtn(setModalState, 3, '3단계\n(3x3 보통)'),
+                      const SizedBox(width: 6),
+                      _dialogPuzzleLevelBtn(setModalState, 4, '4단계\n(4x4 도전)'),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+
+                  Text('🎨 그림 테마 선택', style: GoogleFonts.jua(fontSize: 16, color: Colors.purple.shade800)),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 40,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _themes.length,
+                      itemBuilder: (context, i) {
+                        final selected = i == _themeIndex;
+                        final t = _themes[i];
+                        return GestureDetector(
+                          onTap: () {
+                            AudioManager.instance.playClick();
+                            setModalState(() { _themeIndex = i; });
+                            setState(() { _applyLevelConfig(); _initPuzzle(); });
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: selected ? Colors.purple.shade400 : Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${t.titleEmoji} ${t.name}',
+                                style: GoogleFonts.jua(
+                                  fontSize: 13,
+                                  color: selected ? Colors.white : Colors.black87,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  GestureDetector(
+                    onTap: () {
+                      AudioManager.instance.playClick();
+                      Navigator.pop(ctx);
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [Color(0xFF42A5F5), Color(0xFF1E88E5)]),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Center(
+                        child: Text('확인 👍', style: GoogleFonts.jua(fontSize: 18, color: Colors.white)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _dialogPuzzleLevelBtn(StateSetter setModalState, int lvl, String label) {
+    final selected = _currentLevel == lvl;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          AudioManager.instance.playClick();
+          setModalState(() { _currentLevel = lvl; });
+          setState(() { _applyLevelConfig(); _initPuzzle(); });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? Colors.orange : Colors.orange.shade50,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: selected ? Colors.deepOrange : Colors.orange.shade200, width: 2),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.jua(
+                fontSize: 11,
+                color: selected ? Colors.white : Colors.brown.shade800,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   // ── 🖼️ 큼직한 완성본 액자 카드 ─────────────────────────────────────────
   Widget _buildTargetPreviewCard(_PuzzleTheme theme) {
@@ -394,7 +724,6 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 큼직한 완성 그림 액자 (105 x 105)
             Container(
               width: 105,
               height: 105,
@@ -443,7 +772,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
     );
   }
 
-  // ── ⭐️ 1~3 단계 레벨 선택 바 ─────────────────────────────────────────────
+  // ── ⭐️ 레벨 선택 바 ─────────────────────────────────────────────
   Widget _buildLevelBar(_PuzzleTheme theme) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -455,9 +784,10 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
       ),
       child: Row(
         children: [
-          _levelTab(1, '1단계 (2×2)', '⭐ 쉬움'),
-          _levelTab(2, '2단계 (3×3)', '⭐⭐ 보통'),
-          _levelTab(3, '3단계 (4×4)', '⭐⭐⭐ 도전'),
+          _levelTab(1, '1단계 (2×2)', '⭐ 초간단'),
+          _levelTab(2, '2단계 (3×3)', '⭐⭐ 아주쉬움'),
+          _levelTab(3, '3단계 (3×3)', '⭐⭐⭐ 보통'),
+          _levelTab(4, '4단계 (4×4)', '⭐⭐⭐⭐ 도전'),
         ],
       ),
     );
@@ -492,7 +822,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
               Text(
                 title,
                 style: GoogleFonts.jua(
-                  fontSize: 13,
+                  fontSize: 12,
                   color: selected ? Colors.orange.shade900 : Colors.white,
                   fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                 ),
@@ -501,7 +831,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
               Text(
                 subtitle,
                 style: GoogleFonts.jua(
-                  fontSize: 10,
+                  fontSize: 9,
                   color: selected ? Colors.deepOrange : Colors.white.withValues(alpha: 0.9),
                 ),
               ),
@@ -583,7 +913,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
                     // 🖼️ 은은한 완성본 가이드 워터마크 (상시 배경)
                     Positioned.fill(
                       child: Opacity(
-                        opacity: 0.22,
+                        opacity: _ghostOpacity,
                         child: CustomPaint(
                           painter: _FullIllustrationPainter(themeIndex: _themeIndex),
                         ),
@@ -615,6 +945,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
 
     final blank = _tiles.indexOf(0);
     final isMovable = !isEmpty && _getNeighbors(blank).contains(idx);
+    final isHint = idx == _hintTileIdx;
 
     return GestureDetector(
       onTap: () => _onTileTap(idx),
@@ -657,14 +988,25 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
               ? theme.emptyColor.withValues(alpha: 0.4)
               : Colors.white,
           borderRadius: BorderRadius.circular(_solved ? 0 : (_gridSize == 2 ? 18 : (_gridSize == 3 ? 12 : 8))),
-          border: isEmpty
-              ? Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2)
-              : _solved
-                  ? null
-                  : Border.all(
-                      color: isMovable ? Colors.amber : Colors.white,
-                      width: isMovable ? 3 : 1,
-                    ),
+          border: isHint
+              ? Border.all(color: Colors.amberAccent, width: 4)
+              : isEmpty
+                  ? Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2)
+                  : _solved
+                      ? null
+                      : Border.all(
+                          color: isMovable ? Colors.amber : Colors.white,
+                          width: isMovable ? 3 : 1,
+                        ),
+          boxShadow: isHint
+              ? [
+                  BoxShadow(
+                    color: Colors.amber.withValues(alpha: 0.8),
+                    blurRadius: 12,
+                    spreadRadius: 2,
+                  )
+                ]
+              : null,
         ),
         child: isEmpty
             ? Center(
@@ -689,15 +1031,20 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
                       ),
                     ),
                   ),
+                  // 🪄 힌트 핑 뱃지
+                  if (isHint)
+                    const Positioned(
+                      top: 4,
+                      right: 4,
+                      child: Text('✨', style: TextStyle(fontSize: 20)),
+                    ),
                   // 숫자 힌트 뱃지 (좌상단)
                   if (_showNumbers && !_solved)
                     Positioned(
                       top: 4,
                       left: 4,
                       child: Container(
-                        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.55),
                           borderRadius: BorderRadius.circular(10),

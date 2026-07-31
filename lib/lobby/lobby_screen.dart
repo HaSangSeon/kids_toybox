@@ -31,8 +31,7 @@ import '../games/snake/snake_game.dart';
 import '../games/slide_puzzle/slide_puzzle_game.dart';
 import '../games/color_mixing/color_mixing_game.dart';
 import '../games/cooking/cooking_game.dart';
-import '../core/data/player_data_manager.dart';
-import 'gacha_shop_screen.dart';
+import '../games/car_wash/car_wash_game.dart';
 import '../core/widgets/skin_select_modal.dart';
 import '../core/widgets/pacman_icon.dart';
 
@@ -299,72 +298,13 @@ class _LobbyScreenState extends State<LobbyScreen>
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildHeader(),
-                _buildGachaMachineWidget(),
+                const SizedBox(height: 4),
                 Expanded(child: _buildGamesGrid()),
                 const SizedBox(height: 12),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // ── Gacha Machine Widget (Compact & Sleek) ─────────────────────────────────
-  Widget _buildGachaMachineWidget() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: GestureDetector(
-        onTap: () {
-          AudioManager.instance.playClick();
-          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GachaShopScreen()));
-        },
-        child: Container(
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFF3E5FF), Color(0xFFE1BEE7)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFFBA68C8), width: 2.5),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFCE93D8).withValues(alpha: 0.4),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              const Text('🎁', style: TextStyle(fontSize: 22)),
-              const SizedBox(width: 8),
-              Text(
-                '장난감 뽑기방',
-                style: GoogleFonts.jua(fontSize: 17, color: const Color(0xFF6A1B9A)),
-              ),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFFD700), Color(0xFFFF8C00)],
-                  ),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '별 모아서 팡팡!',
-                  style: GoogleFonts.jua(fontSize: 11, color: Colors.white),
-                ),
-              ),
-              const Spacer(),
-              const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF8E24AA), size: 16),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -394,14 +334,6 @@ class _LobbyScreenState extends State<LobbyScreen>
         ),
         child: Row(
           children: [
-            // Left: Star coins (Placed on top-left so game back button spamming hits non-tappable star coins)
-            ValueListenableBuilder<int>(
-              valueListenable: PlayerDataManager.instance.starCoinsNotifier,
-              builder: (context, starCoins, child) {
-                return _buildStarCoinBadge(starCoins);
-              },
-            ),
-
             const SizedBox(width: 8),
 
             // Center: Cute 3D Toybox Title (Easter Egg: Long press to toggle locks)
@@ -550,48 +482,15 @@ class _LobbyScreenState extends State<LobbyScreen>
     );
   }
 
-  Widget _buildStarCoinBadge(int coins) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFD700), Color(0xFFFF8C00)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFFD700).withValues(alpha: 0.5),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('⭐', style: TextStyle(fontSize: 15)),
-          const SizedBox(width: 4),
-          Text(
-            '$coins',
-            style: GoogleFonts.jua(
-              fontSize: 17,
-              color: Colors.white,
-              shadows: const [
-                Shadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 1)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ── Games Grid ────────────────────────────────────────────────────────────
   Widget _buildGamesGrid() {
     final games = _gameData();
+    // 무료 게임을 항상 상단(앞쪽)으로, 유료/잠금 게임을 하단(뒤쪽)으로 정렬
+    games.sort((a, b) {
+      if (a.isPremium == b.isPremium) return 0;
+      return a.isPremium ? 1 : -1;
+    });
+
     return ValueListenableBuilder<bool>(
       valueListenable: PlayerDataManager.instance.isPremiumUnlockedNotifier,
       builder: (context, isPremiumUnlocked, child) {
@@ -753,6 +652,14 @@ class _LobbyScreenState extends State<LobbyScreen>
   // ── Game Data ─────────────────────────────────────────────────────────────
   List<_GameData> _gameData() {
     return [
+      // 🆓 [무료 게임 16종 - 상단 배치]
+      _GameData(
+        title: '삐까번쩍 세차장',
+        emoji: '🧼',
+        gradientColors: KidsTheme.gameGradients['teal']!,
+        isNew: true,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CarWashGame())); },
+      ),
       _GameData(
         title: '풍선 팡팡',
         emoji: '🎈',
@@ -785,7 +692,7 @@ class _LobbyScreenState extends State<LobbyScreen>
       ),
       _GameData(
         title: '모양 색칠',
-        emoji: '🎨',
+        emoji: '🖌️',
         gradientColors: KidsTheme.gameGradients['yellow']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ShapeColoringGame())); },
       ),
@@ -794,12 +701,6 @@ class _LobbyScreenState extends State<LobbyScreen>
         emoji: '🔍',
         gradientColors: KidsTheme.gameGradients['blue']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HiddenObjectGame())); },
-      ),
-      _GameData(
-        title: '틀린 그림',
-        emoji: '🕵️',
-        gradientColors: KidsTheme.gameGradients['purple']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SpotDifferenceGame())); },
       ),
       _GameData(
         title: '짝맞추기',
@@ -818,14 +719,12 @@ class _LobbyScreenState extends State<LobbyScreen>
         emoji: '🐰',
         gradientColors: KidsTheme.gameGradients['green']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FeedAnimalsGame())); },
-        isPremium: true,
       ),
       _GameData(
         title: '두더지 잡기',
         emoji: '🐹',
         gradientColors: KidsTheme.gameGradients['brown']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WhackAMoleGame())); },
-        isPremium: true,
       ),
       _GameData(
         title: '공룡 점프',
@@ -842,13 +741,32 @@ class _LobbyScreenState extends State<LobbyScreen>
             },
           );
         },
-        isPremium: true,
       ),
       _GameData(
-        title: '벽돌 깨기',
-        emoji: '🎳',
-        gradientColors: KidsTheme.gameGradients['indigo']!,
+        title: '사탕 벽돌깨기',
+        emoji: '🍬',
+        gradientColors: KidsTheme.gameGradients['pink']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BrickBreakerGame())); },
+      ),
+      _GameData(
+        title: '미로 찾기',
+        emoji: '🧀',
+        gradientColors: KidsTheme.gameGradients['green']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MazeEscapeGame())); },
+      ),
+      _GameData(
+        title: '블럭 조립',
+        emoji: '🧊',
+        gradientColors: KidsTheme.gameGradients['orange']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BlockBuilderGame())); },
+      ),
+
+      // 🔒 [유료/잠금 게임 11종 - 하단 배치]
+      _GameData(
+        title: '틀린 그림',
+        emoji: '🕵️',
+        gradientColors: KidsTheme.gameGradients['purple']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SpotDifferenceGame())); },
         isPremium: true,
       ),
       _GameData(
@@ -918,20 +836,6 @@ class _LobbyScreenState extends State<LobbyScreen>
         emoji: '🖍️',
         gradientColors: KidsTheme.gameGradients['yellow']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TracingGame())); },
-        isPremium: true,
-      ),
-      _GameData(
-        title: '미로 찾기',
-        emoji: '🧀',
-        gradientColors: KidsTheme.gameGradients['green']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MazeEscapeGame())); },
-        isPremium: true,
-      ),
-      _GameData(
-        title: '블럭 조립',
-        emoji: '🧊',
-        gradientColors: KidsTheme.gameGradients['orange']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BlockBuilderGame())); },
         isPremium: true,
       ),
       _GameData(

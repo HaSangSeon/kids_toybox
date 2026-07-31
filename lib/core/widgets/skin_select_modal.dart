@@ -126,7 +126,7 @@ class _SkinSelectModalState extends State<SkinSelectModal>
                     runSpacing: 16,
                     alignment: WrapAlignment.center,
                     children: availableSkins.map((skin) {
-                      final isUnlocked = skin == widget.defaultSkin || unlockedToys.contains(skin);
+                      final isUnlocked = true;
                       final isSelected = skin == _selectedSkin;
                       
                       final floatOffset = isSelected ? sin(_floatCtrl.value * pi) * 6.0 : 0.0;
@@ -134,12 +134,10 @@ class _SkinSelectModalState extends State<SkinSelectModal>
 
                       return GestureDetector(
                         onTap: () {
-                          if (isUnlocked) {
-                            AudioManager.instance.playClick();
-                            setState(() {
-                              _selectedSkin = skin;
-                            });
-                          }
+                          AudioManager.instance.playClick();
+                          setState(() {
+                            _selectedSkin = skin;
+                          });
                         },
                         child: Transform.translate(
                           offset: Offset(0, -floatOffset),
@@ -153,10 +151,10 @@ class _SkinSelectModalState extends State<SkinSelectModal>
                                   width: 80,
                                   height: 80,
                                   decoration: BoxDecoration(
-                                    color: isSelected ? KidsTheme.yellow : (isUnlocked ? Colors.white : Colors.grey.shade200),
+                                    color: isSelected ? KidsTheme.yellow : Colors.white,
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: isSelected ? KidsTheme.orange : (isUnlocked ? Colors.grey.shade300 : Colors.grey.shade400),
+                                      color: isSelected ? KidsTheme.orange : Colors.grey.shade300,
                                       width: isSelected ? 4 : 2,
                                     ),
                                     boxShadow: isSelected ? [
@@ -168,19 +166,11 @@ class _SkinSelectModalState extends State<SkinSelectModal>
                                     ] : null,
                                   ),
                                   child: Center(
-                                    child: isUnlocked
-                                        ? (skin == '🟡'
-                                            ? const PacmanIcon(size: 40)
-                                            : Text(
-                                                skin,
-                                                style: const TextStyle(fontSize: 40),
-                                              ))
+                                    child: skin == '🟡'
+                                        ? const PacmanIcon(size: 40)
                                         : Text(
-                                            '🔒',
-                                            style: TextStyle(
-                                              fontSize: 28,
-                                              color: Colors.grey.shade400,
-                                            ),
+                                            skin,
+                                            style: const TextStyle(fontSize: 40),
                                           ),
                                   ),
                                 ),

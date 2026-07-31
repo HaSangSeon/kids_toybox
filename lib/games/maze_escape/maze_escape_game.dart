@@ -137,13 +137,17 @@ class MazeEscapeGame extends StatefulWidget {
 
 class _MazeEscapeGameState extends State<MazeEscapeGame>
     with TickerProviderStateMixin {
-  int _totalScore = 0;
-  int _levelIdx = 0;
+  int _difficultyIdx = 0; // 0: 1단계 (5x5 초간단), 1: 2단계 (7x7 쉬움), 2: 3단계 (11x7 보통), 3: 4단계 (15x9 어렵다)
+  int _themeIdx = 0;
   bool _isLevelClear = false;
   Timer? _nextLevelTimer;
+  Timer? _hintTimer;
+
+  bool _showPathHint = false;
+  Set<String> _hintPathCells = {};
 
   late List<List<int>> _maze;
-  MazeTheme get _theme => _kThemes[_levelIdx % _kThemes.length];
+  MazeTheme get _theme => _kThemes[_themeIdx % _kThemes.length];
 
   // 플레이어 위치 (픽셀 단위 float)
   double _px = 0, _py = 0;
@@ -187,6 +191,7 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
   @override
   void dispose() {
     _nextLevelTimer?.cancel();
+    _hintTimer?.cancel();
     _confetti.dispose();
     _bounceCtrl.dispose();
     _goalGlowCtrl.dispose();
@@ -197,11 +202,30 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
   void _loadLevel() {
     _isLevelClear = false;
     _visitedCells.clear();
+    _hintTimer?.cancel();
+    _showPathHint = false;
+    _hintPathCells.clear();
 
-    final t = _theme;
-    final rows = t.rows.isEven ? t.rows + 1 : t.rows;
-    final cols = t.cols.isEven ? t.cols + 1 : t.cols;
-    _maze = generateMaze(rows, cols, seed: _levelIdx * 37 + 13);
+    int targetRows, targetCols;
+    switch (_difficultyIdx) {
+      case 0:
+        targetRows = 5; targetCols = 5; // 1단계: 5x5 (초간단 아기용)
+        break;
+      case 1:
+        targetRows = 7; targetCols = 7; // 2단계: 7x7 (쉬움)
+        break;
+      case 2:
+        targetRows = 11; targetCols = 7; // 3단계: 11x7 (보통)
+        break;
+      case 3:
+      default:
+        targetRows = 15; targetCols = 9; // 4단계: 15x9 (어렵다)
+        break;
+    }
+
+    final rows = targetRows.isEven ? targetRows + 1 : targetRows;
+    final cols = targetCols.isEven ? targetCols + 1 : targetCols;
+    _maze = generateMaze(rows, cols, seed: Random().nextInt(10000));
 
     // (0,0) 좌표에서 시작
     _px = 0;
@@ -209,6 +233,75 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
     _visitedCells.add("0,0");
 
     setState(() {});
+  }
+
+  // ── 🪄 길안내 힌트 (BFS 알고리즘 - 3초 후 자동 소멸) ──────────────────────
+  void _triggerPathHint() {
+    if (_isLevelClear) return;
+    AudioManager.instance.playClick();
+    _hintTimer?.cancel();
+
+    setState(() {
+      _showPathHint = true;
+      _calculateHintPath();
+    });
+
+    // 3초 후 길안내 힌트 자동 소멸
+    _hintTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _showPathHint = false;
+        });
+      }
+    });
+  }
+
+  void _calculateHintPath() {
+    final rows = _maze.length;
+    final cols = _maze[0].length;
+    final startR = ((_py + _cellSize / 2) / _cellSize).floor().clamp(0, rows - 1);
+    final startC = ((_px + _cellSize / 2) / _cellSize).floor().clamp(0, cols - 1);
+    final goalR = rows - 1;
+    final goalC = cols - 1;
+
+    final queue = <List<int>>[[startR, startC]];
+    final parentMap = <String, List<int>>{};
+    final visited = <String>{"$startR,$startC"};
+
+    bool found = false;
+    while (queue.isNotEmpty) {
+      final curr = queue.removeAt(0);
+      final r = curr[0], c = curr[1];
+      if (r == goalR && c == goalC) {
+        found = true;
+        break;
+      }
+
+      final dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+      for (final d in dirs) {
+        final nr = r + d[0], nc = c + d[1];
+        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && _maze[nr][nc] == 0) {
+          final key = "$nr,$nc";
+          if (!visited.contains(key)) {
+            visited.add(key);
+            parentMap[key] = [r, c];
+            queue.add([nr, nc]);
+          }
+        }
+      }
+    }
+
+    if (found) {
+      final path = <String>{};
+      String currKey = "$goalR,$goalC";
+      while (parentMap.containsKey(currKey)) {
+        path.add(currKey);
+        final parent = parentMap[currKey]!;
+        currKey = "${parent[0]},${parent[1]}";
+      }
+      path.add("$startR,$startC");
+      _hintPathCells = path;
+    }
   }
 
   // ── 부드러운 연속 이동 & 벽 슬라이딩 처리 ─────────────────────────────────────
@@ -299,7 +392,6 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
 
     if ((_px - gx).abs() < _cellSize * 0.6 && (_py - gy).abs() < _cellSize * 0.6) {
       _isLevelClear = true;
-      _totalScore += 50;
       _confetti.play();
       AudioManager.instance.playMazeClear();
       HapticFeedback.heavyImpact();
@@ -317,7 +409,7 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
     _nextLevelTimer?.cancel();
     if (!mounted) return;
     setState(() {
-      _levelIdx++;
+      _themeIdx = (_themeIdx + 1) % _kThemes.length;
       _loadLevel();
     });
   }
@@ -393,15 +485,15 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
               child: Column(
                 children: [
                   _buildHeader(textColor, isDark),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
 
-                  // ── 미로 보드 (세로 영역을 시원하게 채움) ──
+                  // ── 미로 보드 (화면 전체를 가득 채우는 초대형 미로) ──
                   Expanded(
                     child: LayoutBuilder(builder: (ctx, cst) {
                       final avW = cst.maxWidth - 20;
                       final avH = cst.maxHeight - 10;
                       _cellSize = min(avW / cols, avH / rows);
-                      _cellSize = _cellSize.clamp(24.0, 64.0);
+                      _cellSize = _cellSize.clamp(20.0, 72.0);
                       final bw = _cellSize * cols;
                       final bh = _cellSize * rows;
 
@@ -410,7 +502,9 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
                       );
                     }),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
+                  _buildBottomControlBar(theme, isDark),
+                  const SizedBox(height: 10),
                 ],
               ),
             ),
@@ -520,13 +614,13 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
     );
   }
 
-  // ── 상단 헤더 ─────────────────────────────────────────────────────────────
+  // ── 상단 헤더 (단순하고 깔끔함) ─────────────────────────────────────────────
   Widget _buildHeader(Color textColor, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       child: Container(
         height: 54,
-        padding: const EdgeInsets.symmetric(horizontal: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
           color: isDark ? Colors.white.withAlpha(30) : Colors.white.withAlpha(220),
           borderRadius: BorderRadius.circular(27),
@@ -553,40 +647,233 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
                 style: GoogleFonts.jua(fontSize: 20, color: textColor),
               ),
             ),
-
-            // 상단 우측 깔끔한 다시 시작 (리셋) 버튼
             GestureDetector(
               onTap: () {
                 AudioManager.instance.playClick();
-                _loadLevel();
+                _showSettingsDialog();
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFFFF9F1C), Color(0xFFFFBF69)],
+                    colors: [Color(0xFFFF9800), Color(0xFFF57C00)],
                   ),
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
-                    BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
-                  ],
+                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
+                    const Text('⭐', style: TextStyle(fontSize: 16)),
                     const SizedBox(width: 4),
-                    Text(
-                      '다시 시작',
-                      style: GoogleFonts.jua(fontSize: 14, color: Colors.white),
-                    ),
+                    Text('난이도', style: GoogleFonts.jua(fontSize: 13, color: Colors.white)),
                   ],
                 ),
               ),
             ),
-            const SizedBox(width: 4),
           ],
         ),
+      ),
+    );
+  }
+
+  // ── 깔끔한 모달 난이도 다이얼로그 ──────────────────────────────────────────
+  void _showSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            backgroundColor: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('⭐ 난이도 & 테마 선택 🎨', style: GoogleFonts.jua(fontSize: 21, color: KidsTheme.textDark)),
+                  const SizedBox(height: 14),
+
+                  Text('⭐ 난이도 선택', style: GoogleFonts.jua(fontSize: 16, color: Colors.orange.shade800)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _dialogDiffBtn(setModalState, 0, '1단계\n(초간단)'),
+                      const SizedBox(width: 6),
+                      _dialogDiffBtn(setModalState, 1, '2단계\n(쉬움)'),
+                      const SizedBox(width: 6),
+                      _dialogDiffBtn(setModalState, 2, '3단계\n(보통)'),
+                      const SizedBox(width: 6),
+                      _dialogDiffBtn(setModalState, 3, '4단계\n(도전)'),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+
+                  Text('🎨 테마 선택', style: GoogleFonts.jua(fontSize: 16, color: Colors.purple.shade800)),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 40,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _kThemes.length,
+                      itemBuilder: (context, i) {
+                        final selected = i == _themeIdx;
+                        final t = _kThemes[i];
+                        return GestureDetector(
+                          onTap: () {
+                            AudioManager.instance.playClick();
+                            setModalState(() { _themeIdx = i; });
+                            setState(() { _loadLevel(); });
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: selected ? Colors.purple.shade400 : Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Center(
+                              child: Text(
+                                t.title,
+                                style: GoogleFonts.jua(
+                                  fontSize: 13,
+                                  color: selected ? Colors.white : Colors.black87,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  GestureDetector(
+                    onTap: () {
+                      AudioManager.instance.playClick();
+                      Navigator.pop(ctx);
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [Color(0xFF42A5F5), Color(0xFF1E88E5)]),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Center(
+                        child: Text('확인 👍', style: GoogleFonts.jua(fontSize: 18, color: Colors.white)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _dialogDiffBtn(StateSetter setModalState, int idx, String label) {
+    final selected = _difficultyIdx == idx;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          AudioManager.instance.playClick();
+          setModalState(() { _difficultyIdx = idx; });
+          setState(() { _loadLevel(); });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? Colors.orange : Colors.orange.shade50,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: selected ? Colors.deepOrange : Colors.orange.shade200, width: 2),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.jua(
+                fontSize: 12,
+                color: selected ? Colors.white : Colors.brown.shade800,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── 하단 컨트롤 바 ───────────────────────────────────────────────────────
+  Widget _buildBottomControlBar(MazeTheme theme, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // 🪄 길안내 힌트
+          GestureDetector(
+            onTap: _triggerPathHint,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFFD700), Color(0xFFFF8C00)],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.amber.withValues(alpha: 0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Text('🪄', style: TextStyle(fontSize: 18)),
+                  const SizedBox(width: 6),
+                  Text(
+                    _showPathHint ? '반짝 힌트 (3초)' : '길안내 힌트',
+                    style: GoogleFonts.jua(fontSize: 14, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 12),
+
+          // 🔄 새로운 미로
+          GestureDetector(
+            onTap: () {
+              AudioManager.instance.playClick();
+              _loadLevel();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withAlpha(40) : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: Row(
+                children: [
+                  const Text('🔄', style: TextStyle(fontSize: 16)),
+                  const SizedBox(width: 4),
+                  Text(
+                    '새 미로',
+                    style: GoogleFonts.jua(
+                      fontSize: 14,
+                      color: isDark ? Colors.white : theme.wallBorderColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -633,6 +920,28 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
               Positioned.fill(
                 child: Container(color: theme.floorColor),
               ),
+
+              // ── 🪄 마법 길안내 힌트 반짝이 ──
+              if (_showPathHint)
+                for (int r = 0; r < rows; r++)
+                  for (int c = 0; c < cols; c++)
+                    if (_hintPathCells.contains("$r,$c") && _maze[r][c] == 0)
+                      Positioned(
+                        left: c * cs,
+                        top: r * cs,
+                        width: cs,
+                        height: cs,
+                        child: Container(
+                          margin: const EdgeInsets.all(1),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withValues(alpha: 0.35),
+                            borderRadius: BorderRadius.circular(cs * 0.25),
+                          ),
+                          child: Center(
+                            child: Text('✨', style: TextStyle(fontSize: cs * 0.45)),
+                          ),
+                        ),
+                      ),
 
               // ── 지나온 타일 아기자기한 발자국 밝히기 ──
               for (int r = 0; r < rows; r++)

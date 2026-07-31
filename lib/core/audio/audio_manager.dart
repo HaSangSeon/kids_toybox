@@ -13,6 +13,8 @@ class AudioManager {
   final AudioPlayer _effectPlayer = AudioPlayer();
   final AudioPlayer _voicePlayer = AudioPlayer();
   final AudioPlayer _bgmPlayer = AudioPlayer();
+  final AudioPlayer _munchPlayer = AudioPlayer();
+  final AudioPlayer _animalPlayer = AudioPlayer();
   
   bool _soundEnabled = true;
   bool _bgmEnabled = true;
@@ -25,6 +27,8 @@ class AudioManager {
     if (!_soundEnabled) {
       _effectPlayer.stop();
       _voicePlayer.stop();
+      _munchPlayer.stop();
+      _animalPlayer.stop();
     }
   }
 
@@ -90,6 +94,15 @@ class AudioManager {
   Future<void> playLevelComplete() => playEffect('audio/jigsaw_success.wav');
   Future<void> playSwordSlice({double rate = 1.0}) => playEffect('audio/sword_slice.wav', rate: rate);
 
+  // 동물 맘마 전용 신나고 아기자기한 클리어 팡파레
+  Future<void> playFeedAnimalsSuccess() async {
+    if (!_soundEnabled) return;
+    await playEffect('audio/jigsaw_success.wav');
+    Future.delayed(const Duration(milliseconds: 250), () {
+      playEffect('audio/chime.wav', rate: 1.3);
+    });
+  }
+
   // 낚시 전용 사운드
   Future<void> playFishPlunge() => playEffect('audio/fish_plunge.wav');   // 찌가 물속으로 첨벙!
   Future<void> playFishReel() => playEffect('audio/fish_reel.wav');        // 릴 감기 찰칵찰칵
@@ -150,6 +163,31 @@ class AudioManager {
     Future.delayed(const Duration(milliseconds: 200), () {
       playEffect('audio/chime.wav', rate: 1.25);
     });
+  }
+
+  Future<void> _playAnimalSound(String path, {double rate = 1.0}) async {
+    if (!_soundEnabled) return;
+    try {
+      await _animalPlayer.stop();
+      await _animalPlayer.setPlaybackRate(rate);
+      await _animalPlayer.play(AssetSource(path));
+    } catch (e) {
+      debugPrint("Animal sound play failed: $path. Error: $e");
+    }
+  }
+
+  // 동물 맘마먹기 전용 실감나는 동물 울음소리 및 맘마 사운드
+  Future<void> playAnimalFeedingSound(String animalName) async {
+    if (!_soundEnabled) return;
+
+    // 1. 오물오물 맘마먹는 냠냠 소리를 독립 플레이어로 선명하게 재생
+    try {
+      await _munchPlayer.stop();
+      await _munchPlayer.play(AssetSource('audio/munch.wav'));
+    } catch (_) {}
+
+    // 2. 20종 동물 전용 음성 울음소리(animal_*.wav) 재생
+    await _playAnimalSound('audio/animal_$animalName.wav');
   }
 
   // 각 조각의 이모지 매칭 사운드 재생
@@ -242,5 +280,7 @@ class AudioManager {
     _effectPlayer.dispose();
     _voicePlayer.dispose();
     _bgmPlayer.dispose();
+    _munchPlayer.dispose();
+    _animalPlayer.dispose();
   }
 }
