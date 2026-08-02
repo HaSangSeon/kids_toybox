@@ -26,6 +26,7 @@ class FishSpecies {
   final OceanZone zone;
   final int points;
   final double baseSpeed;
+  final bool isRare;
 
   const FishSpecies({
     required this.id,
@@ -34,6 +35,7 @@ class FishSpecies {
     required this.zone,
     required this.points,
     required this.baseSpeed,
+    this.isRare = false,
   });
 }
 
@@ -43,16 +45,19 @@ const List<FishSpecies> _speciesList = [
   FishSpecies(id: 'tang', emoji: '🐟', name: '도리(블루탱)', zone: OceanZone.sunlight, points: 10, baseSpeed: 100.0),
   FishSpecies(id: 'star', emoji: '⭐', name: '알록달록 불가사리', zone: OceanZone.sunlight, points: 15, baseSpeed: 40.0),
   FishSpecies(id: 'puffer', emoji: '🐡', name: '가시 복어', zone: OceanZone.sunlight, points: 15, baseSpeed: 60.0),
+  FishSpecies(id: 'goldfish', emoji: '✨', name: '황금빛 해파리', zone: OceanZone.sunlight, points: 100, baseSpeed: 120.0, isRare: true),
   // 2구역 (황혼)
   FishSpecies(id: 'turtle', emoji: '🐢', name: '느긋한 바다거북', zone: OceanZone.twilight, points: 20, baseSpeed: 50.0),
   FishSpecies(id: 'squid', emoji: '🦑', name: '하늘하늘 오징어', zone: OceanZone.twilight, points: 20, baseSpeed: 110.0),
   FishSpecies(id: 'crab', emoji: '🦀', name: '옆으로 꽃게', zone: OceanZone.twilight, points: 20, baseSpeed: 70.0),
   FishSpecies(id: 'shrimp', emoji: '🦐', name: '아기 새우', zone: OceanZone.twilight, points: 25, baseSpeed: 130.0),
+  FishSpecies(id: 'whaleshark', emoji: '🦈', name: '멋진 고래상어', zone: OceanZone.twilight, points: 150, baseSpeed: 140.0, isRare: true),
   // 3구역 (심해)
   FishSpecies(id: 'jelly', emoji: '🪼', name: '야광 해파리', zone: OceanZone.abyssal, points: 30, baseSpeed: 80.0),
   FishSpecies(id: 'octopus', emoji: '🐙', name: '재주꾼 문어', zone: OceanZone.abyssal, points: 30, baseSpeed: 90.0),
   FishSpecies(id: 'dolphin', emoji: '🐬', name: '분홍 돌고래', zone: OceanZone.abyssal, points: 50, baseSpeed: 160.0),
   FishSpecies(id: 'whale', emoji: '🐳', name: '아기 고래', zone: OceanZone.abyssal, points: 50, baseSpeed: 120.0),
+  FishSpecies(id: 'giantwhale', emoji: '🐋', name: '거대한 대왕고래', zone: OceanZone.abyssal, points: 200, baseSpeed: 80.0, isRare: true),
 ];
 
 // ── 쓰레기/장애물 종류 ──
@@ -75,11 +80,16 @@ class FishInstance {
   bool isCaught;
   final double scale;
 
-  // 3D 입체 수영 및 헤엄치기 물리 속성
+  // 부드러운 수영 및 생체 물리학 속성
   final double zDepth; // 0.65 (깊은 배경) ~ 1.35 (전경)
   double swimTimer;
   final double swimPhase;
   double lastBubbleTime;
+
+  // 생물 종류별 맞춤 파동 수영 매개변수
+  final double waveAmp;
+  final double waveFreq;
+  final double swayFreq;
 
   FishInstance({
     required this.id,
@@ -97,14 +107,29 @@ class FishInstance {
   }) : zDepth = zDepth ?? (0.65 + Random().nextDouble() * 0.7),
        swimPhase = swimPhase ?? (Random().nextDouble() * pi * 2),
        swimTimer = Random().nextDouble() * 10,
-       lastBubbleTime = 0;
+       lastBubbleTime = 0,
+       waveAmp = (scale >= 1.4 || emoji == '🐋' || emoji == '🦈' || emoji == '🐬' || emoji == '🐢') ? 18.0 : 10.0,
+       waveFreq = (scale >= 1.4 || emoji == '🐋' || emoji == '🦈' || emoji == '🐬' || emoji == '🐢') ? 1.1 : 2.2,
+       swayFreq = (scale >= 1.4 || emoji == '🐋' || emoji == '🦈' || emoji == '🐬' || emoji == '🐢') ? 1.8 : 4.0;
 
-  double get renderY => y + (isCaught ? 0 : sin(swimPhase + swimTimer * 3.5) * 8.0);
+  // 파동에 따른 실시간 Y 위치
+  double get renderY => y + (isCaught ? 0 : sin(swimPhase + swimTimer * waveFreq) * waveAmp);
+
+  // 파동 궤적에 따른 자연스러운 기울기 (Tilt / Pitch Angle)
+  double get tiltAngle {
+    if (isCaught) return 0.0;
+    final dy = cos(swimPhase + swimTimer * waveFreq) * waveAmp * waveFreq;
+    final facingLeft = speed < 0;
+    return atan2(dy, speed.abs() * 0.8) * (facingLeft ? 0.45 : -0.45);
+  }
+
+  // 꼬리 및 몸통의 부드러운 헤엄치기 (Sway Angle)
+  double get swayAngle => isCaught ? sin(swimTimer * 10.0) * 0.3 : sin(swimPhase * 1.5 + swimTimer * swayFreq) * 0.10;
 
   Rect get rect => Rect.fromCenter(
     center: Offset(x, renderY),
-    width: 55 * scale * zDepth,
-    height: 40 * scale * zDepth,
+    width: 60 * scale * zDepth,
+    height: 45 * scale * zDepth,
   );
 }
 
@@ -144,17 +169,9 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
 
   // 게임 제어
   bool _isPlaying = false;
-  bool _isGameOver = false;
-  bool _isStageClear = false;
-  bool _showCatalog = false;
+  bool _showZoneSelect = false;
 
-  int _score = 0;
-  int _lives = 3;
   int _stage = 1;          // 1=햇살, 2=황혼, 3=심해
-  int _catchCount = 0;     // 이번 스테이지에서 낚은 물고기 수
-
-  // 스테이지별 목표 수
-  static const List<int> _stageTargets = [5, 7, 10];
   static const List<String> _stageNames = ['☀️ 햇살 구역', '🌊 황혼 구역', '🌌 심해 구역'];
   static const List<Color> _stageColors = [Color(0xFF0288D1), Color(0xFF01579B), Color(0xFF0D47A1)];
   // 스테이지별 하늘/바다 테마
@@ -190,15 +207,11 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
   final List<ScorePopup> _popups = [];
 
   final Random _random = Random();
-  late Box _scoreBox;
-  List<String> _caughtFishIds = [];
 
   @override
   void initState() {
     super.initState();
     _ticker = createTicker(_onTick);
-    _scoreBox = Hive.box('high_scores_box');
-    _loadCaughtFish();
 
     // 배 상하 흔들림 (3초 주기)
     _boatBobController = AnimationController(
@@ -225,27 +238,10 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
     super.dispose();
   }
 
-  void _loadCaughtFish() {
-    final list = _scoreBox.get('caught_fish_list', defaultValue: <dynamic>[]);
-    _caughtFishIds = List<String>.from(list);
-  }
 
-  void _saveCaughtFish(String id) {
-    if (!_caughtFishIds.contains(id)) {
-      setState(() {
-        _caughtFishIds.add(id);
-      });
-      _scoreBox.put('caught_fish_list', _caughtFishIds);
-    }
-  }
 
   void _startGame(Size size) {
     _screenSize = size;
-    _score = 0;
-    _lives = 3;
-    _stage = 1;
-    _catchCount = 0;
-    _isStageClear = false;
     _boatX = _screenSize.width / 2;
     _hookX = _screenSize.width / 2;
     _targetHookX = _screenSize.width / 2;
@@ -257,8 +253,6 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
     _particles.clear();
     _popups.clear();
     _isPlaying = true;
-    _isGameOver = false;
-    _showCatalog = false;
 
     // 초기 물고기 떼 생성
     for (int i = 0; i < 8; i++) {
@@ -271,22 +265,10 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
     setState(() {});
   }
 
-  void _nextStage() {
-    if (_stage >= 3) {
-      // 모든 3스테이지 클리어 시 완전 클리어!
-      setState(() {
-        _isGameOver = true;
-        _isPlaying = false;
-        _isStageClear = true; // 클리어 상태로 게임오버 오버레이 표시
-      });
-      AudioManager.instance.playFishCatch();
-      return;
-    }
+  void _changeZone(int newZone) {
+    AudioManager.instance.playFishCatch();
     setState(() {
-      _stage++;
-      _catchCount = 0;
-      _isStageClear = false;
-      _lives = 3; // 스테이지가 오르면 하트 회복
+      _stage = newZone;
       _fishes.clear();
       _particles.clear();
       _popups.clear();
@@ -294,7 +276,6 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
     for (int i = 0; i < 8; i++) {
       _spawnFish(initial: true);
     }
-    AudioManager.instance.playFishCatch();
   }
 
   // ── 물고기 스폰 ──
@@ -340,23 +321,30 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
         scale: 0.9,
       );
     } else if (isShark) {
-      final speed = (_random.nextDouble() * 110 + 90) * (_random.nextBool() ? 1 : -1);
+      final speed = (_random.nextDouble() * 40 + 50) * (_random.nextBool() ? 1 : -1);
       final x = speed > 0 ? -120.0 : _screenSize.width + 120.0;
       item = FishInstance(
         id: id,
         emoji: '🦈',
-        name: '무서운 상어',
+        name: '멋진 상어',
         x: x,
         y: y,
         speed: speed,
         isGood: false,
-        scale: 1.5, // 상어는 거대하게
+        scale: 1.5,
       );
     } else {
       // 일반 물고기 선별
-      final candidates = _speciesList.where((element) => element.zone == zone).toList();
+      final allCandidates = _speciesList.where((element) => element.zone == zone).toList();
+      final rareCandidates = allCandidates.where((e) => e.isRare).toList();
+      final normalCandidates = allCandidates.where((e) => !e.isRare).toList();
+      
+      final spawnRare = _random.nextDouble() < 0.08 && rareCandidates.isNotEmpty;
+      final candidates = spawnRare ? rareCandidates : normalCandidates;
+      
       final species = candidates[_random.nextInt(candidates.length)];
-      final speed = (species.baseSpeed + _random.nextDouble() * 40) * (_random.nextBool() ? 1 : -1);
+      final speedMult = species.isRare ? 0.65 : 1.0;
+      final speed = (species.baseSpeed * speedMult + _random.nextDouble() * 20) * (_random.nextBool() ? 1 : -1);
       final x = speed > 0 ? -80.0 : _screenSize.width + 80.0;
       item = FishInstance(
         id: id,
@@ -367,7 +355,7 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
         y: y,
         speed: speed,
         isGood: true,
-        scale: species.points > 30 ? 1.3 : 1.0,
+        scale: species.isRare ? 1.8 : (species.points > 30 ? 1.3 : 1.0),
       );
     }
 
@@ -395,7 +383,7 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
 
   // ── Ticker 루프 ──
   void _onTick(Duration elapsed) {
-    if (!_isPlaying || _isGameOver || _screenSize == Size.zero) return;
+    if (!_isPlaying || _screenSize == Size.zero) return;
 
     if (_lastTime == Duration.zero) {
       _lastTime = elapsed;
@@ -517,49 +505,37 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
   void _handleCatch(FishInstance item) {
     if (item.isGood) {
       final species = item.species!;
-      _score += species.points;
-      _saveCaughtFish(species.id); // 도감 저장
-      _catchCount++;
-      AudioManager.instance.playFishCatch(); // 짜릿한 낚아올림 성공음
-      HapticFeedback.mediumImpact();
+      if (species.isRare) {
+        AudioManager.instance.playMagicUnfoldSuccess(); // 레어 물고기 특별 사운드
+        HapticFeedback.heavyImpact();
+      } else {
+        AudioManager.instance.playFishCatch(); // 낚아올림 성공음
+        HapticFeedback.mediumImpact();
+      }
 
       _popups.add(ScorePopup(
         x: _hookX,
         y: 120,
-        text: '${species.name} 낚았다! +${species.points}점',
-        color: Colors.amberAccent.shade700,
+        text: species.isRare ? '✨ ${species.name} 낚았다! ✨' : '${species.name} 낚았다! 🎣',
+        color: species.isRare ? Colors.pinkAccent : Colors.amberAccent.shade700,
       ));
-
-      // 스테이지 클리어 체크
-      final target = _stageTargets[_stage - 1];
-      if (_catchCount >= target) {
-        setState(() => _isStageClear = true);
-        _isPlaying = false;
-      }
     } else {
-      // 상어나 쓰레기를 건졌을 때
-      _lives--;
+      // 상어나 쓰레기를 건졌을 때 (하트 차감 없이 재미있는 아이쿠 팝업)
       AudioManager.instance.playFishOhNo(); // 아이쿠~ 실망음
       HapticFeedback.heavyImpact();
 
       _popups.add(ScorePopup(
         x: _hookX,
         y: 120,
-        text: '${item.name}! 하트 1개 감소 😢',
+        text: '아이쿠! ${item.name}! 💦',
         color: KidsTheme.red,
       ));
-
-      if (_lives <= 0) {
-        _isGameOver = true;
-        _isPlaying = false;
-        AudioManager.instance.playGameOver();
-      }
     }
   }
 
   // ── 터치 제어 (유저 드래그로 낚싯바늘 이동) ──
   void _onPanUpdate(DragUpdateDetails details) {
-    if (!_isPlaying || _isGameOver) return;
+    if (!_isPlaying) return;
     setState(() {
       _targetHookX = (_targetHookX + details.delta.dx).clamp(30.0, _screenSize.width - 30.0);
     });
@@ -567,7 +543,7 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
 
   // ── 바늘 투하 버튼 ──
   void _dropHook() {
-    if (!_isPlaying || _isGameOver || _isHookDropping || _isHookReturning) return;
+    if (!_isPlaying || _isHookDropping || _isHookReturning) return;
     AudioManager.instance.playFishReel(); // 릴 감기 찰칵 소리
     setState(() {
       _isHookDropping = true;
@@ -582,44 +558,52 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
         child: LayoutBuilder(
           builder: (context, constraints) {
             if (_screenSize.width != constraints.maxWidth) {
+              final isFirstLoad = _screenSize == Size.zero;
               _screenSize = Size(constraints.maxWidth, constraints.maxHeight);
               _boatX = _screenSize.width / 2;
               _hookX = _screenSize.width / 2;
               _targetHookX = _screenSize.width / 2;
+              
+              if (isFirstLoad) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted && !_isPlaying) {
+                    _startGame(_screenSize);
+                  }
+                });
+              }
             }
 
           return Stack(
             children: [
-              // ── 바다 3단계 레이어 배경 ──
-              Positioned.fill(child: _buildOceanBackground()),
+              // ── 바다 3단계 레이어 배경 (터치 간섭 방지) ──
+              Positioned.fill(child: IgnorePointer(child: _buildOceanBackground())),
 
-              // ── 물고기 떼 (3D 깊이 순 정렬 및 3D 꼬리 꿀렁임 수영) ──
-              ...(() {
-                final sortedFishes = List<FishInstance>.from(_fishes)
-                  ..sort((a, b) => a.zDepth.compareTo(b.zDepth));
+              // ── 물고기 떼 (터치 간섭 방지) ──
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: (() {
+                      final sortedFishes = List<FishInstance>.from(_fishes)
+                        ..sort((a, b) => a.zDepth.compareTo(b.zDepth));
 
-                return sortedFishes.map((fish) {
+                      return sortedFishes.map((fish) {
                   final facingLeft = fish.speed < 0;
                   final effectiveScale = fish.scale * fish.zDepth;
 
-                  // 꼬리 흔들기 (Tail Wag & Wave Wiggle)
-                  final tailWiggle = sin(fish.swimPhase + fish.swimTimer * 7.5);
-                  final pitchAngle = fish.isCaught
-                      ? sin(fish.swimTimer * 12) * 0.4
-                      : cos(fish.swimPhase + fish.swimTimer * 3.5) * 0.12;
+                  // 유기적인 숨쉬기/플렉스 (Scale Breathing)
+                  final breathScaleX = 1.0 + 0.04 * sin(fish.swimTimer * 2.5);
+                  final breathScaleY = 1.0 - 0.03 * sin(fish.swimTimer * 2.5);
 
-                  // 3D 원근감 회전 행렬
-                  final matrix = Matrix4.diagonal3Values(facingLeft ? -1.0 : 1.0, 1.0, 1.0)
-                    ..setEntry(3, 2, 0.003) // Perspective distortion
-                    ..rotateY(fish.isCaught ? sin(fish.swimTimer * 10) * 0.8 : tailWiggle * 0.35)
-                    ..rotateZ(fish.isCaught ? (facingLeft ? pi / 2 : -pi / 2) + pitchAngle : pitchAngle);
+                  // 부드러운 회전 각도 (Wave Tilt + Body Sway)
+                  final totalRotation = fish.tiltAngle + fish.swayAngle;
 
-                  // 3D 심해 수심 그림자
+                  // 수중 그림자 위치
                   final shadowOffset = Offset(
-                    facingLeft ? 4.0 * fish.zDepth : -4.0 * fish.zDepth,
-                    5.0 * fish.zDepth,
+                    facingLeft ? -5.0 * fish.zDepth : 5.0 * fish.zDepth,
+                    6.0 * fish.zDepth,
                   );
-                  final opacity = (fish.zDepth * 0.75 + 0.25).clamp(0.45, 1.0);
+                  final opacity = (fish.zDepth * 0.75 + 0.25).clamp(0.5, 1.0);
 
                   return Positioned(
                     left: fish.x - (30 * effectiveScale),
@@ -628,42 +612,49 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                       opacity: opacity,
                       child: Transform(
                         alignment: Alignment.center,
-                        transform: matrix,
+                        transform: Matrix4.identity()
+                          ..rotateZ(facingLeft ? totalRotation : -totalRotation)
+                          ..scale(
+                            facingLeft ? effectiveScale * breathScaleX : -effectiveScale * breathScaleX,
+                            effectiveScale * breathScaleY,
+                            1.0,
+                          ),
                         child: Stack(
                           clipBehavior: Clip.none,
                           children: [
-                            // 3D 입체 수중 그림자
+                            // 수중 그림자
                             Transform.translate(
                               offset: shadowOffset,
-                              child: Text(
-                                fish.emoji,
-                                style: TextStyle(
-                                  fontSize: 38 * effectiveScale,
-                                  color: Colors.black.withValues(alpha: 0.22),
-                                ),
+                              child: _SegmentedWigglingFish(
+                                emoji: fish.emoji,
+                                fontSize: 38,
+                                swimTimer: fish.swimTimer,
+                                isLarge: fish.scale >= 1.4,
+                                textColor: Colors.black.withValues(alpha: 0.2),
                               ),
                             ),
-                            // 물고기 꼬리 및 몸통 꿀렁임 스큐(Shear) 3D 애니메이션
-                            Transform(
-                              alignment: facingLeft ? Alignment.centerRight : Alignment.centerLeft,
-                              transform: Matrix4.identity()
-                                ..setEntry(3, 2, 0.002)
-                                ..setEntry(0, 1, tailWiggle * 0.14),
-                              child: Text(
-                                fish.emoji,
-                                style: TextStyle(fontSize: 38 * effectiveScale),
-                              ),
+                            // 물고기 본체
+                            _SegmentedWigglingFish(
+                              emoji: fish.emoji,
+                              fontSize: 38,
+                              swimTimer: fish.swimTimer,
+                              isLarge: fish.scale >= 1.4,
                             ),
                           ],
                         ),
                       ),
                     ),
                   );
-                });
-              }()),
+                }).toList();
+                    }()),
+                  ),
+                ),
+              ),
 
-              // ── 낚싯배 (배경 고정) & 낚싯줄 / 낚싯바늘 ──
-              Builder(
+              // ── 낚싯배 & 낚싯줄 / 낚싯바늘 (터치 간섭 방지) ──
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Builder(
                 builder: (context) {
                   final boatY = _screenSize.height * 0.28 - 45 + _boatBobAnim.value;
                   final boatRodTop = Offset(_boatX, boatY + 25);
@@ -671,14 +662,14 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
 
                   return Stack(
                     children: [
-                      // ── 낚싯배 ⛵ (수면 중앙에 떠 있는 배경 이미지) ──
+                      // ── 낚싯배 ⛵ ──
                       Positioned(
                         left: _boatX - 35,
                         top: boatY,
                         child: const Text('⛵', style: TextStyle(fontSize: 62)),
                       ),
 
-                      // ── 낚싯줄 (배 -> 낚싯바늘 동적 연결) ──
+                      // ── 낚싯줄 ──
                       Positioned.fill(
                         child: CustomPaint(
                           painter: FishingLinePainter(
@@ -688,7 +679,7 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                         ),
                       ),
 
-                      // ── 낚싯바늘 🪝 (유저가 직접 조종하는 바늘) ──
+                      // ── 낚싯바늘 🪝 ──
                       Positioned(
                         left: _hookX - 14,
                         top: _hookY - 14,
@@ -701,9 +692,15 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                   );
                 },
               ),
+                ),
+              ),
 
-              // ── 터치 드래그 및 수면 터치 영역 ──
-              Positioned.fill(
+              // ── 터치 드래그 및 수면 터치 영역 (헤더 아래 90px부터 반응) ──
+              Positioned(
+                top: 90,
+                left: 0,
+                right: 0,
+                bottom: 0,
                 child: GestureDetector(
                   onTapDown: (_) => _dropHook(),
                   onPanUpdate: _onPanUpdate,
@@ -711,88 +708,49 @@ class _FishingGameState extends State<FishingGame> with TickerProviderStateMixin
                 ),
               ),
 
-              // ── 파티클 및 스코어 팝업 ──
-              ..._particles.map((p) => Positioned(
-                left: p.x - 3,
-                top: p.y - 3,
-                child: Opacity(
-                  opacity: p.life.clamp(0.0, 1.0),
-                  child: Container(width: 6, height: 6, decoration: BoxDecoration(color: p.color, shape: BoxShape.circle)),
-                ),
-              )),
-
-              ..._popups.map((p) => Positioned(
-                left: p.x - 100,
-                width: 200,
-                top: p.y,
-                child: Opacity(
-                  opacity: p.life.clamp(0.0, 1.0),
-                  child: Center(
-                    child: Text(
-                      p.text,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.jua(fontSize: 18, color: p.color, shadows: [const Shadow(color: Colors.white, blurRadius: 6)]),
-                    ),
+              // ── 파티클 및 팝업 (터치 간섭 방지) ──
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Stack(
+                    children: [
+                      ..._particles.map((p) => Positioned(
+                        left: p.x - 3,
+                        top: p.y - 3,
+                        child: Opacity(
+                          opacity: p.life.clamp(0.0, 1.0),
+                          child: Container(width: 6, height: 6, decoration: BoxDecoration(color: p.color, shape: BoxShape.circle)),
+                        ),
+                      )),
+                      ..._popups.map((p) => Positioned(
+                        left: p.x - 120,
+                        width: 240,
+                        top: p.y,
+                        child: Opacity(
+                          opacity: p.life.clamp(0.0, 1.0),
+                          child: Center(
+                            child: Text(
+                              p.text,
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.jua(fontSize: 20, color: p.color, shadows: [const Shadow(color: Colors.white, blurRadius: 8)]),
+                            ),
+                          ),
+                        ),
+                      )),
+                    ],
                   ),
                 ),
-              )),
+              ),
 
-              // ── 던지기(🪝) 고대비 플로팅 버튼 ──
-              if (_isPlaying && !_isGameOver && !_isHookDropping && !_isHookReturning)
-                Positioned(
-                  bottom: 30,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTapDown: (_) => _dropHook(),
-                      onTap: _dropHook,
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
-                        decoration: BoxDecoration(
-                          color: KidsTheme.orange,
-                          borderRadius: BorderRadius.circular(36),
-                          boxShadow: [
-                            BoxShadow(color: KidsTheme.orange.withValues(alpha: 0.5), blurRadius: 14, offset: const Offset(0, 6)),
-                            const BoxShadow(color: Colors.white24, blurRadius: 4, offset: Offset(0, -2))
-                          ],
-                          border: Border.all(color: Colors.white, width: 4),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('🪝', style: TextStyle(fontSize: 32)),
-                            const SizedBox(width: 10),
-                            Text('찌 던지기!', style: GoogleFonts.jua(fontSize: 26, color: Colors.white)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-              // ── 통합 헤더 대시보드 (버튼/진행도 겹침 없는 깔끔한 카드) ──
+              // ── 상단 헤더 대시보드 (최상단 독점 터치 레이어) ──
               Positioned(
-                top: 6,
-                left: 10,
-                right: 10,
+                top: 10,
+                left: 14,
+                right: 14,
                 child: _buildHeaderCard(),
               ),
 
-              // ── 시작 대기 화면 오버레이 ──
-              if (!_isPlaying && !_isGameOver && !_isStageClear && !_showCatalog) _buildStartOverlay(),
-
-              // ── 스테이지 클리어 오버레이 ──
-              if (_isStageClear && !_isGameOver && !_showCatalog) _buildStageClearOverlay(),
-
-              // ── 게임 오버 (전체 클리어 또는 상어에 짼) 오버레이 ──
-              if (_isGameOver && !_showCatalog) _buildGameOverOverlay(),
-
-              // ── 바다 도감 슬라이드 팝업 오버레이 ──
-              if (_showCatalog) _buildCatalogOverlay(),
+              // ── 구역 이동 오버레이 ──
+              if (_showZoneSelect) _buildZoneSelectOverlay(),
             ],
           );
         },
@@ -801,165 +759,81 @@ padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
     );
   }
 
-  // ── 헤더 카드 위젯 (통합 글래스모피즘 뷰) ──
+  // ── 헤더 카드 위젯 (아담하고 깔끔하게 떨어진 뷰) ──
   Widget _buildHeaderCard() {
-    final target = _stageTargets[_stage - 1];
-    final progress = (_catchCount / target).clamp(0.0, 1.0);
-
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.88),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: SingleChildScrollView(
-child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ── 상단 툴바 행 ──
-          Row(
-            children: [
-              // 뒤로가기
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTapDown: (_) {
-                  AudioManager.instance.playClick();
-                  Navigator.of(context).pop();
-                },
-                onTap: () {
-                  AudioManager.instance.playClick();
-                  Navigator.of(context).pop();
-                },
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: KidsTheme.red.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: KidsTheme.red.withValues(alpha: 0.3), width: 1.5),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // 뒤로가기 버튼
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: () {
+              AudioManager.instance.playClick();
+              Navigator.of(context).pop();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: KidsTheme.red.withValues(alpha: 0.5), width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.arrow_back_ios_new_rounded, color: KidsTheme.red, size: 16),
-                      const SizedBox(width: 4),
-                      Text('나가기', style: GoogleFonts.jua(fontSize: 14, color: KidsTheme.red)),
-                    ],
-                  ),
-                ),
+                ],
               ),
-              const SizedBox(width: 6),
-              // 도감 버튼
-              GestureDetector(
-                onTap: () {
-                  AudioManager.instance.playClick();
-                  setState(() => _showCatalog = true);
-                },
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF7C3AED).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF7C3AED).withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Text('📖', style: TextStyle(fontSize: 13)),
-                      const SizedBox(width: 4),
-                      Text('${_caughtFishIds.length}/${_speciesList.length}',
-                          style: GoogleFonts.jua(fontSize: 12, color: const Color(0xFF7C3AED))),
-                    ],
-                  ),
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.arrow_back_ios_new_rounded, color: KidsTheme.red, size: 14),
+                  const SizedBox(width: 4),
+                  Text('그만하기', style: GoogleFonts.jua(fontSize: 14, color: KidsTheme.red)),
+                ],
               ),
-              const Spacer(),
-              // 점수 표시
-              Container(
-                constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: KidsTheme.orange.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text('🎯 $_score', style: GoogleFonts.jua(fontSize: 15, color: KidsTheme.orange)),
-              ),
-              const SizedBox(width: 6),
-              // 하트
-              Row(
-                children: List.generate(3, (index) {
-                  return Padding(
-                    padding: const EdgeInsets.only(left: 1),
-                    child: Text(
-                      index < _lives ? '❤️' : '🖤',
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                  );
-                }),
-              ),
-            ],
-          ),
-          if (_isPlaying) ...[
-            const SizedBox(height: 6),
-            // ── 하단 진행도 행 ──
-            Row(
-              children: [
-                Text(
-                  _stageNames[_stage - 1],
-                  style: GoogleFonts.jua(fontSize: 11, color: _stageColors[_stage - 1]),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Container(
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: LayoutBuilder(
-                      builder: (ctx, bc) {
-                        return Align(
-                          alignment: Alignment.centerLeft,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            width: bc.maxWidth * progress,
-                            decoration: BoxDecoration(
-                              color: _stageColors[_stage - 1],
-                              borderRadius: BorderRadius.circular(4),
-                              gradient: LinearGradient(
-                                colors: [_stageColors[_stage - 1], Colors.cyanAccent],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '📁 $_catchCount/${_stageTargets[_stage - 1]}',
-                  style: GoogleFonts.jua(fontSize: 11, color: KidsTheme.textDark),
-                ),
-              ],
             ),
-          ],
-        ],
-      ),
-),
+          ),
+        ),
+
+        // 바다 바꾸기 버튼
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: () {
+              AudioManager.instance.playClick();
+              setState(() => _showZoneSelect = true);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: _stageColors[_stage - 1], width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('🗺️ 바다 바꾸기', style: GoogleFonts.jua(fontSize: 14, color: _stageColors[_stage - 1])),
+                  const SizedBox(width: 4),
+                  Icon(Icons.arrow_drop_down_rounded, color: _stageColors[_stage - 1], size: 20),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1096,313 +970,105 @@ padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     );
   }
 
-  // ── 시작 화면 오버레이 ──
-  Widget _buildStartOverlay() {
+  // ── 구역 이동 오버레이 ──
+  Widget _buildZoneSelectOverlay() {
     return Positioned.fill(
-      child: Container(
-        color: Colors.black.withValues(alpha: 0.45),
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 32),
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: KidsTheme.blue, width: 6),
-            ),
-            child: SingleChildScrollView(
-child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('⛵🎣', style: TextStyle(fontSize: 64)),
-                const SizedBox(height: 8),
-                Text('신나는 바다 낚시', style: GoogleFonts.jua(fontSize: 34, color: KidsTheme.blue)),
-                const SizedBox(height: 12),
-                Text('배를 드래그해서 움직이고,\n던지기 버튼으로 찌를 내려요!', textAlign: TextAlign.center, style: GoogleFonts.jua(fontSize: 16, color: KidsTheme.textDark)),
-                const SizedBox(height: 6),
-                Text('⚠️ 상어와 바다 쓰레기는 피해요!', style: GoogleFonts.jua(fontSize: 14, color: KidsTheme.red)),
-                const SizedBox(height: 6),
-                Container(
-                  constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: KidsTheme.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => setState(() => _showZoneSelect = false),
+        child: Container(
+          color: Colors.black.withValues(alpha: 0.65),
+          child: Center(
+            child: GestureDetector(
+              onTap: () {}, // 배경 터치 시 다이얼로그 닫힘 방지
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 380, maxHeight: 600),
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: KidsTheme.blue, width: 6),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('🎯 스테이지 목표', style: GoogleFonts.jua(fontSize: 14, color: KidsTheme.blue)),
-                      const SizedBox(height: 4),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('☀️ ${_stageTargets[0]}마리', style: GoogleFonts.jua(fontSize: 12, color: _stageColors[0])),
-                          Text('🌊 ${_stageTargets[1]}마리', style: GoogleFonts.jua(fontSize: 12, color: _stageColors[1])),
-                          Text('🌌 ${_stageTargets[2]}마리', style: GoogleFonts.jua(fontSize: 12, color: _stageColors[2])),
+                          Text('🗺️ 바다 이동', style: GoogleFonts.jua(fontSize: 28, color: KidsTheme.blue)),
+                          IconButton(
+                            iconSize: 32,
+                            padding: const EdgeInsets.all(8),
+                            constraints: const BoxConstraints(),
+                            icon: const Icon(Icons.close_rounded, color: Colors.grey),
+                            onPressed: () {
+                              AudioManager.instance.playClick();
+                              setState(() => _showZoneSelect = false);
+                            },
+                          ),
                         ],
                       ),
+                      const SizedBox(height: 12),
+                      Text('어떤 바다에서 낚시할까요?', style: GoogleFonts.jua(fontSize: 18, color: Colors.grey.shade700)),
+                      const SizedBox(height: 20),
+                      ...List.generate(3, (index) {
+                        final isCurrent = _stage == index + 1;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 14),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(18),
+                            onTap: () {
+                              AudioManager.instance.playClick();
+                              setState(() {
+                                _showZoneSelect = false;
+                              });
+                              _changeZone(index + 1);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+                              decoration: BoxDecoration(
+                                color: isCurrent ? _stageColors[index] : _stageColors[index].withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(color: _stageColors[index], width: 3.5),
+                              ),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    _stageNames[index],
+                                    style: GoogleFonts.jua(fontSize: 24, color: isCurrent ? Colors.white : _stageColors[index]),
+                                  ),
+                                  const Spacer(),
+                                  if (isCurrent)
+                                    const Icon(Icons.check_circle_rounded, color: Colors.white, size: 28),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    GestureDetector(
-                      onTap: () => setState(() => _showCatalog = true),
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        decoration: BoxDecoration(color: KidsTheme.purple, borderRadius: BorderRadius.circular(20)),
-                        child: Text('📖 도감', style: GoogleFonts.jua(fontSize: 18, color: Colors.white)),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => _startGame(_screenSize),
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-                        decoration: BoxDecoration(color: KidsTheme.green, borderRadius: BorderRadius.circular(20)),
-                        child: Text('출발! 🚀', style: GoogleFonts.jua(fontSize: 18, color: Colors.white)),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── 스테이지 클리어 오버레이 ──
-  Widget _buildStageClearOverlay() {
-    final nextStageName = _stage < 3 ? _stageNames[_stage] : null;
-    return Positioned.fill(
-      child: Container(
-        color: Colors.black.withValues(alpha: 0.55),
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 28),
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: KidsTheme.green, width: 6),
-              boxShadow: [BoxShadow(color: KidsTheme.green.withValues(alpha: 0.3), blurRadius: 20, spreadRadius: 4)],
-            ),
-            child: SingleChildScrollView(
-child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(_stageNames[_stage - 1], style: GoogleFonts.jua(fontSize: 18, color: _stageColors[_stage - 1])),
-                const SizedBox(height: 8),
-                const Text('🎉🌟🎉', style: TextStyle(fontSize: 56)),
-                const SizedBox(height: 8),
-                Text('스테이지 클리어!', style: GoogleFonts.jua(fontSize: 36, color: KidsTheme.green)),
-                const SizedBox(height: 6),
-                Text(
-                  '${_stageTargets[_stage - 1]}마리를 모두 낙았어요! 홍수!',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.jua(fontSize: 16, color: Colors.grey.shade700),
-                ),
-                const SizedBox(height: 4),
-                Text('누적 점수: $_score 점 🎯', style: GoogleFonts.jua(fontSize: 20, color: KidsTheme.orange)),
-                if (nextStageName != null) ...
-                  [
-                    const SizedBox(height: 4),
-                    Text('다음: $nextStageName 진입!', style: GoogleFonts.jua(fontSize: 14, color: _stageColors[_stage])),
-                    Text('다음 단계는 상어와 쓰레기가 더 많아요!', style: GoogleFonts.jua(fontSize: 12, color: Colors.grey)),
-                  ],
-                const SizedBox(height: 24),
-                GestureDetector(
-                  onTap: () {
-                    AudioManager.instance.playClick();
-                    setState(() => _isStageClear = false);
-                    _isPlaying = true;
-                    _nextStage();
-                  },
-                  child: Container(
-                    constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [Color(0xFF43A047), Color(0xFF1B5E20)]),
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [BoxShadow(color: KidsTheme.green.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4))],
-                    ),
-                    child: Text(
-                      nextStageName != null ? '다음 바다로! 🚤➡️' : '최종 점수 확인! 🏆',
-                      style: GoogleFonts.jua(fontSize: 22, color: Colors.white),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── 게임 오버 오버레이 ──
-  Widget _buildGameOverOverlay() {
-    return Positioned.fill(
-      child: Container(
-        color: Colors.black.withValues(alpha: 0.65),
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 32),
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: KidsTheme.orange, width: 5),
-            ),
-            child: SingleChildScrollView(
-child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('☠️🦈', style: TextStyle(fontSize: 64)),
-                const SizedBox(height: 8),
-                Text('조심하세요!', style: GoogleFonts.jua(fontSize: 34, color: KidsTheme.red)),
-                const SizedBox(height: 8),
-                Text('바다가 험해져 낚시가 끝났어요.', style: GoogleFonts.jua(fontSize: 16, color: Colors.grey.shade600)),
-                const SizedBox(height: 4),
-                Text('최종 점수: $_score 점 🎯', style: GoogleFonts.jua(fontSize: 24, color: KidsTheme.textDark)),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    GestureDetector(
-                      onTap: () => setState(() => _showCatalog = true),
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        decoration: BoxDecoration(color: KidsTheme.purple, borderRadius: BorderRadius.circular(20)),
-                        child: Text('📖 도감 확인', style: GoogleFonts.jua(fontSize: 18, color: Colors.white)),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => _startGame(_screenSize),
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        decoration: BoxDecoration(color: KidsTheme.green, borderRadius: BorderRadius.circular(20)),
-                        child: Text('다시 도전! 🔄', style: GoogleFonts.jua(fontSize: 18, color: Colors.white)),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── 바다 도감(Fish Book) 팝업 오버레이 ──
-  Widget _buildCatalogOverlay() {
-    return Positioned.fill(
-      child: Container(
-        color: Colors.black.withValues(alpha: 0.7),
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE1F5FE),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: KidsTheme.purple, width: 6),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('📖 바다 생물 도감 (${_caughtFishIds.length} / ${_speciesList.length})', style: GoogleFonts.jua(fontSize: 22, color: KidsTheme.purple)),
-                    GestureDetector(
-                      onTap: () => setState(() => _showCatalog = false),
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
-                        child: const Icon(Icons.close, size: 20),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: 0.85,
-                    ),
-                    itemCount: _speciesList.length,
-                    itemBuilder: (context, index) {
-                      final species = _speciesList[index];
-                      final isCaught = _caughtFishIds.contains(species.id);
-
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: isCaught ? Colors.white : Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isCaught ? KidsTheme.purple.withValues(alpha: 0.6) : Colors.grey.shade400,
-                            width: 2,
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              isCaught ? species.emoji : '❓',
-                              style: TextStyle(fontSize: 32, color: isCaught ? null : Colors.grey.shade600),
-                            ),
-                            const SizedBox(height: 4),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                              child: Text(
-                                isCaught ? species.name : '미확인 생물',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.jua(fontSize: 10, color: isCaught ? KidsTheme.textDark : Colors.grey.shade600),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (isCaught)
-                              Text(
-                                '${species.points}점',
-                                style: GoogleFonts.jua(fontSize: 9, color: KidsTheme.orange),
-                              ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
+
+
+
 }
 
 // ── 낚싯줄 커스텀 페인터 ──
@@ -1439,5 +1105,133 @@ class FishingLinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant FishingLinePainter oldDelegate) {
     return oldDelegate.start != start || oldDelegate.end != end;
+  }
+}
+
+// ── 실시간 관절 꼬리 흔들기 물고기 위젯 ──
+class _SegmentedWigglingFish extends StatelessWidget {
+  final String emoji;
+  final double fontSize;
+  final double swimTimer;
+  final bool isLarge;
+  final Color? textColor;
+
+  const _SegmentedWigglingFish({
+    required this.emoji,
+    required this.fontSize,
+    required this.swimTimer,
+    this.isLarge = false,
+    this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final style = TextStyle(fontSize: fontSize, color: textColor);
+
+    // 쓰레기나 바위 등 비생물은 흔들림 없음
+    if (emoji == '🪨' || emoji == '👞' || emoji == '🥫' || emoji == '🍾') {
+      return Text(emoji, style: style);
+    }
+
+    // 세로형 생물 (해파리, 오징어, 문어) -> 상하 촉수 펄스 & 살랑살랑
+    final isVertical = emoji == '🪼' || emoji == '🦑' || emoji == '🐙';
+    if (isVertical) {
+      final freq = 5.0;
+      final sway = sin(swimTimer * freq) * 0.18;
+      final pulse = 1.0 + 0.10 * sin(swimTimer * freq);
+
+      return Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          // 갓/머리 (상단 55%)
+          ClipRect(
+            clipper: _VerticalSliceClipper(topRatio: 0.0, bottomRatio: 0.55),
+            child: Text(emoji, style: style),
+          ),
+          // 촉수/다리 (하단 42%~100%) - 관절 회전 및 펄스
+          Transform(
+            alignment: Alignment.topCenter,
+            transform: Matrix4.identity()
+              ..rotateZ(sway)
+              ..scale(1.0, pulse, 1.0),
+            child: ClipRect(
+              clipper: _VerticalSliceClipper(topRatio: 0.42, bottomRatio: 1.0),
+              child: Text(emoji, style: style),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // 가로형 어종 (물고기, 고래, 상어, 거북이 등) -> 몸통과 꼬리가 분리되어 파닥파닥
+    final freq = isLarge ? 5.5 : 9.0;
+    final maxAngle = isLarge ? 0.22 : 0.35;
+    final tailAngle = sin(swimTimer * freq) * maxAngle;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.center,
+      children: [
+        // 1. 머리 및 몸통 (왼쪽 0% ~ 55%)
+        ClipRect(
+          clipper: _HorizontalSliceClipper(leftRatio: 0.0, rightRatio: 0.55),
+          child: Text(emoji, style: style),
+        ),
+        // 2. 관절 꼬리 (오른쪽 42% ~ 100%) -> 관절 부위 중심 파닥파닥!
+        Transform(
+          alignment: const Alignment(-0.12, 0.0), // 몸통-꼬리 경계 관절 핀
+          transform: Matrix4.identity()..rotateZ(tailAngle),
+          child: ClipRect(
+            clipper: _HorizontalSliceClipper(leftRatio: 0.42, rightRatio: 1.0),
+            child: Text(emoji, style: style),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HorizontalSliceClipper extends CustomClipper<Rect> {
+  final double leftRatio;
+  final double rightRatio;
+
+  _HorizontalSliceClipper({required this.leftRatio, required this.rightRatio});
+
+  @override
+  Rect getClip(Size size) {
+    return Rect.fromLTRB(
+      size.width * leftRatio,
+      -20,
+      size.width * rightRatio,
+      size.height + 20,
+    );
+  }
+
+  @override
+  bool shouldReclip(covariant _HorizontalSliceClipper oldDelegate) {
+    return oldDelegate.leftRatio != leftRatio || oldDelegate.rightRatio != rightRatio;
+  }
+}
+
+class _VerticalSliceClipper extends CustomClipper<Rect> {
+  final double topRatio;
+  final double bottomRatio;
+
+  _VerticalSliceClipper({required this.topRatio, required this.bottomRatio});
+
+  @override
+  Rect getClip(Size size) {
+    return Rect.fromLTRB(
+      -20,
+      size.height * topRatio,
+      size.width + 20,
+      size.height * bottomRatio,
+    );
+  }
+
+  @override
+  bool shouldReclip(covariant _VerticalSliceClipper oldDelegate) {
+    return oldDelegate.topRatio != topRatio || oldDelegate.bottomRatio != bottomRatio;
   }
 }

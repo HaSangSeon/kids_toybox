@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -58,12 +59,14 @@ class _Piece {
 class _Level {
   final String name, emoji;
   final Color bg1, bg2;
+  final List<String> bgEmojis;
   final List<_Piece> pieces;
   _Level({
     required this.name,
     required this.emoji,
     required this.bg1,
     required this.bg2,
+    required this.bgEmojis,
     required this.pieces,
   });
 }
@@ -81,7 +84,8 @@ final _levels = <_Level>[
   //
   _Level(
     name: '꽃게', emoji: '🦀',
-    bg1: const Color(0xFFFFF3E0), bg2: const Color(0xFFFFCDD2),
+    bg1: const Color(0xFFE0F7FA), bg2: const Color(0xFF80DEEA), // 상쾌한 바닷가 배경
+    bgEmojis: const ['🌊', '🐚', '🫧', '🏖️', '✨'],
     pieces: [
       // 몸통 (넓은 타원형 – 가장 큰 조각)
       _Piece(id: 0, w: 132, h: 70, color: const Color(0xFFFF5722), shade: const Color(0xFFBF360C),
@@ -116,7 +120,8 @@ final _levels = <_Level>[
   // ── Level 2: 강아지 ─────────────────────────
   _Level(
     name: '강아지', emoji: '🐶',
-    bg1: const Color(0xFFFFF8E1), bg2: const Color(0xFFFBE9E7),
+    bg1: const Color(0xFFE8F5E9), bg2: const Color(0xFFC8E6C9), // 잔디 공원 배경
+    bgEmojis: const ['🦴', '🐾', '🌿', '🌸', '🎈'],
     pieces: [
       _Piece(id: 0, w: 108, h: 108, color: const Color(0xFFD7A87E), shade: const Color(0xFFA1622A),
           rel: const Offset(0, -46), r: 54), // 머리
@@ -136,7 +141,8 @@ final _levels = <_Level>[
   // ── Level 3: 우주 로켓 ──────────────────────
   _Level(
     name: '우주 로켓', emoji: '🚀',
-    bg1: const Color(0xFFE3F2FD), bg2: const Color(0xFFBBDEFB),
+    bg1: const Color(0xFF1E1E38), bg2: const Color(0xFF2D1F47), // 은하수 우주 배경
+    bgEmojis: const ['⭐', '🌟', '🌙', '🪐', '✨'],
     pieces: [
       _Piece(id: 0, w: 70, h: 92, color: const Color(0xFF7986CB), shade: const Color(0xFF3F51B5),
           rel: const Offset(0, -132), r: 35), // 머리
@@ -154,7 +160,8 @@ final _levels = <_Level>[
   // ── Level 4: 나비 ───────────────────────────
   _Level(
     name: '나비', emoji: '🦋',
-    bg1: const Color(0xFFF3E5F5), bg2: const Color(0xFFE1BEE7),
+    bg1: const Color(0xFFFFF8E1), bg2: const Color(0xFFFFE0B2), // 햇살 화원 배경
+    bgEmojis: const ['🌸', '🌻', '🌼', '🐝', '✨'],
     pieces: [
       _Piece(id: 0, w: 26, h: 108, color: const Color(0xFF6A1B9A), shade: const Color(0xFF4A148C),
           rel: const Offset(0, 0), r: 13), // 몸통
@@ -174,18 +181,13 @@ final _levels = <_Level>[
   //         [머리]
   //      [목]
   //   [몸통 큰것]
-  //   [앞발L] [앞발R]
-  //  [뒷다리L][뒷다리R]
-  //      [꼬리 긴것]
-  //
   _Level(
     name: '공룡', emoji: '🦖',
-    bg1: const Color(0xFFE8F5E9), bg2: const Color(0xFFC8E6C9),
+    bg1: const Color(0xFFFFF3E0), bg2: const Color(0xFFFFCCBC), // 노을 정글 배경
+    bgEmojis: const ['🌴', '🌿', '🌋', '🦴', '✨'],
     pieces: [
-      // 몸통
       _Piece(id: 0, w: 120, h: 80, color: const Color(0xFF66BB6A), shade: const Color(0xFF2E7D32),
           rel: const Offset(0, 10), r: 20),
-      // 머리 (약간 위쪽 오른쪽)
       _Piece(id: 1, w: 80, h: 56, color: const Color(0xFF81C784), shade: const Color(0xFF388E3C),
           rel: const Offset(52, -70), r: 18, rot: 0.10),
       // 목
@@ -218,24 +220,25 @@ final _levels = <_Level>[
   //
   _Level(
     name: '집', emoji: '🏠',
-    bg1: const Color(0xFFFFF8E1), bg2: const Color(0xFFFFF3E0),
+    bg1: const Color(0xFFE8F5E9), bg2: const Color(0xFFC8E6C9), // 파릇파릇 잔디밭 배경
+    bgEmojis: const ['☁️', '☀️', '🌸', '🏡', '🌈'],
     pieces: [
-      // 지붕 (넓고 납작한 삼각형 모양)
+      // 지붕 (선명한 빨강)
       _Piece(id: 0, w: 170, h: 62, color: const Color(0xFFEF5350), shade: const Color(0xFFB71C1C),
           rel: const Offset(0, -84), r: 10),
-      // 벽 (넓은 직사각형)
-      _Piece(id: 1, w: 160, h: 90, color: const Color(0xFFFFF9C4), shade: const Color(0xFFF9A825),
+      // 벽 (따뜻하고 선명한 앰버 옐로우 – 배경과 명확한 대비)
+      _Piece(id: 1, w: 160, h: 90, color: const Color(0xFFFFB74D), shade: const Color(0xFFE65100),
           rel: const Offset(0, 16), r: 6),
-      // 문
+      // 문 (원목 브라운)
       _Piece(id: 2, w: 36, h: 52, color: const Color(0xFF8D6E63), shade: const Color(0xFF4E342E),
           rel: const Offset(0, 34), r: 10),
-      // 왼쪽 창문
-      _Piece(id: 3, w: 34, h: 34, color: const Color(0xFF81D4FA), shade: const Color(0xFF0288D1),
+      // 왼쪽 창문 (하늘색)
+      _Piece(id: 3, w: 34, h: 34, color: const Color(0xFF4FC3F7), shade: const Color(0xFF0288D1),
           rel: const Offset(-52, 6), r: 6),
-      // 오른쪽 창문
-      _Piece(id: 4, w: 34, h: 34, color: const Color(0xFF81D4FA), shade: const Color(0xFF0288D1),
+      // 오른쪽 창문 (하늘색)
+      _Piece(id: 4, w: 34, h: 34, color: const Color(0xFF4FC3F7), shade: const Color(0xFF0288D1),
           rel: const Offset(52, 6), r: 6),
-      // 굴뚝
+      // 굴뚝 (진회색)
       _Piece(id: 5, w: 26, h: 44, color: const Color(0xFF78909C), shade: const Color(0xFF37474F),
           rel: const Offset(-56, -110), r: 6),
     ],
@@ -244,7 +247,8 @@ final _levels = <_Level>[
   // ── Level 7: 물고기 🐠 ───────────────────────
   _Level(
     name: '물고기', emoji: '🐠',
-    bg1: const Color(0xFFE3F2FD), bg2: const Color(0xFFB3E5FC),
+    bg1: const Color(0xFFE0F7FA), bg2: const Color(0xFF4FC3F7), // 바닷속 왕국 배경
+    bgEmojis: const ['🫧', '🐚', '🌿', '🌊', '✨'],
     pieces: [
       // 몸통
       _Piece(id: 0, w: 130, h: 80, color: const Color(0xFFFF8F00), shade: const Color(0xFFE65100),
@@ -275,7 +279,8 @@ final _levels = <_Level>[
   //
   _Level(
     name: '기차', emoji: '🚂',
-    bg1: const Color(0xFFFCE4EC), bg2: const Color(0xFFF8BBD9),
+    bg1: const Color(0xFFFFF9C4), bg2: const Color(0xFFFFF59D), // 파스텔 마을 배경
+    bgEmojis: const ['☁️', '🛤️', '🎈', '🚩', '✨'],
     pieces: [
       // 앞 칸 (기관차 본체)
       _Piece(id: 0, w: 100, h: 72, color: const Color(0xFFE53935), shade: const Color(0xFFB71C1C),
@@ -310,7 +315,8 @@ final _levels = <_Level>[
   // ── Level 9: 눈사람 ⛄ ───────────────────────
   _Level(
     name: '눈사람', emoji: '⛄',
-    bg1: const Color(0xFFE0F7FA), bg2: const Color(0xFFB3E5FC),
+    bg1: const Color(0xFFE0F2F1), bg2: const Color(0xFF80CBC4), // 겨울 왕국 배경
+    bgEmojis: const ['❄️', '⛄', '🧊', '☁️', '✨'],
     pieces: [
       // 몸통 (큰 원)
       _Piece(id: 0, w: 120, h: 120, color: const Color(0xFFECEFF1), shade: const Color(0xFF90A4AE),
@@ -350,7 +356,8 @@ final _levels = <_Level>[
   //
   _Level(
     name: '왕관', emoji: '👑',
-    bg1: const Color(0xFFFFF8E1), bg2: const Color(0xFFFFECB3),
+    bg1: const Color(0xFFEDE7F6), bg2: const Color(0xFFD1C4E9), // 환상 궁전 배경
+    bgEmojis: const ['✨', '🌟', '💎', '🦄', '🏰'],
     pieces: [
       // 왕관 본체 띠
       _Piece(id: 0, w: 180, h: 46, color: const Color(0xFFFFD700), shade: const Color(0xFFF9A825),
@@ -396,6 +403,7 @@ class _BlockBuilderGameState extends State<BlockBuilderGame>
   List<_Piece> _pieces = [];
   int? _draggingId;
   bool _isCelebrating = false;
+  Timer? _nextLevelTimer;
 
   double _safeW = 390;
   double _safeH = 780;
@@ -417,6 +425,7 @@ class _BlockBuilderGameState extends State<BlockBuilderGame>
 
   @override
   void dispose() {
+    _nextLevelTimer?.cancel();
     _confetti.dispose();
     _fallAnim.dispose();
     _bgAnim.dispose();
@@ -470,6 +479,15 @@ class _BlockBuilderGameState extends State<BlockBuilderGame>
     _checkWin();
   }
 
+  void _nextLevel() {
+    _nextLevelTimer?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _levelIdx++;
+      _loadLevel();
+    });
+  }
+
   void _checkWin() {
     if (!_pieces.every((p) => p.snapped)) return;
     setState(() => _isCelebrating = true);
@@ -479,8 +497,11 @@ class _BlockBuilderGameState extends State<BlockBuilderGame>
     final emoji = _levels[_levelIdx % _levels.length].emoji;
     Future.delayed(const Duration(milliseconds: 700),
         () => AudioManager.instance.playEmojiSound(emoji));
-    Future.delayed(const Duration(seconds: 4), () {
-      if (mounted) setState(() { _levelIdx++; _loadLevel(); });
+    _nextLevelTimer?.cancel();
+    _nextLevelTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted && _isCelebrating) {
+        _nextLevel();
+      }
     });
   }
 
@@ -560,6 +581,141 @@ class _BlockBuilderGameState extends State<BlockBuilderGame>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ── 모양 자유 선택 모달 다이얼로그 ─────────────────────────────────
+  void _showModelSelectorDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        backgroundColor: Colors.white,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          constraints: const BoxConstraints(maxWidth: 380, maxHeight: 520),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '🧱 조립할 모양 선택 🧱',
+                    style: GoogleFonts.jua(fontSize: 20, color: KidsTheme.textDark),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(ctx),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: Colors.black12,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close_rounded, size: 20, color: Colors.black54),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 2.2,
+                  ),
+                  itemCount: _levels.length,
+                  itemBuilder: (context, i) {
+                    final isSelected = i == _levelIdx;
+                    final l = _levels[i];
+                    return GestureDetector(
+                      onTap: () {
+                        AudioManager.instance.playClick();
+                        Navigator.pop(ctx);
+                        setState(() {
+                          _levelIdx = i;
+                          _loadLevel();
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isSelected ? KidsTheme.orange : KidsTheme.orange.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: isSelected ? Colors.deepOrange : KidsTheme.orange.withValues(alpha: 0.4),
+                            width: 2,
+                          ),
+                          boxShadow: isSelected
+                              ? [BoxShadow(color: KidsTheme.orange.withValues(alpha: 0.3), blurRadius: 6, offset: const Offset(0, 3))]
+                              : [],
+                        ),
+                        child: Row(
+                          children: [
+                            Text(l.emoji, style: const TextStyle(fontSize: 26)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                l.name,
+                                style: GoogleFonts.jua(
+                                  fontSize: 16,
+                                  color: isSelected ? Colors.white : KidsTheme.textDark,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── 주제별 떠다니는 배경 위젯 (은은하고 아기자기함) ──────
+  Widget _buildThemeFloatingBg(_Level level) {
+    final emojis = level.bgEmojis;
+    final isDark = level.bg1.computeLuminance() < 0.25;
+    final opacity = isDark ? 0.40 : 0.30;
+
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: _bgAnim,
+        builder: (context, _) {
+          final val = _bgAnim.value;
+          return Stack(
+            children: List.generate(8, (i) {
+              final emoji = emojis[i % emojis.length];
+              final xRatio = (0.10 + (i * 0.11)) % 0.88;
+              final yRatio = (0.08 + (i * 0.12)) % 0.85;
+              final floatY = sin((val + i * 0.25) * pi * 2) * 14;
+              final floatX = cos((val + i * 0.18) * pi * 2) * 10;
+              final size = 26.0 + (i % 3) * 8;
+
+              return Positioned(
+                left: _safeW * xRatio + floatX,
+                top: _safeH * yRatio + floatY,
+                child: Opacity(
+                  opacity: opacity,
+                  child: Text(
+                    emoji,
+                    style: TextStyle(fontSize: size),
+                  ),
+                ),
+              );
+            }),
+          );
+        },
       ),
     );
   }
@@ -647,7 +803,6 @@ class _BlockBuilderGameState extends State<BlockBuilderGame>
                     // 화면 앞쪽 조각부터 역순으로 히트 테스트
                     for (int i = sorted.length - 1; i >= 0; i--) {
                       final p = sorted[i];
-                      if (p.snapped) continue;
                       // 낙하 중이면 실제 표시 위치로 판정
                       final dispY = _fallAnim.isAnimating
                           ? -280.0 + (p.pos.dy + 280.0) * t
@@ -660,6 +815,9 @@ class _BlockBuilderGameState extends State<BlockBuilderGame>
                       if (dx * dx / (hw * hw) + dy * dy / (hh * hh) <= 1.0) {
                         setState(() {
                           _draggingId = p.id;
+                          if (p.snapped) {
+                            p.snapped = false; // 조립된 블럭도 자유롭게 다시 떼어낼 수 있음!
+                          }
                           // 현재 표시 위치로 pos 동기화 (낙하 중 잡아도 튀지 않음)
                           p.pos = dispCenter;
                         });
@@ -690,7 +848,7 @@ class _BlockBuilderGameState extends State<BlockBuilderGame>
                     clipBehavior: Clip.none,
                     children: [
 
-                      // ── 둥둥 떠다니는 귀여운 배경 ──
+                      // ── 둥둥 떠다니는 아기자기 감성 배경 ──
                       Positioned.fill(
                         child: CustomPaint(
                           painter: _BackgroundPainter(
@@ -700,9 +858,14 @@ class _BlockBuilderGameState extends State<BlockBuilderGame>
                         ),
                       ),
 
-                      // ── 헤더 ──────────────────────────────
+                      // ── 주제별 어울리는 은은한 아기자기 데코 ──
+                      Positioned.fill(
+                        child: _buildThemeFloatingBg(level),
+                      ),
+
+                      // ── 헤더 (뒤로가기 + 자유 모양 선택 버튼) ──
                       Positioned(
-                        top: 10, left: 16, right: 150,
+                        top: 10, left: 16, right: 145,
                         child: Row(children: [
                           GestureDetector(
                             onTap: () {
@@ -710,59 +873,41 @@ class _BlockBuilderGameState extends State<BlockBuilderGame>
                               Navigator.pop(context);
                             },
                             child: Container(
-                              constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.all(10),
+                              padding: const EdgeInsets.all(10),
                               decoration: KidsTheme.toyDecoration(color: KidsTheme.red),
                               child: const Icon(Icons.arrow_back_ios_new_rounded,
-                                  color: Colors.white, size: 22),
+                                  color: Colors.white, size: 20),
                             ),
                           ),
-                          const SizedBox(width: 10),
-                          Flexible(child: Container(
-                            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                            decoration: KidsTheme.toyDecoration(color: Colors.white),
-                            child: Text(
-                              '${level.emoji} ${level.name} 조립',
-                              style: GoogleFonts.jua(fontSize: 20,
-                                  color: KidsTheme.textDark, height: 1.1),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          )),
-                        ]),
-                      ),
-
-                      // ── 진행도 (별모양 아이콘 추가) ───────────────
-                      Positioned(
-                        top: 70, left: 16,
-                        child: Container(
-                          constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(color: KidsTheme.orange.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 4))
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.star_rounded, color: KidsTheme.orange, size: 18),
-                              const SizedBox(width: 4),
-                              Text(
-                                '$placedCount / ${_pieces.length}',
-                                style: GoogleFonts.jua(
-                                    fontSize: 16, color: KidsTheme.orange),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: _showModelSelectorDialog,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                decoration: KidsTheme.toyDecoration(color: Colors.white),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        '${level.emoji} ${level.name}',
+                                        style: GoogleFonts.jua(
+                                          fontSize: 18,
+                                          color: KidsTheme.textDark,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.arrow_drop_down_rounded, color: KidsTheme.orange, size: 24),
+                                  ],
+                                ),
                               ),
-                            ],
+                            ),
                           ),
-                        ),
+                        ]),
                       ),
 
                       // ── 미리보기 ──────────────────────────
@@ -781,11 +926,11 @@ padding: const EdgeInsets.symmetric(
                               width: p.w,
                               height: p.h,
                               decoration: BoxDecoration(
-                                color: p.color.withValues(alpha: 0.10),
+                                color: p.color.withValues(alpha: 0.18),
                                 borderRadius: BorderRadius.circular(p.r),
                                 border: Border.all(
-                                    color: p.color.withValues(alpha: 0.22),
-                                    width: 2),
+                                    color: p.shade.withValues(alpha: 0.55),
+                                    width: 2.5),
                               ),
                             ),
                           ),
@@ -832,36 +977,87 @@ padding: const EdgeInsets.symmetric(
 
                       // ── 완성 배너 ─────────────────────────
                       if (_isCelebrating)
-                        Center(
-                          child: TweenAnimationBuilder<double>(
-                            tween: Tween(begin: 0.0, end: 1.0),
-                            duration: const Duration(milliseconds: 600),
-                            curve: Curves.elasticOut,
-                            builder: (ctx2, v, child2) => Transform.scale(
-                              scale: v,
-                              child: Container(
-                                constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(
-                                    horizontal: 40, vertical: 24),
-                                decoration: KidsTheme.toyDecoration(
-                                    color: KidsTheme.green, borderRadius: 32),
-                                child: SingleChildScrollView(
-child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text('완성! 🎉',
-                                        style: GoogleFonts.jua(
-                                            fontSize: 52, color: Colors.white)),
-                                    const SizedBox(height: 6),
-                                    Text('다음 모양으로!',
-                                        style: GoogleFonts.jua(
-                                            fontSize: 20,
-                                            color: Colors.white70,
-                                            height: 1.1)),
-                                  ],
+                        Positioned.fill(
+                          child: Container(
+                            color: Colors.black.withValues(alpha: 0.55),
+                            child: Center(
+                              child: TweenAnimationBuilder<double>(
+                                tween: Tween(begin: 0.0, end: 1.0),
+                                duration: const Duration(milliseconds: 500),
+                                curve: Curves.elasticOut,
+                                builder: (ctx2, v, child2) => Transform.scale(
+                                  scale: v,
+                                  child: Container(
+                                    constraints: const BoxConstraints(maxWidth: 320),
+                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFF43A047), Color(0xFF1B5E20)],
+                                      ),
+                                      borderRadius: BorderRadius.circular(32),
+                                      border: Border.all(color: const Color(0xFFFFD700), width: 3.5),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withAlpha(60),
+                                          blurRadius: 20,
+                                          offset: const Offset(0, 8),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          '${_levels[_levelIdx % _levels.length].emoji} 🎉',
+                                          style: const TextStyle(fontSize: 48),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          '멋지게 완성했어요!',
+                                          style: GoogleFonts.jua(fontSize: 26, color: Colors.white),
+                                        ),
+                                        const SizedBox(height: 18),
+                                        GestureDetector(
+                                          onTap: () {
+                                            AudioManager.instance.playClick();
+                                            _nextLevel();
+                                          },
+                                          child: Container(
+                                            height: 52,
+                                            width: double.infinity,
+                                            decoration: BoxDecoration(
+                                              gradient: const LinearGradient(
+                                                colors: [Color(0xFF00E676), Color(0xFF00C853)],
+                                              ),
+                                              borderRadius: BorderRadius.circular(24),
+                                              border: Border.all(color: Colors.white, width: 2.5),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: const Color(0xFF00C853).withValues(alpha: 0.4),
+                                                  blurRadius: 10,
+                                                  offset: const Offset(0, 4),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Center(
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    '다음 블럭으로!',
+                                                    style: GoogleFonts.jua(fontSize: 19, color: Colors.white),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  const Text('➡️', style: TextStyle(fontSize: 22)),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-),
                               ),
                             ),
                           ),

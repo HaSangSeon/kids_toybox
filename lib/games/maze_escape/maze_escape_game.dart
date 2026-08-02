@@ -137,7 +137,8 @@ class MazeEscapeGame extends StatefulWidget {
 
 class _MazeEscapeGameState extends State<MazeEscapeGame>
     with TickerProviderStateMixin {
-  int _difficultyIdx = 0; // 0: 1단계 (5x5 초간단), 1: 2단계 (7x7 쉬움), 2: 3단계 (11x7 보통), 3: 4단계 (15x9 어렵다)
+  int _difficultyIdx = 0; // 0: 1단계 (기본 7x7), 1: 2단계 (보통 11x9), 2: 3단계 (어려움 15x11), 3: 4단계 (도전 19x13)
+  int _stageLevel = 1;    // 현재 클리어 진행 단계 (1, 2, 3...)
   int _themeIdx = 0;
   bool _isLevelClear = false;
   Timer? _nextLevelTimer;
@@ -206,22 +207,30 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
     _showPathHint = false;
     _hintPathCells.clear();
 
-    int targetRows, targetCols;
+    int baseRows, baseCols;
     switch (_difficultyIdx) {
       case 0:
-        targetRows = 5; targetCols = 5; // 1단계: 5x5 (초간단 아기용)
+        baseRows = 7; baseCols = 7; // 1단계 (기본: 7x7)
         break;
       case 1:
-        targetRows = 7; targetCols = 7; // 2단계: 7x7 (쉬움)
+        baseRows = 11; baseCols = 9; // 2단계 (보통: 11x9)
         break;
       case 2:
-        targetRows = 11; targetCols = 7; // 3단계: 11x7 (보통)
+        baseRows = 15; baseCols = 11; // 3단계 (어려움: 15x11)
         break;
       case 3:
       default:
-        targetRows = 15; targetCols = 9; // 4단계: 15x9 (어렵다)
+        baseRows = 19; baseCols = 13; // 4단계 (도전: 19x13)
         break;
     }
+
+    // 단계가 올라갈 때마다 미로 크기와 복잡도가 점진적으로 늘어남
+    final step = _stageLevel - 1;
+    int targetRows = baseRows + step * 2;
+    int targetCols = baseCols + (step * 1.5).floor() * 2;
+
+    targetRows = targetRows.clamp(7, 25);
+    targetCols = targetCols.clamp(7, 17);
 
     final rows = targetRows.isEven ? targetRows + 1 : targetRows;
     final cols = targetCols.isEven ? targetCols + 1 : targetCols;
@@ -409,6 +418,7 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
     _nextLevelTimer?.cancel();
     if (!mounted) return;
     setState(() {
+      _stageLevel++; // 클리어할 때마다 다음 레벨로 난이도 업!
       _themeIdx = (_themeIdx + 1) % _kThemes.length;
       _loadLevel();
     });
@@ -552,9 +562,9 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
                               children: [
                                 Text('${theme.playerEmoji} 🎉 ${theme.goalEmoji}', style: const TextStyle(fontSize: 42)),
                                 const SizedBox(height: 10),
-                                Text('도착했어요!', style: GoogleFonts.jua(fontSize: 30, color: Colors.white)),
+                                Text('STAGE $_stageLevel 탈출 성공!', style: GoogleFonts.jua(fontSize: 28, color: Colors.white)),
                                 const SizedBox(height: 4),
-                                Text('🎯 +50점 획득!', style: GoogleFonts.jua(fontSize: 20, color: Colors.yellowAccent)),
+                                Text('다음 단계(STAGE ${_stageLevel + 1})는 더 넓고 재미나요! 🚀', style: GoogleFonts.jua(fontSize: 15, color: Colors.yellowAccent)),
                                 const SizedBox(height: 18),
 
                                 // 🚀 다음 단계로 넘어 가기! (왕 커다란 초록 버튼)
@@ -619,12 +629,12 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       child: Container(
-        height: 54,
+        height: 52,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withAlpha(30) : Colors.white.withAlpha(220),
-          borderRadius: BorderRadius.circular(27),
-          border: Border.all(color: Colors.white.withAlpha(150), width: 2),
+          color: isDark ? Colors.white.withAlpha(35) : Colors.white.withAlpha(225),
+          borderRadius: BorderRadius.circular(26),
+          border: Border.all(color: Colors.white.withAlpha(160), width: 2),
           boxShadow: [BoxShadow(color: Colors.black.withAlpha(20), blurRadius: 10, offset: const Offset(0, 4))],
         ),
         child: Row(
@@ -632,19 +642,41 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
             GestureDetector(
               onTap: () { AudioManager.instance.playClick(); Navigator.pop(context); },
               child: Container(
-                width: 42, height: 42,
+                width: 38, height: 38,
                 decoration: BoxDecoration(
                   color: isDark ? Colors.white.withAlpha(40) : KidsTheme.red,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
               ),
             ),
             Expanded(
-              child: Text(
-                _theme.title,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.jua(fontSize: 20, color: textColor),
+              child: Center(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _theme.title,
+                        style: GoogleFonts.jua(fontSize: 17, color: textColor),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.orange.shade400, width: 1.2),
+                        ),
+                        child: Text(
+                          'STAGE $_stageLevel',
+                          style: GoogleFonts.jua(fontSize: 13, color: Colors.orange.shade800),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
             GestureDetector(
@@ -653,18 +685,18 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
                 _showSettingsDialog();
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [Color(0xFFFF9800), Color(0xFFF57C00)],
                   ),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(18),
                   boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('⭐', style: TextStyle(fontSize: 16)),
+                    const Text('⭐', style: TextStyle(fontSize: 14)),
                     const SizedBox(width: 4),
                     Text('난이도', style: GoogleFonts.jua(fontSize: 13, color: Colors.white)),
                   ],
@@ -780,7 +812,10 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
       child: GestureDetector(
         onTap: () {
           AudioManager.instance.playClick();
-          setModalState(() { _difficultyIdx = idx; });
+          setModalState(() {
+            _difficultyIdx = idx;
+            _stageLevel = 1;
+          });
           setState(() { _loadLevel(); });
         },
         child: Container(

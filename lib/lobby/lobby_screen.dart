@@ -750,13 +750,13 @@ class _LobbyScreenState extends State<LobbyScreen>
       ),
       _GameData(
         title: '미로 찾기',
-        emoji: '🧀',
+        emoji: '🧭',
         gradientColors: KidsTheme.gameGradients['green']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MazeEscapeGame())); },
       ),
       _GameData(
         title: '블럭 조립',
-        emoji: '🧊',
+        emoji: '🧱',
         gradientColors: KidsTheme.gameGradients['orange']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BlockBuilderGame())); },
       ),
