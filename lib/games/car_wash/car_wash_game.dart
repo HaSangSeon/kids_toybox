@@ -16,6 +16,7 @@ class _Vehicle {
   final Color bodyColor;
   final Color roofColor;
   final Color wheelColor;
+  final List<String> stickers;
 
   const _Vehicle({
     required this.id,
@@ -24,16 +25,101 @@ class _Vehicle {
     required this.bodyColor,
     required this.roofColor,
     required this.wheelColor,
+    required this.stickers,
   });
 }
 
 const List<_Vehicle> _kVehicles = [
-  _Vehicle(id: 'car',        label: '노랑 빵빵이', emoji: '🚗', bodyColor: Color(0xFFFFCC02), roofColor: Color(0xFFFF9F1C), wheelColor: Color(0xFF333333)),
-  _Vehicle(id: 'police',     label: '멋진 경찰차', emoji: '🚓', bodyColor: Color(0xFF4FC3F7), roofColor: Color(0xFF0277BD), wheelColor: Color(0xFF333333)),
-  _Vehicle(id: 'fire',       label: '용감 소방차', emoji: '🚒', bodyColor: Color(0xFFEF5350), roofColor: Color(0xFFB71C1C), wheelColor: Color(0xFF333333)),
-  _Vehicle(id: 'ambulance',  label: '삐뽀 구급차', emoji: '🚑', bodyColor: Color(0xFFF5F5F5), roofColor: Color(0xFFB0BEC5), wheelColor: Color(0xFF333333)),
-  _Vehicle(id: 'bus',        label: '파란 버스',   emoji: '🚌', bodyColor: Color(0xFF42A5F5), roofColor: Color(0xFF1565C0), wheelColor: Color(0xFF333333)),
-  _Vehicle(id: 'racing',     label: '레이싱카',    emoji: '🏎️', bodyColor: Color(0xFFE53935), roofColor: Color(0xFFB71C1C), wheelColor: Color(0xFF111111)),
+  _Vehicle(
+    id: 'car',
+    label: '노랑 빵빵이',
+    emoji: '🚗',
+    bodyColor: Color(0xFFFFCC02),
+    roofColor: Color(0xFFFF9F1C),
+    wheelColor: Color(0xFF333333),
+    stickers: ['🛞', '🚨', '⛽', '🔧', '🔩', '🛡️', '⚙️', '🏁'],
+  ),
+  _Vehicle(
+    id: 'police',
+    label: '멋진 경찰차',
+    emoji: '🚓',
+    bodyColor: Color(0xFF4FC3F7),
+    roofColor: Color(0xFF0277BD),
+    wheelColor: Color(0xFF333333),
+    stickers: ['🚨', '🛡️', '⭐', '🔍', '📻', '🔦', '⚡', '🏆'],
+  ),
+  _Vehicle(
+    id: 'fire',
+    label: '용감 소방차',
+    emoji: '🚒',
+    bodyColor: Color(0xFFEF5350),
+    roofColor: Color(0xFFB71C1C),
+    wheelColor: Color(0xFF333333),
+    stickers: ['🚨', '👨‍🚒', '🧯', '🪓', '💧', '🛡️', '🔥', '🏆'],
+  ),
+  _Vehicle(
+    id: 'ambulance',
+    label: '삐뽀 구급차',
+    emoji: '🚑',
+    bodyColor: Color(0xFFF5F5F5),
+    roofColor: Color(0xFFB0BEC5),
+    wheelColor: Color(0xFF333333),
+    stickers: ['🚨', '🩺', '🩹', '💊', '🏥', '🛡️', '❤️', '⭐'],
+  ),
+  _Vehicle(
+    id: 'bus',
+    label: '타요 스쿨버스',
+    emoji: '🚌',
+    bodyColor: Color(0xFF42A5F5),
+    roofColor: Color(0xFF1565C0),
+    wheelColor: Color(0xFF333333),
+    stickers: ['🛑', '🎒', '🔔', '🚸', '🛞', '⭐', '🚌', '🏁'],
+  ),
+  _Vehicle(
+    id: 'racing',
+    label: '스피드 레이싱카',
+    emoji: '🏎️',
+    bodyColor: Color(0xFFE53935),
+    roofColor: Color(0xFFB71C1C),
+    wheelColor: Color(0xFF111111),
+    stickers: ['🏁', '🏆', '⚡', '🔥', '🛞', '🥇', '💨', '🛡️'],
+  ),
+  _Vehicle(
+    id: 'monster',
+    label: '몬스터 트럭',
+    emoji: '🛻',
+    bodyColor: Color(0xFF8B5CF6),
+    roofColor: Color(0xFF6D28D9),
+    wheelColor: Color(0xFF1F2937),
+    stickers: ['🛞', '⚙️', '🥊', '👑', '💀', '💥', '🔥', '🛡️'],
+  ),
+  _Vehicle(
+    id: 'taxi',
+    label: '씽씽 모범택시',
+    emoji: '🚕',
+    bodyColor: Color(0xFFFFB703),
+    roofColor: Color(0xFFFB8500),
+    wheelColor: Color(0xFF333333),
+    stickers: ['🏷️', '🗺️', '🧭', '💰', '🛞', '⭐', '🚕', '🏁'],
+  ),
+  _Vehicle(
+    id: 'tractor',
+    label: '힘센 트랙터',
+    emoji: '🚜',
+    bodyColor: Color(0xFF10B981),
+    roofColor: Color(0xFF047857),
+    wheelColor: Color(0xFF374151),
+    stickers: ['🌾', '🌽', '🍎', '🌻', '🧑‍🌾', '🛞', '⚙️', '🔧'],
+  ),
+  _Vehicle(
+    id: 'suv',
+    label: '핑크 꼬마 SUV',
+    emoji: '🚙',
+    bodyColor: Color(0xFFEC4899),
+    roofColor: Color(0xFFBE185D),
+    wheelColor: Color(0xFF111111),
+    stickers: ['🎀', '⛺', '🌸', '💖', '🕶️', '🎒', '⭐', '🛞'],
+  ),
 ];
 
 // 세차 순서: 차 선택 -> 매연 뿜으며 입장 -> 물로 먼지 씻기 -> 비누칠 -> 물로 헹구기 -> 수건 닦기 -> 스티커 -> 출발
@@ -166,8 +252,78 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
   final List<_Sticker> _stickers = [];
   int _selectedStickerIdx = 0;
   static const List<String> _stickerEmojis = [
-    '⭐', '💙', '🌸', '⚡', '🐾', '🎀', '🌈', '🔥', '🍭', '🎉',
+    '🚨', '🛞', '🛡️', '⚙️', '🔧', '🔩', '🔥', '⚡', '🔊', '🏁',
   ];
+
+  DateTime _lastSoundTime = DateTime.now();
+
+  void _playStepDragSound() {
+    final now = DateTime.now();
+    if (now.difference(_lastSoundTime).inMilliseconds < 120) return;
+    _lastSoundTime = now;
+
+    switch (_step) {
+      case _WashStep.water:
+        AudioManager.instance.playCarWashWaterSpray();
+        break;
+      case _WashStep.soap:
+        AudioManager.instance.playCarWashSoapScrub();
+        break;
+      case _WashStep.rinse:
+        AudioManager.instance.playCarWashRinse();
+        break;
+      case _WashStep.dry:
+        AudioManager.instance.playCarWashDry();
+        break;
+      default:
+        break;
+    }
+  }
+
+  // brushCells=2 on 15x15 grid → balanced area
+  // delta=0.6 → needs 2 passes or slower drag to fully clean
+  void _onDrag(Offset localPos, Size carSize) {
+    if (_step == _WashStep.driveIn) return;
+
+    _playStepDragSound();
+
+    switch (_step) {
+      case _WashStep.water:
+        _paintGridLocal(localPos, carSize, 2, _dirtGrid, -0.6);
+        _spawnDroplets(localPos);
+        break;
+      case _WashStep.soap:
+        _paintGridLocal(localPos, carSize, 2, _soapGrid, 0.6);
+        _spawnBubbles(localPos);
+        break;
+      case _WashStep.rinse:
+        _paintGridLocal(localPos, carSize, 2, _rinseGrid, 0.6);
+        _paintGridLocal(localPos, carSize, 2, _soapGrid, -0.6);
+        _spawnDroplets(localPos);
+        break;
+      case _WashStep.dry:
+        _paintGridLocal(localPos, carSize, 2, _dryGrid, 0.6);
+        _spawnSparks(localPos);
+        break;
+      case _WashStep.sticker:
+        _placeSticker(localPos, carSize);
+        break;
+      default:
+        break;
+    }
+    _checkAdvance();
+  }
+
+  void _placeSticker(Offset localPos, Size carSize) {
+    final rel = _localToRel(localPos, carSize);
+    final stickersList = _car.stickers;
+    if (_selectedStickerIdx < stickersList.length) {
+      setState(() {
+        _stickers.add(_Sticker(stickersList[_selectedStickerIdx], rel));
+      });
+      AudioManager.instance.playCarWashSticker();
+    }
+  }
 
   // Animations
   late AnimationController _ticker;
@@ -370,7 +526,6 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
   }
 
   void _triggerStepComplete(String bannerText, Color bannerColor) {
-    AudioManager.instance.playEffect('audio/pop.mp3');
     setState(() => _stepComplete = true);
     _showBanner(bannerText, bannerColor);
     _autoAdvanceTimer?.cancel();
@@ -414,7 +569,6 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
 
   void _advanceStep() {
     _autoAdvanceTimer?.cancel();
-    AudioManager.instance.playClick();
     setState(() {
       _stepComplete = false;
       _bannerText = '';
@@ -444,51 +598,15 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
     }
   }
 
-  // brushCells=2 on 15x15 grid → balanced area
-  // delta=0.6 → needs 2 passes or slower drag to fully clean
-  void _onDrag(Offset localPos, Size carSize) {
-    if (_step == _WashStep.driveIn) return;
 
-    switch (_step) {
-      case _WashStep.water:
-        _paintGridLocal(localPos, carSize, 2, _dirtGrid, -0.6);
-        _spawnDroplets(localPos);
-        AudioManager.instance.playEffect('audio/pop.mp3');
-        break;
-      case _WashStep.soap:
-        _paintGridLocal(localPos, carSize, 2, _soapGrid, 0.6);
-        _spawnBubbles(localPos);
-        break;
-      case _WashStep.rinse:
-        _paintGridLocal(localPos, carSize, 2, _rinseGrid, 0.6);
-        _paintGridLocal(localPos, carSize, 2, _soapGrid, -0.6);
-        _spawnDroplets(localPos);
-        AudioManager.instance.playEffect('audio/pop.mp3');
-        break;
-      case _WashStep.dry:
-        _paintGridLocal(localPos, carSize, 2, _dryGrid, 0.6);
-        _spawnSparks(localPos);
-        break;
-      case _WashStep.sticker:
-        _placeSticker(localPos, carSize);
-        break;
-      default:
-        break;
-    }
-    _checkAdvance();
-  }
 
-  void _placeSticker(Offset localPos, Size carSize) {
-    final rel = _localToRel(localPos, carSize);
-    setState(() {
-      _stickers.add(_Sticker(_stickerEmojis[_selectedStickerIdx], rel));
-    });
-    AudioManager.instance.playClick();
+  void _playCarArrivalSound(_Vehicle car) {
+    AudioManager.instance.playVehicleSound(car.id);
   }
 
   void _startDriveOut() {
     _autoAdvanceTimer?.cancel();
-    AudioManager.instance.playClick();
+    _playCarArrivalSound(_car);
     _spawnConfetti();
     _carDriveCtrl.forward().then((_) {
       setState(() => _driveComplete = true);
@@ -497,7 +615,7 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
 
   void _startDriveIn(_Vehicle vehicle) {
     _autoAdvanceTimer?.cancel();
-    AudioManager.instance.playClick();
+    _playCarArrivalSound(vehicle);
     setState(() {
       _car = vehicle;
       _step = _WashStep.driveIn;
@@ -608,19 +726,25 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 1.2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-              ),
-              itemCount: _kVehicles.length,
-              itemBuilder: (ctx, i) {
-                final v = _kVehicles[i];
-                return _CarSelectTile(
-                  vehicle: v,
-                  onTap: () => _startDriveIn(v),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final crossAxisCount = constraints.maxWidth > 600 ? 3 : 2;
+                return GridView.builder(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    childAspectRatio: 1.25,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: _kVehicles.length,
+                  itemBuilder: (ctx, i) {
+                    final v = _kVehicles[i];
+                    return _CarSelectTile(
+                      vehicle: v,
+                      onTap: () => _startDriveIn(v),
+                    );
+                  },
                 );
               },
             ),
@@ -959,7 +1083,7 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
                 height: 48,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  itemCount: _stickerEmojis.length,
+                  itemCount: _car.stickers.length,
                   itemBuilder: (ctx, i) {
                     final selected = i == _selectedStickerIdx;
                     return GestureDetector(
@@ -984,7 +1108,7 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
                           ] : [],
                         ),
                         child: Center(
-                          child: Text(_stickerEmojis[i], style: TextStyle(fontSize: selected ? 24 : 20)),
+                          child: Text(_car.stickers[i], style: TextStyle(fontSize: selected ? 24 : 20)),
                         ),
                       ),
                     );
@@ -1151,32 +1275,59 @@ class _CarSelectTile extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))],
+          gradient: LinearGradient(
+            colors: [
+              Colors.white,
+              vehicle.bodyColor.withValues(alpha: 0.25),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: vehicle.bodyColor.withValues(alpha: 0.6), width: 3),
+          boxShadow: [
+            BoxShadow(
+              color: vehicle.bodyColor.withValues(alpha: 0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
         ),
         child: Stack(
           children: [
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(vehicle.emoji, style: const TextStyle(fontSize: 60)),
-                  const SizedBox(height: 8),
-                  Text(vehicle.label, style: GoogleFonts.jua(fontSize: 16, color: Colors.black87)),
-                ],
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(vehicle.emoji, style: const TextStyle(fontSize: 52)),
+                    ),
+                    const SizedBox(height: 4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        vehicle.label,
+                        style: GoogleFonts.jua(fontSize: 15, color: KidsTheme.textDark, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             // Mud badge indicating dirty status
             Positioned(
-              top: 8, right: 8,
+              top: 6, right: 6,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
                   color: const Color(0xFF795548),
                   borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white, width: 1.5),
                 ),
-                child: Text('먼지 가득! 💩', style: GoogleFonts.jua(fontSize: 10, color: Colors.white)),
+                child: Text('먼지 퐁퐁! 💩', style: GoogleFonts.jua(fontSize: 9, color: Colors.white)),
               ),
             ),
           ],

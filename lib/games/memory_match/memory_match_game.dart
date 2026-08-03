@@ -646,7 +646,7 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
                 const SizedBox(height: 6),
                 Text(
                   '하고 싶은 레벨을 마음대로 골라보세요!',
-                  style: GoogleFonts.nunito(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                  style: GoogleFonts.jua(fontSize: 12, color: Colors.grey.shade600),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
@@ -1093,9 +1093,8 @@ child: Column(
                 children: [
                   Text(
                     'Level ${widget.nextLevel}',
-                    style: GoogleFonts.outfit(
+                    style: GoogleFonts.jua(
                       fontSize: 52,
-                      fontWeight: FontWeight.w900,
                       color: Colors.white,
                     ),
                   ),

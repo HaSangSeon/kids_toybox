@@ -122,16 +122,8 @@ class GameEngine extends ChangeNotifier {
   }
 
   void loseLife() {
-    if (isGameOver || isStageCleared) return;
-    lives--;
-    AudioManager.instance.playDamage();
-    HapticFeedback.vibrate(); // Heavy vibration on health loss!
-    
-    if (lives <= 0) {
-      isGameOver = true;
-      AudioManager.instance.playGameOver();
-      _saveHighScore();
-    }
+    // Endless mode: No game over!
+    lives = 3;
     notifyListeners();
   }
 
@@ -241,10 +233,6 @@ class GameEngine extends ChangeNotifier {
     int initialBalloons = balloons.length;
     balloons.removeWhere((b) {
       if (b.y < -0.15 && !b.isPopped) {
-        // Lose life ONLY if normal or fast balloon escapes
-        if (b.type == BalloonType.normal || b.type == BalloonType.fast) {
-          loseLife();
-        }
         return true;
       }
       return b.isPopped;
@@ -381,9 +369,9 @@ class GameEngine extends ChangeNotifier {
         freezeTimer = 4.5;
         break;
       case BalloonType.spiky:
-        loseLife();
-        points = 0;
-        floatText = "아야! 💥";
+        AudioManager.instance.playBoing();
+        points = 10;
+        floatText = "통통! ✨";
         particleColor = const Color(0xFFE040FB);
         break;
     }
@@ -703,17 +691,14 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                                 builder: (context, child) {
                                   return Row(
                                     mainAxisSize: MainAxisSize.min,
-                                    children: List.generate(3, (index) {
-                                      final isHeartActive = index < _engine.lives;
-                                      return Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 1.5),
-                                        child: Icon(
-                                          Icons.favorite,
-                                          color: isHeartActive ? KidsTheme.red : Colors.grey.shade300,
-                                          size: 20,
-                                        ),
-                                      );
-                                    }),
+                                    children: [
+                                      const Icon(Icons.favorite, color: KidsTheme.red, size: 18),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        '무한 팡팡',
+                                        style: GoogleFonts.jua(fontSize: 14, color: KidsTheme.textDark),
+                                      ),
+                                    ],
                                   );
                                 },
                               ),

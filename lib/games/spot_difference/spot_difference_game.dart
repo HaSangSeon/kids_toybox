@@ -459,7 +459,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with TickerProv
                 const SizedBox(height: 6),
                 Text(
                   '하고 싶은 탐험 단계를 마음대로 골라보세요!',
-                  style: GoogleFonts.nunito(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                  style: GoogleFonts.jua(fontSize: 12, color: Colors.grey.shade600),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),

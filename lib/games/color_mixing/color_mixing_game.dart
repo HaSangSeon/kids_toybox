@@ -136,6 +136,7 @@ class _ColorMixingGameState extends State<ColorMixingGame>
   late Animation<Offset> _shakeAnim;
   late AnimationController _sparkleCtrl; // 반짝이
   late AnimationController _wobbleCtrl;  // 그릇 wobble
+  late AnimationController _bgAnimCtrl;  // 배경 물방울 애니메이션
 
   @override
   void initState() {
@@ -146,7 +147,7 @@ class _ColorMixingGameState extends State<ColorMixingGame>
     _popCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
     _popScale = CurvedAnimation(parent: _popCtrl, curve: Curves.elasticOut);
 
-    _dropCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _dropCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 250));
     _dropCtrl.addListener(_onDropTick);
     _dropCtrl.addStatusListener((s) {
       if (s == AnimationStatus.completed) {
@@ -165,6 +166,7 @@ class _ColorMixingGameState extends State<ColorMixingGame>
     _sparkleCtrl.addListener(_updateSparkles);
 
     _wobbleCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
+    _bgAnimCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 20))..repeat();
   }
 
   @override
@@ -175,6 +177,7 @@ class _ColorMixingGameState extends State<ColorMixingGame>
     _shakeCtrl.dispose();
     _sparkleCtrl.dispose();
     _wobbleCtrl.dispose();
+    _bgAnimCtrl.dispose();
     super.dispose();
   }
 
@@ -224,7 +227,7 @@ class _ColorMixingGameState extends State<ColorMixingGame>
         _bowl.remove(paint.key);
         _computeMix();
       });
-      AudioManager.instance.playClick();
+      AudioManager.instance.playPaintDrop();
       return;
     }
 
@@ -237,26 +240,20 @@ class _ColorMixingGameState extends State<ColorMixingGame>
 
     HapticFeedback.lightImpact();
 
-    // 낙하 애니메이션 시작
+    // 즉시 그릇에 반영 (답답함 해소)
     setState(() {
+      _bowl.add(paint.key);
+      _computeMix();
       _drop = _DropState(
         color: paint.rgb,
         tubeIndex: index,
         totalTubes: _kPaints.length,
       );
     });
+    
     _dropCtrl.forward(from: 0);
-
-    // 약간 딜레이 후 그릇에 반영
-    Future.delayed(const Duration(milliseconds: 400), () {
-      if (!mounted) return;
-      setState(() {
-        _bowl.add(paint.key);
-        _computeMix();
-      });
-      _wobbleCtrl.forward(from: 0).then((_) => _wobbleCtrl.reverse());
-      AudioManager.instance.playClick();
-    });
+    _wobbleCtrl.forward(from: 0).then((_) => _wobbleCtrl.reverse());
+    AudioManager.instance.playPaintDrop();
   }
 
   // ── 혼합 계산 ────────────────────────────────────────────────────────────
@@ -358,7 +355,7 @@ class _ColorMixingGameState extends State<ColorMixingGame>
       canPop: false,
       child: Scaffold(
         body: AnimatedContainer(
-          duration: const Duration(milliseconds: 800),
+          duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -370,7 +367,15 @@ class _ColorMixingGameState extends State<ColorMixingGame>
               ],
             ),
           ),
-          child: SafeArea(
+          child: AnimatedBuilder(
+            animation: _bgAnimCtrl,
+            builder: (context, child) {
+              return CustomPaint(
+                painter: _FloatingBlobsPainter(_bgAnimCtrl.value, _bowlColor, _bowl.isEmpty),
+                child: child,
+              );
+            },
+            child: SafeArea(
             child: Column(
               children: [
                 // ── 헤더 ──────────────────────────────────────────────────
@@ -409,6 +414,7 @@ class _ColorMixingGameState extends State<ColorMixingGame>
                 const SizedBox(height: 16),
               ],
             ),
+          ),
           ),
         ),
       ),
@@ -931,5 +937,76 @@ class _SparklePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _SparklePainter old) => true;
+  bool shouldRepaint(_SparklePainter old) => true;
+}
+
+class _FloatingBlobsPainter extends CustomPainter {
+  final double animValue;
+  final Color baseColor;
+  final bool isEmpty;
+
+  _FloatingBlobsPainter(this.animValue, this.baseColor, this.isEmpty);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Color blobColor = isEmpty ? const Color(0xFFB3E5FC) : baseColor;
+    
+    final paint = Paint()
+      ..color = blobColor.withValues(alpha: isEmpty ? 0.4 : 0.15)
+      ..style = PaintingStyle.fill
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16);
+
+    _drawBlob(canvas, paint, size, 0.1, 0.8, 60, animValue, 1.0);
+    _drawBlob(canvas, paint, size, 0.3, 0.4, 40, animValue, 1.4);
+    _drawBlob(canvas, paint, size, 0.8, 0.9, 80, animValue, 0.8);
+    _drawBlob(canvas, paint, size, 0.7, 0.2, 50, animValue, 1.2);
+    _drawBlob(canvas, paint, size, 0.5, 0.6, 70, animValue, 1.1);
+    
+    final smallPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.2)
+      ..style = PaintingStyle.fill
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+    
+    _drawBlob(canvas, smallPaint, size, 0.2, 0.5, 20, animValue, 1.8);
+    _drawBlob(canvas, smallPaint, size, 0.6, 0.1, 25, animValue, 1.6);
+    _drawBlob(canvas, smallPaint, size, 0.9, 0.7, 30, animValue, 1.3);
+  }
+
+  void _drawBlob(Canvas canvas, Paint paint, Size size, double nx, double ny, double radius, double anim, double speed) {
+    double totalTravel = size.height + radius * 4;
+    double progress = (ny + anim * speed) % 1.0;
+    
+    double y = (size.height + radius * 2) - progress * totalTravel;
+    
+    double wave = sin(progress * pi * 4) * (radius * 0.8);
+    double x = size.width * nx + wave;
+    
+    final path = Path();
+    final squeeze = sin(progress * pi * 8) * (radius * 0.1);
+    
+    path.addOval(Rect.fromCenter(
+      center: Offset(x, y),
+      width: radius * 2 + squeeze,
+      height: radius * 2 - squeeze,
+    ));
+    
+    canvas.drawPath(path, paint);
+    
+    final highlightPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.3)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+      
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(x - radius * 0.3, y - radius * 0.3),
+        width: radius * 0.5,
+        height: radius * 0.5,
+      ),
+      highlightPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_FloatingBlobsPainter old) => 
+      old.animValue != animValue || old.baseColor != baseColor || old.isEmpty != isEmpty;
 }

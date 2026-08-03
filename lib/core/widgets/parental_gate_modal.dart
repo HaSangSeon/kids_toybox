@@ -161,9 +161,8 @@ class _ParentalGateModalState extends State<ParentalGateModal> {
                   children: [
                   Text(
                     '$_num1  ×  $_num2  = ',
-                    style: GoogleFonts.outfit(
+                    style: GoogleFonts.jua(
                       fontSize: 32,
-                      fontWeight: FontWeight.w900,
                       color: KidsTheme.textDark,
                     ),
                   ),
@@ -179,9 +178,8 @@ class _ParentalGateModalState extends State<ParentalGateModal> {
                     ),
                     child: Text(
                       _inputAnswer,
-                      style: GoogleFonts.outfit(
+                      style: GoogleFonts.jua(
                         fontSize: 28,
-                        fontWeight: FontWeight.w900,
                         color: _isWrong ? KidsTheme.red : KidsTheme.purple,
                       ),
                     ),
@@ -194,9 +192,8 @@ class _ParentalGateModalState extends State<ParentalGateModal> {
               const SizedBox(height: 8),
               Text(
                 '틀렸어요! 다시 풀어보세요. 🚫',
-                style: GoogleFonts.nunito(
+                style: GoogleFonts.jua(
                   fontSize: 14,
-                  fontWeight: FontWeight.bold,
                   color: KidsTheme.red,
                 ),
               ),
@@ -247,9 +244,8 @@ class _ParentalGateModalState extends State<ParentalGateModal> {
         child: Center(
           child: Text(
             label,
-            style: GoogleFonts.outfit(
+            style: GoogleFonts.jua(
               fontSize: label == 'OK' ? 18 : 22,
-              fontWeight: FontWeight.w900,
               color: fgColor,
             ),
           ),

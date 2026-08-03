@@ -107,6 +107,34 @@ const List<_LevelTheme> _themes = [
     targetEmojis: ['🤡', '🧸', '🎁', '👑', '🪄', '🎭'],
     bgGradient: [Color(0xFFBA68C8), Color(0xFF7B1FA2)],
   ),
+  _LevelTheme(
+    name: '눈송이 마을',
+    icon: '⛄',
+    scatterEmojis: ['❄️', '🧊', '🎄', '🎁', '🧣', '🧤', '🎿', '⛸️', '🛷', '🌨️'],
+    targetEmojis: ['⛄', '🐧', '🐻‍❄️', '🦌', '🦉', '🐺'],
+    bgGradient: [Color(0xFF81D4FA), Color(0xFF0277BD)],
+  ),
+  _LevelTheme(
+    name: '유령의 집',
+    icon: '👻',
+    scatterEmojis: ['🎃', '🕸️', '🕷️', '🍬', '🍫', '🕯️', '💀', '👽', '🧛', '🧟'],
+    targetEmojis: ['👻', '🦇', '🐈‍⬛', '🦉', '👹', '🤖'],
+    bgGradient: [Color(0xFF4527A0), Color(0xFF1B5E20)],
+  ),
+  _LevelTheme(
+    name: '정글 사파리',
+    icon: '🦁',
+    scatterEmojis: ['🌴', '🌿', '🥥', '🍌', '🥭', '🍍', '🌺', '🐍', '🐸', '🐢'],
+    targetEmojis: ['🦁', '🐒', '🐯', '🐘', '🦒', '🦓'],
+    bgGradient: [Color(0xFFAED581), Color(0xFF33691E)],
+  ),
+  _LevelTheme(
+    name: '마법의 숲',
+    icon: '🧚',
+    scatterEmojis: ['🍄', '🌸', '🌼', '🌷', '🌿', '💎', '🔮', '🪞', '👑', '💍'],
+    targetEmojis: ['🧚', '🦄', '🦋', '🦢', '🦚', '🕊️'],
+    bgGradient: [Color(0xFFF48FB1), Color(0xFF880E4F)],
+  ),
 ];
 
 // ─────────────────────────────────────────────
@@ -190,8 +218,8 @@ class _HiddenObjectGameState extends State<HiddenObjectGame> with TickerProvider
         int attempts = 0;
         while (!valid && attempts < 50) {
           attempts++;
-          px = 0.06 + _random.nextDouble() * 0.88;
-          py = 0.05 + _random.nextDouble() * 0.90;
+          px = 0.12 + _random.nextDouble() * 0.76;
+          py = 0.12 + _random.nextDouble() * 0.76;
           valid = !targetItems.any((t) => (t.x - px).abs() < 0.16 && (t.y - py).abs() < 0.16);
         }
         targetItems.add(HiddenItem(
@@ -213,8 +241,8 @@ class _HiddenObjectGameState extends State<HiddenObjectGame> with TickerProvider
         int attempts = 0;
         while (!valid && attempts < 30) {
           attempts++;
-          sx = 0.05 + _random.nextDouble() * 0.90;
-          sy = 0.05 + _random.nextDouble() * 0.90;
+          sx = 0.08 + _random.nextDouble() * 0.84;
+          sy = 0.08 + _random.nextDouble() * 0.84;
           valid = !targetItems.any((t) => (t.x - sx).abs() < 0.10 && (t.y - sy).abs() < 0.10);
         }
         scatterItems.add(HiddenItem(
@@ -235,7 +263,7 @@ class _HiddenObjectGameState extends State<HiddenObjectGame> with TickerProvider
     if (item.isFound || _isLevelClear) return;
 
     if (item.isTarget) {
-      AudioManager.instance.playChime();
+      AudioManager.instance.playJigsawSnapCorrect();
       HapticFeedback.mediumImpact();
       setState(() {
         item.isFound = true;
@@ -383,9 +411,9 @@ child: Column(
                                     const SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
-                                        '$_currentLevel단계 (${theme.name})',
+                                        theme.name,
                                         style: GoogleFonts.jua(
-                                          fontSize: 16,
+                                          fontSize: 18,
                                           color: isDark ? Colors.white : const Color(0xFF37474F),
                                         ),
                                         overflow: TextOverflow.ellipsis,
@@ -575,7 +603,7 @@ child: Column(
                 const SizedBox(height: 6),
                 Text(
                   '놀러 가고 싶은 장소를 마음대로 골라보세요!',
-                  style: GoogleFonts.nunito(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                  style: GoogleFonts.jua(fontSize: 12, color: Colors.grey.shade600),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
@@ -625,7 +653,7 @@ child: Column(
                               Text(theme.icon, style: const TextStyle(fontSize: 44)),
                               const SizedBox(height: 4),
                               Text(
-                                '${index + 1}단계',
+                                theme.name,
                                 style: GoogleFonts.jua(fontSize: 16, color: Colors.white),
                               ),
                             ],
@@ -791,6 +819,14 @@ class _ThemeBackgroundWidget extends StatelessWidget {
         return CustomPaint(painter: _FarmBackgroundPainter(ambientVal: ambientVal));
       case 7:
         return CustomPaint(painter: _CastleBackgroundPainter(ambientVal: ambientVal));
+      case 9:
+        return CustomPaint(painter: _WinterBackgroundPainter(ambientVal: ambientVal));
+      case 10:
+        return CustomPaint(painter: _SpookyBackgroundPainter(ambientVal: ambientVal));
+      case 11:
+        return CustomPaint(painter: _JungleBackgroundPainter(ambientVal: ambientVal));
+      case 12:
+        return CustomPaint(painter: _MagicForestBackgroundPainter(ambientVal: ambientVal));
       case 8:
       default:
         return CustomPaint(painter: _ParkBackgroundPainter(ambientVal: ambientVal));
@@ -798,14 +834,13 @@ class _ThemeBackgroundWidget extends StatelessWidget {
   }
 }
 
-// 🌲 Level 1: 숲속 탐험 배경 렌더러 (동화 속 초록 동산과 나무들)
+// 🌲 Level 1: 숲속 탐험 배경 렌더러 (동화 속 초록 동산과 반딧불이)
 class _ForestBackgroundPainter extends CustomPainter {
   final double ambientVal;
   _ForestBackgroundPainter({required this.ambientVal});
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Sky Gradient
     final Rect rect = Offset.zero & size;
     final Paint skyPaint = Paint()
       ..shader = const LinearGradient(
@@ -815,12 +850,17 @@ class _ForestBackgroundPainter extends CustomPainter {
       ).createShader(rect);
     canvas.drawRect(rect, skyPaint);
 
-    // Sun & Rays
-    final Paint sunPaint = Paint()..color = const Color(0xFFFFF176).withValues(alpha: 0.6);
-    canvas.drawCircle(Offset(size.width * 0.85, size.height * 0.15), 60, sunPaint);
+    // Glowing Sun
+    final Paint sunPaint = Paint()
+      ..color = const Color(0xFFFFF176).withValues(alpha: 0.6)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
+    final double sunBreathing = sin(ambientVal * 3.14159 * 2) * 5;
+    canvas.drawCircle(Offset(size.width * 0.85, size.height * 0.15), 60 + sunBreathing, sunPaint);
 
-    // Hills
-    final Paint hillPaint1 = Paint()..color = const Color(0xFF81C784).withValues(alpha: 0.8);
+    // Soft Hills
+    final Paint hillPaint1 = Paint()
+      ..color = const Color(0xFF81C784).withValues(alpha: 0.85)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
     final Path hill1 = Path()
       ..moveTo(0, size.height * 0.4)
       ..quadraticBezierTo(size.width * 0.3, size.height * 0.32, size.width * 0.6, size.height * 0.42)
@@ -830,7 +870,9 @@ class _ForestBackgroundPainter extends CustomPainter {
       ..close();
     canvas.drawPath(hill1, hillPaint1);
 
-    final Paint hillPaint2 = Paint()..color = const Color(0xFF66BB6A);
+    final Paint hillPaint2 = Paint()
+      ..color = const Color(0xFF66BB6A)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
     final Path hill2 = Path()
       ..moveTo(0, size.height * 0.55)
       ..quadraticBezierTo(size.width * 0.4, size.height * 0.48, size.width * 0.75, size.height * 0.58)
@@ -840,26 +882,25 @@ class _ForestBackgroundPainter extends CustomPainter {
       ..close();
     canvas.drawPath(hill2, hillPaint2);
 
-    // Trees
-    _drawTree(canvas, Offset(size.width * 0.12, size.height * 0.42), 40);
-    _drawTree(canvas, Offset(size.width * 0.82, size.height * 0.45), 46);
-    _drawTree(canvas, Offset(size.width * 0.92, size.height * 0.48), 36);
+    // Fireflies (Floating Particles)
+    final Paint fireflyPaint = Paint()
+      ..color = const Color(0xFFFFF59D)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    for (int i = 0; i < 15; i++) {
+      double px = (i * 0.23 + ambientVal * (i % 2 == 0 ? 1 : -1)) % 1.0;
+      double py = (i * 0.37 - ambientVal * 0.5) % 1.0;
+      if (px < 0) px += 1.0;
+      if (py < 0) py += 1.0;
+      
+      double wave = sin(ambientVal * 3.14159 * 4 + i) * 15.0;
+      canvas.drawCircle(Offset(size.width * px + wave, size.height * (0.3 + py * 0.7)), 3 + (i % 3).toDouble(), fireflyPaint);
+    }
   }
-
-  void _drawTree(Canvas canvas, Offset pos, double r) {
-    final Paint trunk = Paint()..color = const Color(0xFF6D4C41);
-    canvas.drawRect(Rect.fromLTWH(pos.dx - r * 0.2, pos.dy, r * 0.4, r * 1.2), trunk);
-    final Paint leaves = Paint()..color = const Color(0xFF388E3C);
-    canvas.drawCircle(Offset(pos.dx, pos.dy - r * 0.3), r, leaves);
-    canvas.drawCircle(Offset(pos.dx - r * 0.4, pos.dy + r * 0.1), r * 0.7, leaves);
-    canvas.drawCircle(Offset(pos.dx + r * 0.4, pos.dy + r * 0.1), r * 0.7, leaves);
-  }
-
   @override
   bool shouldRepaint(covariant _ForestBackgroundPainter oldDelegate) => true;
 }
 
-// 🌊 Level 2: 바닷속 모험 배경 렌더러 (에메랄드 해저와 빛 내림)
+// 🌊 Level 2: 바닷속 모험 배경 렌더러 (에메랄드 해저와 빛 내림, 비눗방울)
 class _OceanBackgroundPainter extends CustomPainter {
   final double ambientVal;
   _OceanBackgroundPainter({required this.ambientVal});
@@ -875,13 +916,16 @@ class _OceanBackgroundPainter extends CustomPainter {
       ).createShader(rect);
     canvas.drawRect(rect, oceanPaint);
 
-    // Sunlight Rays
-    final Paint rayPaint = Paint()..color = Colors.white.withValues(alpha: 0.12);
+    // Swaying Sunlight Rays
+    final double raySway = sin(ambientVal * 3.14159 * 2) * 30;
+    final Paint rayPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.15)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
     final Path ray = Path()
-      ..moveTo(size.width * 0.1, 0)
-      ..lineTo(size.width * 0.35, 0)
-      ..lineTo(size.width * 0.65, size.height)
-      ..lineTo(size.width * 0.2, size.height)
+      ..moveTo(size.width * 0.1 + raySway, 0)
+      ..lineTo(size.width * 0.35 + raySway, 0)
+      ..lineTo(size.width * 0.65 - raySway, size.height)
+      ..lineTo(size.width * 0.2 - raySway, size.height)
       ..close();
     canvas.drawPath(ray, rayPaint);
 
@@ -894,8 +938,19 @@ class _OceanBackgroundPainter extends CustomPainter {
       ..lineTo(0, size.height)
       ..close();
     canvas.drawPath(floor, floorPaint);
-  }
 
+    // Floating Bubbles
+    final Paint bubblePaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.3)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    for (int i = 0; i < 12; i++) {
+      double px = (i * 0.31) % 1.0;
+      double py = (1.0 - (ambientVal + i * 0.1) % 1.0);
+      double wave = sin(ambientVal * 3.14159 * 6 + i) * 20.0;
+      canvas.drawCircle(Offset(size.width * px + wave, size.height * py), 5 + (i % 4) * 2, bubblePaint);
+    }
+  }
   @override
   bool shouldRepaint(covariant _OceanBackgroundPainter oldDelegate) => true;
 }
@@ -916,17 +971,31 @@ class _SpaceBackgroundPainter extends CustomPainter {
       ).createShader(rect);
     canvas.drawRect(rect, spacePaint);
 
-    // Nebula Glow
+    // Nebula Glow (Breathing)
+    final double nebulaBreath = sin(ambientVal * 3.14159 * 2) * 20;
     final Paint nebula = Paint()
-      ..color = const Color(0xFFE040FB).withValues(alpha: 0.18)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 50);
-    canvas.drawCircle(Offset(size.width * 0.3, size.height * 0.3), 120, nebula);
-  }
+      ..color = const Color(0xFFE040FB).withValues(alpha: 0.25)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 60);
+    canvas.drawCircle(Offset(size.width * 0.3, size.height * 0.3), 120 + nebulaBreath, nebula);
+    
+    final Paint nebula2 = Paint()
+      ..color = const Color(0xFF42A5F5).withValues(alpha: 0.2)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 70);
+    canvas.drawCircle(Offset(size.width * 0.7, size.height * 0.7), 150 - nebulaBreath, nebula2);
 
+    // Twinkling Stars
+    final Paint starPaint = Paint()..color = Colors.white;
+    for (int i = 0; i < 30; i++) {
+      double px = (i * 0.17) % 1.0;
+      double py = (i * 0.23) % 1.0;
+      double twinkle = (sin(ambientVal * 3.14159 * 8 + i) + 1) / 2;
+      starPaint.color = Colors.white.withValues(alpha: 0.2 + 0.8 * twinkle);
+      canvas.drawCircle(Offset(size.width * px, size.height * py), 1.5 + (i % 2), starPaint);
+    }
+  }
   @override
   bool shouldRepaint(covariant _SpaceBackgroundPainter oldDelegate) => true;
 }
-
 // ─────────────────────────────────────────────
 // Hidden Item Widget with Wiggle & Hint Glow
 // ─────────────────────────────────────────────
@@ -949,10 +1018,10 @@ class _HiddenItemWidgetState extends State<_HiddenItemWidget> with TickerProvide
   late AnimationController _animCtrl;
 
   // Creature movement types
-  bool get _isButterfly => ['🦋', '🐝', '🕊️', '🦉', '🐞'].contains(widget.item.emoji);
+  bool get _isButterfly => ['🦋', '🐝', '🕊️', '🦉', '🐞', '🦇', '🧚', '🦢', '🦚'].contains(widget.item.emoji);
   bool get _isFish => ['🐠', '🐳', '🐬', '🐙', '🦀', '🦈', '🐡'].contains(widget.item.emoji);
-  bool get _isAnimal => ['🦊', '🐰', '🐿️', '🐻', '🐹'].contains(widget.item.emoji);
-  bool get _isSpaceObj => ['👽', '🛸', '🚀', '👨‍🚀', '🤖', '🛰️'].contains(widget.item.emoji);
+  bool get _isAnimal => ['🦊', '🐰', '🐿️', '🐻', '🐹', '🐧', '🐻‍❄️', '🦌', '🐺', '🐈‍⬛', '🦁', '🐒', '🐯', '🐘', '🦒', '🦓'].contains(widget.item.emoji);
+  bool get _isSpaceObj => ['👽', '🛸', '🚀', '👨‍🚀', '🤖', '🛰️', '👻', '⛄'].contains(widget.item.emoji);
 
   @override
   void initState() {
@@ -1089,7 +1158,6 @@ class _HiddenItemWidgetState extends State<_HiddenItemWidget> with TickerProvide
                         scaleY: scaleY,
                         child: Container(
                           constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
 padding: const EdgeInsets.all(12),
                           color: Colors.transparent,
                           decoration: widget.isHinted
@@ -1462,15 +1530,22 @@ class _DinoBackgroundPainter extends CustomPainter {
       ).createShader(rect);
     canvas.drawRect(rect, skyPaint);
 
-    // Volcano Silhouette in background
+    // Volcano Silhouette in background (Breathing Glow)
+    final double heatWobble = sin(ambientVal * 3.14159 * 4) * 5;
     final Paint volcanoPaint = Paint()..color = const Color(0xFF43A047).withValues(alpha: 0.5);
     final Path vPath = Path()
       ..moveTo(size.width * 0.4, size.height * 0.45)
-      ..lineTo(size.width * 0.55, size.height * 0.28)
-      ..lineTo(size.width * 0.65, size.height * 0.28)
+      ..lineTo(size.width * 0.55 + heatWobble, size.height * 0.28)
+      ..lineTo(size.width * 0.65 - heatWobble, size.height * 0.28)
       ..lineTo(size.width * 0.8, size.height * 0.45)
       ..close();
     canvas.drawPath(vPath, volcanoPaint);
+    
+    // Volcano Magma Glow
+    final Paint magmaGlow = Paint()
+      ..color = Colors.orangeAccent.withValues(alpha: 0.4 + 0.2 * sin(ambientVal * 3.14159 * 6))
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
+    canvas.drawCircle(Offset(size.width * 0.6, size.height * 0.28), 30, magmaGlow);
 
     // Jungle Hills
     final Paint hillPaint = Paint()..color = const Color(0xFF2E7D32);
@@ -1482,8 +1557,17 @@ class _DinoBackgroundPainter extends CustomPainter {
       ..lineTo(0, size.height)
       ..close();
     canvas.drawPath(hill, hillPaint);
+    
+    // Ash particles
+    final Paint ashPaint = Paint()..color = Colors.black.withValues(alpha: 0.15);
+    for (int i = 0; i < 20; i++) {
+      double px = (i * 0.41 - ambientVal * 0.3) % 1.0;
+      double py = (i * 0.17 + ambientVal * 0.2) % 1.0;
+      if (px < 0) px += 1.0;
+      if (py < 0) py += 1.0;
+      canvas.drawCircle(Offset(size.width * px, size.height * py), 2 + (i % 3).toDouble(), ashPaint);
+    }
   }
-
   @override
   bool shouldRepaint(covariant _DinoBackgroundPainter oldDelegate) => true;
 }
@@ -1504,14 +1588,28 @@ class _CandyBackgroundPainter extends CustomPainter {
       ).createShader(rect);
     canvas.drawRect(rect, skyPaint);
 
-    // Candy Cotton Hills
-    final Paint hill1 = Paint()..color = const Color(0xFFEC407A).withValues(alpha: 0.5);
-    canvas.drawCircle(Offset(size.width * 0.2, size.height * 0.55), 180, hill1);
+    // Candy Cotton Hills (Breathing)
+    final double breath = sin(ambientVal * 3.14159 * 2) * 10;
+    final Paint hill1 = Paint()
+      ..color = const Color(0xFFEC407A).withValues(alpha: 0.6)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
+    canvas.drawCircle(Offset(size.width * 0.2, size.height * 0.55), 180 + breath, hill1);
 
-    final Paint hill2 = Paint()..color = const Color(0xFFD81B60);
-    canvas.drawCircle(Offset(size.width * 0.8, size.height * 0.58), 200, hill2);
+    final Paint hill2 = Paint()
+      ..color = const Color(0xFFD81B60).withValues(alpha: 0.9)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+    canvas.drawCircle(Offset(size.width * 0.8, size.height * 0.58), 200 - breath, hill2);
+    
+    // Sparkles
+    final Paint sparkle = Paint()..color = Colors.white.withValues(alpha: 0.6);
+    for (int i = 0; i < 15; i++) {
+      double px = (i * 0.27) % 1.0;
+      double py = (i * 0.39) % 1.0;
+      double twinkle = (sin(ambientVal * 3.14159 * 6 + i) + 1) / 2;
+      sparkle.color = Colors.white.withValues(alpha: 0.2 + 0.6 * twinkle);
+      canvas.drawCircle(Offset(size.width * px, size.height * py), 3 + (i % 3), sparkle);
+    }
   }
-
   @override
   bool shouldRepaint(covariant _CandyBackgroundPainter oldDelegate) => true;
 }
@@ -1541,8 +1639,16 @@ class _FarmBackgroundPainter extends CustomPainter {
       ..lineTo(0, size.height)
       ..close();
     canvas.drawPath(path, hill);
+    
+    // Dandelions (Pollen) floating in wind
+    final Paint pollenPaint = Paint()..color = Colors.white.withValues(alpha: 0.5);
+    for (int i = 0; i < 20; i++) {
+      double px = (i * 0.33 + ambientVal * 0.4) % 1.0;
+      double py = (i * 0.21 - ambientVal * 0.1) % 1.0;
+      double wave = sin(ambientVal * 3.14159 * 4 + i) * 10.0;
+      canvas.drawCircle(Offset(size.width * px + wave, size.height * py), 2 + (i % 2).toDouble(), pollenPaint);
+    }
   }
-
   @override
   bool shouldRepaint(covariant _FarmBackgroundPainter oldDelegate) => true;
 }
@@ -1563,11 +1669,29 @@ class _CastleBackgroundPainter extends CustomPainter {
       ).createShader(rect);
     canvas.drawRect(rect, skyPaint);
 
-    // Castle Silhouette
-    final Paint castle = Paint()..color = const Color(0xFF3F51B5).withValues(alpha: 0.6);
+    // Castle Silhouette with Glow
+    final Paint castle = Paint()
+      ..color = const Color(0xFF3F51B5).withValues(alpha: 0.7)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
     canvas.drawRect(Rect.fromLTWH(size.width * 0.35, size.height * 0.35, size.width * 0.3, size.height * 0.3), castle);
+    
+    // Magical Aurora / Glow
+    final double breath = sin(ambientVal * 3.14159 * 2) * 10;
+    final Paint aurora = Paint()
+      ..color = const Color(0xFF7E57C2).withValues(alpha: 0.3)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 40);
+    canvas.drawCircle(Offset(size.width * 0.5, size.height * 0.4), 100 + breath, aurora);
+    
+    // Fireworks/Sparkles
+    final Paint spark = Paint()..color = const Color(0xFFFFEB3B);
+    for (int i = 0; i < 12; i++) {
+      double px = (i * 0.47) % 1.0;
+      double py = (i * 0.13) % 1.0;
+      double twinkle = (sin(ambientVal * 3.14159 * 10 + i) + 1) / 2;
+      spark.color = const Color(0xFFFFEB3B).withValues(alpha: 0.2 + 0.8 * twinkle);
+      canvas.drawCircle(Offset(size.width * px, size.height * py), 2 + (i % 3), spark);
+    }
   }
-
   @override
   bool shouldRepaint(covariant _CastleBackgroundPainter oldDelegate) => true;
 }
@@ -1589,14 +1713,201 @@ class _ParkBackgroundPainter extends CustomPainter {
     canvas.drawRect(rect, skyPaint);
 
     // Ferris Wheel Silhouette
-    final Paint park = Paint()..color = const Color(0xFF8E24AA).withValues(alpha: 0.4);
-    canvas.drawCircle(Offset(size.width * 0.8, size.height * 0.4), 80, park);
+    final double rotation = ambientVal * 3.14159 * 2;
+    final Paint park = Paint()
+      ..color = const Color(0xFF8E24AA).withValues(alpha: 0.5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6;
+    
+    canvas.save();
+    canvas.translate(size.width * 0.8, size.height * 0.4);
+    canvas.rotate(rotation);
+    canvas.drawCircle(Offset.zero, 80, park);
+    // spokes
+    for(int i=0; i<6; i++) {
+      canvas.drawLine(Offset.zero, Offset(80 * cos(i * 3.14159 / 3), 80 * sin(i * 3.14159 / 3)), park);
+    }
+    canvas.restore();
+    
+    // Floating Balloons
+    final Paint balloon = Paint()..color = const Color(0xFFFF4081).withValues(alpha: 0.6);
+    for (int i = 0; i < 8; i++) {
+      double px = (i * 0.29) % 1.0;
+      double py = (1.0 - (ambientVal * 0.5 + i * 0.1) % 1.0);
+      double wave = sin(ambientVal * 3.14159 * 4 + i) * 15.0;
+      
+      balloon.color = i % 2 == 0 ? const Color(0xFFFF4081).withValues(alpha: 0.6) : const Color(0xFF03A9F4).withValues(alpha: 0.6);
+      canvas.drawOval(Rect.fromCenter(center: Offset(size.width * px + wave, size.height * py), width: 16, height: 22), balloon);
+    }
   }
-
   @override
   bool shouldRepaint(covariant _ParkBackgroundPainter oldDelegate) => true;
 }
 
+// ⛄ Theme 9: 눈송이 마을 배경 렌더러
+class _WinterBackgroundPainter extends CustomPainter {
+  final double ambientVal;
+  _WinterBackgroundPainter({required this.ambientVal});
 
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Rect rect = Offset.zero & size;
+    final Paint skyPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFFE1F5FE), Color(0xFF81D4FA), Color(0xFF03A9F4)],
+      ).createShader(rect);
+    canvas.drawRect(rect, skyPaint);
 
+    // Snow Hills
+    final Paint hill = Paint()
+      ..color = Colors.white.withValues(alpha: 0.9)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+    final Path path = Path()
+      ..moveTo(0, size.height * 0.52)
+      ..quadraticBezierTo(size.width * 0.3, size.height * 0.44, size.width * 0.6, size.height * 0.54)
+      ..quadraticBezierTo(size.width * 0.8, size.height * 0.60, size.width, size.height * 0.5)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(path, hill);
+    
+    // Falling Snowflakes
+    final Paint snowPaint = Paint()..color = Colors.white;
+    for (int i = 0; i < 25; i++) {
+      double px = (i * 0.23 + ambientVal * 0.1) % 1.0;
+      double py = (i * 0.37 + ambientVal * 0.4) % 1.0;
+      double wave = sin(ambientVal * 3.14159 * 4 + i) * 10.0;
+      canvas.drawCircle(Offset(size.width * px + wave, size.height * py), 1.5 + (i % 3), snowPaint);
+    }
+  }
+  @override
+  bool shouldRepaint(covariant _WinterBackgroundPainter oldDelegate) => true;
+}
 
+// 👻 Theme 10: 유령의 집 배경 렌더러
+class _SpookyBackgroundPainter extends CustomPainter {
+  final double ambientVal;
+  _SpookyBackgroundPainter({required this.ambientVal});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Rect rect = Offset.zero & size;
+    final Paint skyPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF311B92), Color(0xFF4527A0), Color(0xFF1B5E20)],
+      ).createShader(rect);
+    canvas.drawRect(rect, skyPaint);
+
+    // Glowing Moon
+    final Paint moon = Paint()
+      ..color = const Color(0xFFFFF59D).withValues(alpha: 0.8)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
+    canvas.drawCircle(Offset(size.width * 0.8, size.height * 0.2), 50, moon);
+
+    // Creepy Fog
+    final double fogBreath = sin(ambientVal * 3.14159 * 2) * 10;
+    final Paint fog = Paint()
+      ..color = const Color(0xFF4CAF50).withValues(alpha: 0.15)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 40);
+    canvas.drawCircle(Offset(size.width * 0.5, size.height * 0.8), 150 + fogBreath, fog);
+    
+    // Floating Ghost Particles
+    final Paint ghost = Paint()..color = Colors.white.withValues(alpha: 0.4);
+    for (int i = 0; i < 8; i++) {
+      double px = (i * 0.41) % 1.0;
+      double py = (i * 0.17 + ambientVal * 0.2) % 1.0;
+      double wave = sin(ambientVal * 3.14159 * 6 + i) * 15.0;
+      canvas.drawCircle(Offset(size.width * px + wave, size.height * py), 4 + (i % 3), ghost);
+    }
+  }
+  @override
+  bool shouldRepaint(covariant _SpookyBackgroundPainter oldDelegate) => true;
+}
+
+// 🦁 Theme 11: 정글 사파리 배경 렌더러
+class _JungleBackgroundPainter extends CustomPainter {
+  final double ambientVal;
+  _JungleBackgroundPainter({required this.ambientVal});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Rect rect = Offset.zero & size;
+    final Paint skyPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFFC8E6C9), Color(0xFFAED581), Color(0xFF689F38)],
+      ).createShader(rect);
+    canvas.drawRect(rect, skyPaint);
+
+    // Lush Canopy
+    final double canopySway = sin(ambientVal * 3.14159 * 2) * 8;
+    final Paint canopy = Paint()
+      ..color = const Color(0xFF33691E).withValues(alpha: 0.7)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+    canvas.drawCircle(Offset(size.width * 0.1 + canopySway, 0), 120, canopy);
+    canvas.drawCircle(Offset(size.width * 0.9 - canopySway, 0), 150, canopy);
+
+    // Falling Tropical Leaves
+    final Paint leaf = Paint()..color = const Color(0xFF558B2F).withValues(alpha: 0.8);
+    for (int i = 0; i < 15; i++) {
+      double px = (i * 0.29 + ambientVal * 0.3) % 1.0;
+      double py = (i * 0.11 + ambientVal * 0.5) % 1.0;
+      double rot = (ambientVal * 10 + i) % (3.14159 * 2);
+      
+      canvas.save();
+      canvas.translate(size.width * px, size.height * py);
+      canvas.rotate(rot);
+      canvas.drawOval(const Rect.fromLTWH(-5, -2, 10, 4), leaf);
+      canvas.restore();
+    }
+  }
+  @override
+  bool shouldRepaint(covariant _JungleBackgroundPainter oldDelegate) => true;
+}
+
+// 🧚 Theme 12: 마법의 숲 배경 렌더러
+class _MagicForestBackgroundPainter extends CustomPainter {
+  final double ambientVal;
+  _MagicForestBackgroundPainter({required this.ambientVal});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Rect rect = Offset.zero & size;
+    final Paint skyPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFFF8BBD0), Color(0xFFF06292), Color(0xFFAD1457)],
+      ).createShader(rect);
+    canvas.drawRect(rect, skyPaint);
+
+    // Magical Mushroom Glow
+    final double magicPulse = sin(ambientVal * 3.14159 * 4) * 10;
+    final Paint mushroomGlow = Paint()
+      ..color = const Color(0xFFCE93D8).withValues(alpha: 0.6)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 25);
+    canvas.drawCircle(Offset(size.width * 0.2, size.height * 0.7), 60 + magicPulse, mushroomGlow);
+    canvas.drawCircle(Offset(size.width * 0.8, size.height * 0.6), 80 - magicPulse, mushroomGlow);
+
+    // Pixie Dust
+    final Paint dust = Paint()..color = const Color(0xFFFFFF8D);
+    for (int i = 0; i < 30; i++) {
+      double px = (i * 0.13 + ambientVal * 0.2) % 1.0;
+      double py = (i * 0.37 - ambientVal * 0.3) % 1.0;
+      if (px < 0) px += 1.0;
+      if (py < 0) py += 1.0;
+      double wave = sin(ambientVal * 3.14159 * 8 + i) * 15.0;
+      double twinkle = (sin(ambientVal * 3.14159 * 12 + i) + 1) / 2;
+      
+      dust.color = const Color(0xFFFFFF8D).withValues(alpha: 0.3 + 0.7 * twinkle);
+      canvas.drawCircle(Offset(size.width * px + wave, size.height * py), 1 + (i % 2).toDouble(), dust);
+    }
+  }
+  @override
+  bool shouldRepaint(covariant _MagicForestBackgroundPainter oldDelegate) => true;
+}

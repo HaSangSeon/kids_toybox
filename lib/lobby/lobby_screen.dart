@@ -1,9 +1,11 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme/kids_theme.dart';
 import 'premium_purchase_modal.dart';
 import '../core/data/player_data_manager.dart';
+
 import '../core/audio/audio_manager.dart';
 import '../games/balloon_pop/balloon_pop_game.dart';
 import '../games/shape_coloring/shape_coloring_game.dart';
@@ -157,6 +159,35 @@ class _LobbyScreenState extends State<LobbyScreen>
         AudioManager.instance.playClick();
       }
     });
+  }
+
+  void _showPrivacyPolicy() {
+    AudioManager.instance.playClick();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('🛡️ 개인정보 처리방침'),
+        content: const SingleChildScrollView(
+          child: Text(
+            '본 앱은 유아동을 위해 안전하게 설계되었습니다.\n\n'
+            '1. 사용자 데이터를 외부 서버로 일절 전송하지 않으며, 모든 그림 및 스티커 데이터는 오직 현재 기기(로컬)에만 안전하게 저장됩니다.\n'
+            '2. 외부 광고 네트워크를 포함하지 않습니다. (단, 일부 신규 게임 콘텐츠는 부모 확인 절차를 거쳐야만 접근할 수 있는 안전한 인앱 결제로 제공될 수 있습니다.)\n'
+            '3. 구글 플레이 가족 정책(Designed for Families) 가이드라인을 철저히 준수합니다.\n\n'
+            '안심하고 아이와 함께 즐거운 놀이를 경험하세요!',
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)),
+            onPressed: () {
+              AudioManager.instance.playClick();
+              Navigator.of(context).pop();
+            },
+            child: const Text('확인', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showHighScoresDialog(BuildContext context) {
@@ -334,26 +365,19 @@ class _LobbyScreenState extends State<LobbyScreen>
         ),
         child: Row(
           children: [
+            // Left: Settings / Parents Zone & Version info
+            _buildIconButton(
+              icon: Icons.shield_rounded,
+              color: const Color(0xFF8B5CF6),
+              onTap: () {
+                _showPrivacyPolicy();
+              },
+            ),
             const SizedBox(width: 8),
 
-            // Center: Cute 3D Toybox Title (Easter Egg: Long press to toggle locks)
+            // Center: Cute 3D Toybox Title
             Expanded(
-              child: GestureDetector(
-                onLongPress: () {
-                  final bool isUnlocked = PlayerDataManager.instance.togglePremium();
-                  AudioManager.instance.playSuccess();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        isUnlocked ? '🔓 [이스터에그] 모든 유료 게임 해금 완료!' : '🔒 [이스터에그] 유료 게임 다시 잠금!',
-                        style: GoogleFonts.jua(fontSize: 16),
-                      ),
-                      backgroundColor: isUnlocked ? Colors.green : Colors.orange,
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                },
-                child: ScaleTransition(
+              child: ScaleTransition(
                   scale: Tween<double>(begin: 0.98, end: 1.02).animate(
                     CurvedAnimation(
                       parent: _bounceController,
@@ -424,10 +448,9 @@ class _LobbyScreenState extends State<LobbyScreen>
                           ],
                         ),
                         child: Text(
-                          '✨ 미니 게임 천국 ✨',
-                          style: GoogleFonts.nunito(
+                          '✨ 미니 게임 천국 (v1.0.3) ✨',
+                          style: GoogleFonts.jua(
                             fontSize: 11,
-                            fontWeight: FontWeight.w900,
                             color: Colors.white,
                             letterSpacing: 0.4,
                           ),
@@ -436,7 +459,6 @@ class _LobbyScreenState extends State<LobbyScreen>
                     ],
                   ),
                 ),
-              ),
             ),
 
             const SizedBox(width: 8),
@@ -575,7 +597,7 @@ class _LobbyScreenState extends State<LobbyScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          game.emoji == '🟡' ? const PacmanIcon(size: 42) : Text(game.emoji, style: const TextStyle(fontSize: 42)),
+                          game.customIcon ?? (game.emoji == '🟡' ? const PacmanIcon(size: 42) : Text(game.emoji, style: const TextStyle(fontSize: 42))),
                           const SizedBox(height: 6),
                           Text(
                             game.title,
@@ -655,9 +677,23 @@ class _LobbyScreenState extends State<LobbyScreen>
       // 🆓 [무료 게임 16종 - 상단 배치]
       _GameData(
         title: '삐까번쩍 세차장',
-        emoji: '🧼',
+        emoji: '🚗',
+        customIcon: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            const Text('🚗', style: TextStyle(fontSize: 42)),
+            Positioned(
+              top: -6, right: -6,
+              child: const Text('🫧', style: TextStyle(fontSize: 24)),
+            ),
+            Positioned(
+              bottom: -4, left: -4,
+              child: const Text('🧼', style: TextStyle(fontSize: 18)),
+            ),
+          ],
+        ),
         gradientColors: KidsTheme.gameGradients['teal']!,
-        isNew: true,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CarWashGame())); },
       ),
       _GameData(
@@ -676,6 +712,7 @@ class _LobbyScreenState extends State<LobbyScreen>
         title: '요리사 놀이',
         emoji: '🍳',
         gradientColors: KidsTheme.gameGradients['amber']!,
+        isPremium: true,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CookingGame())); },
       ),
       _GameData(
@@ -788,7 +825,6 @@ class _LobbyScreenState extends State<LobbyScreen>
         emoji: '🦋',
         gradientColors: KidsTheme.gameGradients['pink']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DecalcomaniaGame())); },
-        isPremium: true,
       ),
       _GameData(
         title: '탑 쌓기',
@@ -928,6 +964,7 @@ class _TappableTileState extends State<_TappableTile>
 class _GameData {
   final String title;
   final String emoji;
+  final Widget? customIcon;
   final List<Color> gradientColors;
   final VoidCallback onTap;
   final VoidCallback? onTrophyTap;
@@ -937,6 +974,7 @@ class _GameData {
   _GameData({
     required this.title,
     required this.emoji,
+    this.customIcon,
     required this.gradientColors,
     required this.onTap,
     this.onTrophyTap,

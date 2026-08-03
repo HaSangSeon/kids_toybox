@@ -71,12 +71,13 @@ class AudioManager {
   Future<void> playSuccess() => playEffect('audio/success.wav');
   Future<void> playClick() => playEffect('audio/click.wav');
   Future<void> playColorSelect() => playEffect('audio/click.wav');
+  Future<void> playPaintDrop() => playEffect('audio/bubble_pop.wav'); // 귀여운 물방울 소리
   Future<void> playDamage() => playEffect('audio/damage.wav');
   Future<void> playGameOver() => playEffect('audio/game_over.wav');
 
   // Game-specific sounds
   Future<void> playJump() => playEffect('audio/jump.wav');
-  Future<void> playEngine() => playEffect('audio/engine.wav');
+  Future<void> playEngine() => playEffect('audio/car_engine_drive.wav');
   Future<void> playThud() => playEffect('audio/thud.wav');
   Future<void> playCrash() => playEffect('audio/crash.wav');
   Future<void> playSplash() => playEffect('audio/splash.wav');
@@ -164,6 +165,49 @@ class AudioManager {
       playEffect('audio/chime.wav', rate: 1.25);
     });
   }
+
+  // 🚗 세차장 게임 전용 차량별 10종 고유 사운드 🔊
+  Future<void> playVehicleSound(String vehicleId) async {
+    switch (vehicleId) {
+      case 'police':
+        await playEffect('audio/sound_police.wav');
+        break;
+      case 'fire':
+        await playEffect('audio/sound_fire.wav');
+        break;
+      case 'ambulance':
+        await playEffect('audio/sound_ambulance.wav');
+        break;
+      case 'bus':
+        await playEffect('audio/sound_bus.wav');
+        break;
+      case 'racing':
+        await playEffect('audio/sound_racing.wav');
+        break;
+      case 'monster':
+        await playEffect('audio/sound_monster.wav');
+        break;
+      case 'taxi':
+        await playEffect('audio/sound_taxi.wav');
+        break;
+      case 'tractor':
+        await playEffect('audio/sound_tractor.wav');
+        break;
+      case 'suv':
+        await playEffect('audio/sound_suv.wav');
+        break;
+      case 'car':
+      default:
+        await playEffect('audio/sound_car.wav');
+        break;
+    }
+  }
+
+  Future<void> playCarWashWaterSpray() => playEffect('audio/bubble_boguel.wav');
+  Future<void> playCarWashSoapScrub() => playEffect('audio/bubble_pop.wav');
+  Future<void> playCarWashRinse() => playEffect('audio/bubble_boguel.wav', rate: 1.25);
+  Future<void> playCarWashDry() => playEffect('audio/squeak.wav');
+  Future<void> playCarWashSticker() => playEffect('audio/snap.wav');
 
   Future<void> _playAnimalSound(String path, {double rate = 1.0}) async {
     if (!_soundEnabled) return;
