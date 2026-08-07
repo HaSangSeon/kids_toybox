@@ -576,29 +576,15 @@ class _LobbyScreenState extends State<LobbyScreen>
                       ),
                     ),
                   ),
-                  Positioned(
-                    right: -15,
-                    bottom: -15,
-                    child: Transform.rotate(
-                      angle: -0.2,
-                      child: Text(
-                        game.emoji,
-                        style: TextStyle(
-                          fontSize: 80,
-                          color: Colors.black.withValues(alpha: 0.15),
-                        ),
-                      ),
-                    ),
-                  ),
                   Positioned.fill(
                     child: Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: const EdgeInsets.all(6.0),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          game.customIcon ?? (game.emoji == '🟡' ? const PacmanIcon(size: 42) : Text(game.emoji, style: const TextStyle(fontSize: 42))),
-                          const SizedBox(height: 6),
+                          game.customIcon ?? (game.emoji == '🟡' ? const PacmanIcon(size: 40) : Text(game.emoji, style: const TextStyle(fontSize: 38, fontFamilyFallback: ['Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji']))),
+                          const SizedBox(height: 4),
                           Text(
                             game.title,
                             textAlign: TextAlign.center,

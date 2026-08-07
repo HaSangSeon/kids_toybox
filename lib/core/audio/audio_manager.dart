@@ -299,8 +299,36 @@ class AudioManager {
     });
   }
 
-  // Maze sounds
+  // Maze sounds (테마별 동물/탈것 사운드)
   Future<void> playMazeMove() => playEffect('audio/maze_move.wav');
+  
+  Future<void> playMazeThemeMove(int themeIdx) async {
+    if (!_soundEnabled) return;
+    switch (themeIdx % 7) {
+      case 0: // 🐭 생쥐: 찌익! 귀여운 생쥐 톡톡 발소리
+        playEffect('audio/squeak.wav', rate: 1.5);
+        break;
+      case 1: // 🐠 물고기: 퐁당! 첨벙 물방울 소리
+        playEffect('audio/maze_move.wav', rate: 1.1);
+        break;
+      case 2: // 🐝 꿀벌: 뿅뿅! 날개짓 튕기는 소리
+        playEffect('audio/boing.wav', rate: 1.75);
+        break;
+      case 3: // 🚀 우주 로켓: 슈웅~! 로켓 추진 소리
+        playEffect('audio/miss_woosh.wav', rate: 1.6);
+        break;
+      case 4: // 🦕 공룡: 쿵! 쿵! 묵직한 발자국
+        playEffect('audio/thud.wav', rate: 1.4);
+        break;
+      case 5: // 🐧 펭귄: 슉! 얼음 미끄러지기
+        playEffect('audio/splash.wav', rate: 1.6);
+        break;
+      case 6: // 🦄 유니콘: 샤랑~✨ 마법의 유니콘 경쾌한 별소리
+        playEffect('audio/chime.wav', rate: 1.7);
+        break;
+    }
+  }
+
   Future<void> playMazeBump() => playEffect('audio/maze_bump.wav');
   Future<void> playMazeClear() => playEffect('audio/maze_clear.wav');
 

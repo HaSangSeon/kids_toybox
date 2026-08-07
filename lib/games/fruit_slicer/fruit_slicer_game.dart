@@ -407,6 +407,9 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
         gainedScore = 10;
         _score += gainedScore;
         color = _fruitColors[fruit.emoji] ?? Colors.orange;
+        floatTextStr = '과즙 팡팡! +10';
+        floatColor = color;
+        pCount = 22;
         AudioManager.instance.playSwordSlice(rate: 0.95 + _random.nextDouble() * 0.25);
         HapticFeedback.lightImpact();
         break;

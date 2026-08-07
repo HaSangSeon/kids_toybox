@@ -316,11 +316,22 @@ class GameEngine extends ChangeNotifier {
     );
   }
 
+  int comboCount = 0;
+  DateTime? lastPopTime;
+
   void popBalloon(Balloon balloon) {
     if (balloon.isPopped || isStageCleared || isGameOver) return;
     
     balloon.isPopped = true;
     HapticFeedback.lightImpact();
+
+    final now = DateTime.now();
+    if (lastPopTime != null && now.difference(lastPopTime!).inMilliseconds < 900) {
+      comboCount++;
+    } else {
+      comboCount = 1;
+    }
+    lastPopTime = now;
 
     int points = 0;
     Color particleColor = balloon.color;
@@ -330,7 +341,7 @@ class GameEngine extends ChangeNotifier {
       case BalloonType.normal:
         AudioManager.instance.playPop();
         points = 10;
-        floatText = "+10";
+        floatText = comboCount >= 5 ? "+15 🔥 FEVER!" : (comboCount >= 2 ? "+10 ⚡x$comboCount" : "+10");
         break;
       case BalloonType.fast:
         AudioManager.instance.playLightningPop();

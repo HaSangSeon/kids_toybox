@@ -56,7 +56,7 @@ const _levels = [
 ];
 
 // ── 두더지 데이터 ────────────────────────────────────────────────────────────
-enum MoleType { normal, golden, spikey }
+enum MoleType { normal, golden, spikey, rabbit, bomb, rainbow }
 
 class Mole {
   bool isUp = false;
@@ -72,6 +72,9 @@ class Mole {
       case MoleType.normal: return '🐹';
       case MoleType.golden: return '⭐';
       case MoleType.spikey: return '🦔';
+      case MoleType.rabbit: return '🐰';
+      case MoleType.bomb: return '💣';
+      case MoleType.rainbow: return '🌈';
     }
   }
 
@@ -125,6 +128,8 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
   int? _activeHammerIndex;
   int _combo = 0;
   double _skyTime = 0.0;
+  int _selectedHammerIdx = 0;
+  final List<String> _hammerSkins = const ['🔨', '🪄', '🍭'];
 
   @override
   void initState() {
@@ -239,10 +244,16 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
 
     // 타입 결정
     final r = _random.nextDouble();
-    if (r < _cfg.goldenChance) {
+    if (r < 0.12) {
       mole.type = MoleType.golden;
-    } else if (r < _cfg.goldenChance + _cfg.spikyChance) {
+    } else if (r < 0.22) {
+      mole.type = MoleType.rabbit; // Time Bonus Rabbit!
+    } else if (r < 0.28) {
+      mole.type = MoleType.rainbow; // Super Rainbow Bonus!
+    } else if (r < 0.38 && _cfg.level >= 2) {
       mole.type = MoleType.spikey;
+    } else if (r < 0.46 && _cfg.level >= 2) {
+      mole.type = MoleType.bomb; // Bomb mole!
     } else {
       mole.type = MoleType.normal;
     }
@@ -295,34 +306,58 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
     Color popColor;
     int pts;
 
-    final comboBonus = _combo >= 3 ? ' 🔥×$_combo' : '';
-
     switch (mole.type) {
       case MoleType.normal:
-        pts = 10 + (_combo >= 3 ? (_combo - 2) * 5 : 0);
-        popText = '+$pts$comboBonus';
-        popColor = KidsTheme.yellow;
+        pts = 10;
+        popText = _combo >= 3 ? '💥 뿅! 💖 🔥×$_combo' : '💥 뿅! 💖';
+        popColor = Colors.orange;
         _score += pts;
         AudioManager.instance.playHammerWhack();
         HapticFeedback.lightImpact();
         break;
       case MoleType.golden:
-        pts = 30 + (_combo >= 3 ? (_combo - 2) * 10 : 0);
-        popText = '+$pts ✨$comboBonus';
-        popColor = Colors.amberAccent;
+        pts = 50;
+        popText = '✨ 팡팡! ⭐⭐⭐';
+        popColor = Colors.amber.shade800;
         _score += pts;
         AudioManager.instance.playHammerWhack();
         AudioManager.instance.playChime();
         HapticFeedback.mediumImpact();
+        break;
+      case MoleType.rabbit:
+        pts = 20;
+        _timeLeft += 3;
+        popText = '🐰 깡총! 🥕🥕';
+        popColor = Colors.green.shade700;
+        _score += pts;
+        AudioManager.instance.playChime();
+        HapticFeedback.mediumImpact();
+        break;
+      case MoleType.rainbow:
+        pts = 100;
+        popText = '🌈 무지개 팡파레! 🎉✨';
+        popColor = Colors.purple.shade700;
+        _score += pts;
+        AudioManager.instance.playLightningPop();
+        HapticFeedback.heavyImpact();
         break;
       case MoleType.spikey:
         pts = -10;
         _score = max(0, _score - 10);
         _timeLeft = max(0, _timeLeft - 2);
         _combo = 0;
-        popText = '-10 😖';
-        popColor = KidsTheme.red;
+        popText = '😖 아야! 🩹';
+        popColor = Colors.red.shade700;
         AudioManager.instance.playDamage();
+        HapticFeedback.heavyImpact();
+        break;
+      case MoleType.bomb:
+        pts = -15;
+        _score = max(0, _score - 15);
+        _combo = 0;
+        popText = '💣 쾅! 💨';
+        popColor = Colors.red.shade900;
+        AudioManager.instance.playCrash();
         HapticFeedback.heavyImpact();
         break;
     }
@@ -380,20 +415,28 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
               ),
             ),
 
-            // 떠다니는 점수 텍스트
+            // 4~5세 맞춤형 알록달록 3D 입체 이모지 팝업 뱃지
             ..._effects.map((e) => Positioned(
-              left: e.position.dx - 50,
-              top: e.position.dy - 60 + e.yOffset,
+              left: e.position.dx - 80,
+              top: e.position.dy - 65 + e.yOffset,
               child: Opacity(
                 opacity: e.opacity.clamp(0.0, 1.0),
-                child: Text(
-                  e.text,
-                  style: GoogleFonts.jua(
-                    fontSize: 28,
-                    color: e.color,
-                    shadows: const [
-                      Shadow(color: Colors.black87, blurRadius: 6),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: e.color, width: 3),
+                    boxShadow: [
+                      BoxShadow(color: e.color.withValues(alpha: 0.4), blurRadius: 10, offset: const Offset(0, 4)),
                     ],
+                  ),
+                  child: Text(
+                    e.text,
+                    style: GoogleFonts.jua(
+                      fontSize: 20,
+                      color: e.color,
+                    ),
                   ),
                 ),
               ),
@@ -586,77 +629,119 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
                 child: const Icon(Icons.arrow_back, color: KidsTheme.textDark, size: 26),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
 
-            // 🎯 점수 뱃지 (별코인과 명확히 구분되는 타겟 아이콘)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('🎯', style: TextStyle(fontSize: 16)),
-                  const SizedBox(width: 4),
-                  Text(
-                    '$_score점',
-                    style: GoogleFonts.jua(fontSize: 16, color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
+            // Responsive Middle / Right Badges
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    // 🎯 점수 뱃지
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('🎯', style: TextStyle(fontSize: 15)),
+                          const SizedBox(width: 3),
+                          Text(
+                            '$_score점',
+                            style: GoogleFonts.jua(fontSize: 15, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 6),
 
-            const Spacer(),
+                    // 🔨 망치 스킨 교체 버튼
+                    GestureDetector(
+                      onTap: () {
+                        AudioManager.instance.playClick();
+                        HapticFeedback.selectionClick();
+                        setState(() {
+                          _selectedHammerIdx = (_selectedHammerIdx + 1) % _hammerSkins.length;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.shade50,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.purple.shade300, width: 1.5),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(_hammerSkins[_selectedHammerIdx], style: const TextStyle(fontSize: 15)),
+                            const SizedBox(width: 2),
+                            Text(
+                              '망치',
+                              style: GoogleFonts.jua(fontSize: 12, color: Colors.purple.shade800),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
 
-            // 🔥 콤보 뱃지
-            if (_combo >= 3) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  '🔥×$_combo',
-                  style: GoogleFonts.jua(fontSize: 15, color: Colors.white),
-                ),
-              ),
-              const SizedBox(width: 6),
-            ],
+                    // 🔥 콤보 뱃지
+                    if (_combo >= 3) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          '🔥×$_combo',
+                          style: GoogleFonts.jua(fontSize: 14, color: Colors.white),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
 
-            // ⏰ 타이머 뱃지
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: _timeLeft <= 5
-                      ? [const Color(0xFFFF4757), const Color(0xFFFF6B6B)]
-                      : [const Color(0xFF2979FF), const Color(0xFF29B6F6)],
+                    // ⏰ 타이머 뱃지
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: _timeLeft <= 5
+                              ? [const Color(0xFFFF4757), const Color(0xFFFF6B6B)]
+                              : [const Color(0xFF2979FF), const Color(0xFF29B6F6)],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.timer_rounded, color: Colors.white, size: 15),
+                          const SizedBox(width: 3),
+                          Text(
+                            '${_timeLeft}초',
+                            style: GoogleFonts.jua(fontSize: 15, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.timer_rounded, color: Colors.white, size: 16),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${_timeLeft}초',
-                    style: GoogleFonts.jua(fontSize: 16, color: Colors.white),
-                  ),
-                ],
               ),
             ),
           ],
@@ -813,7 +898,7 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
                 curve: Curves.easeOutBack,
                 builder: (_, angle, __) => Transform.rotate(
                   angle: angle,
-                  child: const Text('🔨', style: TextStyle(fontSize: 62)),
+                  child: Text(_hammerSkins[_selectedHammerIdx], style: const TextStyle(fontSize: 62)),
                 ),
               ),
             ),

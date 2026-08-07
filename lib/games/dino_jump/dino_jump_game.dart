@@ -79,8 +79,9 @@ class _DinoJumpGameState extends State<DinoJumpGame>
   double _runningTime = 0.0;
   double _dinoScaleX = 1.0;
   double _dinoScaleY = 1.0;
-  // 점프 파워 게이지 표시용
   double _jumpChargeDisplay = 0.0;
+  double _shieldTimer = 0.0;
+  double _wingTimer = 0.0;
 
   // Scrolling offset for Parallax Background
   double _worldDistance = 0.0;
@@ -118,6 +119,8 @@ class _DinoJumpGameState extends State<DinoJumpGame>
       _isPressing = false;
       _pressHeldTime = 0.0;
       _jumpChargeDisplay = 0.0;
+      _shieldTimer = 0.0;
+      _wingTimer = 0.0;
       _runningTime = 0.0;
       _worldDistance = 0.0;
       _obstacles.clear();
@@ -187,6 +190,17 @@ class _DinoJumpGameState extends State<DinoJumpGame>
     setState(() {
       _runningTime += dt;
       _worldDistance += _obstacleSpeed * dt;
+
+      if (_shieldTimer > 0) {
+        _shieldTimer -= dt;
+        if (_shieldTimer < 0) _shieldTimer = 0;
+      }
+      if (_wingTimer > 0) {
+        _wingTimer -= dt;
+        if (_wingTimer < 0) _wingTimer = 0;
+        _dinoY = -0.55 + sin(_runningTime * 4) * 0.08;
+        _dinoVy = 0;
+      }
 
       // Restoring scales gradually (squash and stretch)
       _dinoScaleX += (1.0 - _dinoScaleX) * 0.1;
@@ -259,19 +273,31 @@ class _DinoJumpGameState extends State<DinoJumpGame>
         double size = 56;
         double yOffset = 0.0;
 
-        if (r < 0.38) {
+        if (r < 0.28) {
           emoji = '🌵'; // Cactus
           size = 58;
-        } else if (r < 0.65) {
+        } else if (r < 0.48) {
           emoji = '🪵'; // Fossil wood
           size = 54;
-        } else if (r < 0.82) {
+        } else if (r < 0.62) {
           emoji = '🥚'; // Dino egg!
           size = 48;
-        } else {
+        } else if (r < 0.74) {
           emoji = '🦅'; // Pterodactyl flying
           size = 50;
-          yOffset = 50.0 + _random.nextDouble() * 40.0; // flies above ground
+          yOffset = 50.0 + _random.nextDouble() * 40.0;
+        } else if (r < 0.85) {
+          emoji = '⭐'; // Bonus Star Item!
+          size = 52;
+          yOffset = 30.0 + _random.nextDouble() * 60.0;
+        } else if (r < 0.93) {
+          emoji = '🛡️'; // Shield Item!
+          size = 52;
+          yOffset = 40.0 + _random.nextDouble() * 40.0;
+        } else {
+          emoji = '🪽'; // Wing Flight Item!
+          size = 52;
+          yOffset = 60.0 + _random.nextDouble() * 50.0;
         }
 
         _obstacles.add(Obstacle(
@@ -308,25 +334,62 @@ class _DinoJumpGameState extends State<DinoJumpGame>
       final double dinoYBottom = -_dinoY * gameHeight;
 
       // Dino hitbox
-      final double dinoMinX = dinoCenterX - 18.0;
-      final double dinoMaxX = dinoCenterX + 18.0;
+      final double dinoMinX = dinoCenterX - 22.0;
+      final double dinoMaxX = dinoCenterX + 22.0;
       final double dinoMinY = dinoYBottom;
       final double dinoMaxY = dinoYBottom + 58.0;
 
+      final toRemove = <Obstacle>[];
+
       for (final obs in _obstacles) {
         final double obsCenterX = obs.x * screenWidth;
-        final double obsMinX = obsCenterX - 14.0;
-        final double obsMaxX = obsCenterX + 14.0;
+        final double obsMinX = obsCenterX - 18.0;
+        final double obsMaxX = obsCenterX + 18.0;
         final double obsMinY = obs.yOffset;
-        final double obsMaxY = obs.yOffset + 44.0;
+        final double obsMaxY = obs.yOffset + 48.0;
 
         final bool xOverlap = (dinoMinX < obsMaxX) && (dinoMaxX > obsMinX);
         final bool yOverlap = (dinoMinY < obsMaxY) && (dinoMaxY > obsMinY);
 
         if (xOverlap && yOverlap) {
-          _gameOver();
-          break;
+          if (obs.emoji == '⭐') {
+            toRemove.add(obs);
+            _score += 50;
+            AudioManager.instance.playChime();
+            HapticFeedback.mediumImpact();
+            continue;
+          } else if (obs.emoji == '🛡️') {
+            toRemove.add(obs);
+            _shieldTimer = 5.0;
+            AudioManager.instance.playBoing();
+            HapticFeedback.heavyImpact();
+            continue;
+          } else if (obs.emoji == '🪽') {
+            toRemove.add(obs);
+            _wingTimer = 4.0;
+            AudioManager.instance.playLightningPop();
+            HapticFeedback.heavyImpact();
+            continue;
+          }
+
+          if (_shieldTimer > 0) {
+            // Destroy obstacle with shield!
+            toRemove.add(obs);
+            _score += 20;
+            AudioManager.instance.playCrash();
+            HapticFeedback.mediumImpact();
+          } else if (_wingTimer > 0) {
+            // Fly over safely!
+            continue;
+          } else {
+            _gameOver();
+            break;
+          }
         }
+      }
+
+      if (toRemove.isNotEmpty) {
+        _obstacles.removeWhere((o) => toRemove.contains(o));
       }
     });
   }
@@ -630,9 +693,9 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                         ),
                       ),
 
-                      // Obstacles
+                      // Obstacles & Items with Toddler Visual Badges
                       ..._obstacles.map((obs) {
-                        // Flapping rotation for Pterodactyls
+                        final bool isItem = obs.emoji == '⭐' || obs.emoji == '🛡️' || obs.emoji == '🪽';
                         final double rotation = (obs.emoji == '🦅' && _isPlaying)
                             ? sin(_runningTime * 22) * 0.2
                             : 0.0;
@@ -640,18 +703,50 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                         return Positioned(
                           left: obs.x * constraints.maxWidth - (obs.size / 2),
                           bottom: obs.yOffset,
-                          child: Transform.rotate(
-                            angle: rotation,
-                            child: Text(
-                              obs.emoji,
-                              style: TextStyle(
-                                fontSize: obs.size,
-                                shadows: const [
-                                  Shadow(color: Colors.white, blurRadius: 10),
-                                  Shadow(color: Colors.black38, offset: Offset(1, 2), blurRadius: 4),
-                                ],
+                          child: Stack(
+                            alignment: Alignment.center,
+                            clipBehavior: Clip.none,
+                            children: [
+                              // Toddler Action Indicator (먹어요! GET vs 피해요! ⚠️)
+                              Positioned(
+                                top: -20,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: isItem ? const Color(0xFFFFD54F) : const Color(0xFFFF5252),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.white, width: 1.5),
+                                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        isItem ? 'GET! 😋' : '피해요! ⚠️',
+                                        style: GoogleFonts.jua(
+                                          fontSize: 10,
+                                          color: isItem ? Colors.brown.shade900 : Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
+                              Transform.rotate(
+                                angle: rotation,
+                                child: Text(
+                                  obs.emoji,
+                                  style: TextStyle(
+                                    fontSize: obs.size,
+                                    shadows: [
+                                      Shadow(color: isItem ? Colors.amberAccent : Colors.redAccent, blurRadius: 12),
+                                      const Shadow(color: Colors.black38, offset: Offset(1, 2), blurRadius: 4),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         );
                       }),
@@ -661,11 +756,11 @@ class _DinoJumpGameState extends State<DinoJumpGame>
               ),
             ),
 
-            // ── Tap to Start Overlay ──────────────────────────────────────
+            // ── Tap to Start Overlay (Toddler Friendly Visual Guide) ──────
             if (!_isPlaying && !_isGameOver)
               Positioned.fill(
                 child: Container(
-                  color: Colors.black.withOpacity(0.35),
+                  color: Colors.black.withOpacity(0.40),
                   child: Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -676,23 +771,80 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                             color: Colors.white,
                             shape: BoxShape.circle,
                             border: Border.all(color: KidsTheme.borderDark, width: 3),
+                            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))],
                           ),
                           child: Text(playerEmoji, style: const TextStyle(fontSize: 70)),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
+
+                        // 4~5세 눈높이 그림 가이드 카드
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          margin: const EdgeInsets.symmetric(horizontal: 24),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: KidsTheme.borderDark, width: 3),
+                            color: Colors.white.withOpacity(0.96),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: Colors.orangeAccent, width: 3),
+                            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))],
                           ),
-                          child: Text(
-                            '화면을 터치해서 점프!',
-                            style: GoogleFonts.jua(
-                              fontSize: 26,
-                              color: KidsTheme.textDark,
-                            ),
+                          child: Column(
+                            children: [
+                              Text(
+                                '🎮 게임하는 방법',
+                                style: GoogleFonts.jua(fontSize: 20, color: KidsTheme.textDark),
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  // 피하기 안내
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFEBEE),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(color: Colors.redAccent, width: 1.5),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        const Text('🌵 🪵 🦅', style: TextStyle(fontSize: 18)),
+                                        const SizedBox(height: 2),
+                                        Text('점프로 피해요! 🙅‍♂️', style: GoogleFonts.jua(fontSize: 12, color: Colors.red.shade800)),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  // 먹기 안내
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFFDE7),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(color: Colors.amber.shade800, width: 1.5),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        const Text('⭐ 🛡️ 🪽', style: TextStyle(fontSize: 18)),
+                                        const SizedBox(height: 2),
+                                        Text('아이템은 쏙! 😋', style: GoogleFonts.jua(fontSize: 12, color: Colors.amber.shade900)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 14),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(colors: [Color(0xFF42A5F5), Color(0xFF1E88E5)]),
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: Text(
+                                  '👇 화면 아무 데나 누르면 점프!',
+                                  style: GoogleFonts.jua(fontSize: 16, color: Colors.white),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],

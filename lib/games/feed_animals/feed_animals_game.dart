@@ -19,6 +19,7 @@ class AnimalMatch {
   final String food;
   final String animalName;
   bool isFed = false;
+  bool isChewing = false;
 
   AnimalMatch(this.animal, this.food, this.animalName);
 }
@@ -121,20 +122,26 @@ class _FeedAnimalsGameState extends State<FeedAnimalsGame>
 
   void _onFoodDropped(String food, AnimalMatch match) {
     if (match.food == food && !match.isFed) {
-      // 20종 동물에 맞춘 실감나는 진짜 동물 울음소리 + 맘마먹기 효과음 재생
       AudioManager.instance.playAnimalFeedingSound(match.animalName);
       HapticFeedback.lightImpact();
       setState(() {
         match.isFed = true;
+        match.isChewing = true;
         _foodsToFeed.remove(food);
 
         if (_foodsToFeed.isEmpty) {
-          // 동물의 실제 울음소리가 먼저 귀에 쏙 들어오도록 충분히 청취 후 축하 팝업 띄움
           Future.delayed(const Duration(milliseconds: 700), () {
             if (!mounted) return;
             _confettiController.play();
             AudioManager.instance.playFeedAnimalsSuccess();
             _showCompletionDialog();
+          });
+        }
+      });
+      Future.delayed(const Duration(milliseconds: 1200), () {
+        if (mounted) {
+          setState(() {
+            match.isChewing = false;
           });
         }
       });
@@ -674,6 +681,33 @@ class _FeedAnimalsGameState extends State<FeedAnimalsGame>
                         Text(
                           '줘요!',
                           style: GoogleFonts.jua(fontSize: 10, color: Colors.orange.shade700),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              // 냠냠! 말풍선
+              if (match.isFed)
+                Positioned(
+                  top: 6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF176),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.amber.shade800, width: 1.5),
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('💖', style: TextStyle(fontSize: 12)),
+                        const SizedBox(width: 2),
+                        Text(
+                          match.isChewing ? '냠냠! 😋' : '맛있다! ❤️',
+                          style: GoogleFonts.jua(fontSize: 11, color: Colors.brown.shade900, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),

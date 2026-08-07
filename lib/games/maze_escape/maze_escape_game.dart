@@ -355,10 +355,10 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
       final row = ((_py + cs / 2) / cs).floor().clamp(0, rows - 1);
       _visitedCells.add("$row,$col");
 
-      // 이동 소리
+      // 이동 소리 (테마별 동물 맞춤 사운드!)
       _stepSoundCounter++;
       if (_stepSoundCounter % 8 == 0) {
-        AudioManager.instance.playMazeMove();
+        AudioManager.instance.playMazeThemeMove(_themeIdx);
       }
 
       if (!_bounceCtrl.isAnimating) {
