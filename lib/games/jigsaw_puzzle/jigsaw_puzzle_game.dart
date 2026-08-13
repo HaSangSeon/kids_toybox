@@ -482,7 +482,7 @@ class _JigsawPuzzleGameState extends State<JigsawPuzzleGame>
           ),
           const SizedBox(width: 10),
 
-          // Grid Toggle Button (2x2 / 3x3)
+          // Grid Toggle Button (2x2 / 3x3 / 4x4)
           GestureDetector(
             onTap: () {
               AudioManager.instance.playClick();
@@ -523,7 +523,7 @@ class _JigsawPuzzleGameState extends State<JigsawPuzzleGame>
   Widget _buildBoardFrame(PuzzleTheme theme, Size size) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.85),
+        color: Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white, width: 4),
         boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 16, offset: Offset(0, 6))],
@@ -533,9 +533,9 @@ class _JigsawPuzzleGameState extends State<JigsawPuzzleGame>
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            // Faded Full Picture Scene Blueprint
+            // Clear Faded Full Picture Scene Blueprint (60% opacity for perfect visibility)
             Opacity(
-              opacity: 0.35,
+              opacity: 0.60,
               child: _buildFullSceneIllustration(theme, size),
             ),
 
@@ -762,34 +762,14 @@ class _JigsawPuzzleGameState extends State<JigsawPuzzleGame>
           // Hero Center Emoji
           Center(
             child: Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.35),
                 shape: BoxShape.circle,
               ),
               child: Text(
                 theme.mainEmoji,
-                style: TextStyle(fontSize: size.width * 0.38),
-              ),
-            ),
-          ),
-
-          // Title Tag at Bottom Center
-          Positioned(
-            bottom: size.height * 0.06,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.85),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  theme.title,
-                  style: GoogleFonts.jua(fontSize: size.width * 0.06, color: KidsTheme.textDark),
-                ),
+                style: TextStyle(fontSize: size.width * 0.34),
               ),
             ),
           ),
@@ -958,41 +938,55 @@ class _JigsawPuzzleGameState extends State<JigsawPuzzleGame>
                         },
                         child: Container(
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: t.bgGradient,
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(color: Colors.white, width: 3),
                             boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))],
                           ),
-                          child: Container(
-                            alignment: Alignment.center,
-                            padding: const EdgeInsets.all(8),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(21),
+                            child: Stack(
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.35),
-                                    shape: BoxShape.circle,
+                                // Exact Full Scene Illustration Match!
+                                Positioned.fill(
+                                  child: LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      return _buildFullSceneIllustration(
+                                        t,
+                                        Size(constraints.maxWidth, constraints.maxHeight),
+                                      );
+                                    },
                                   ),
-                                  child: Text(t.mainEmoji, style: const TextStyle(fontSize: 44)),
                                 ),
-                                const SizedBox(height: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.85),
-                                    borderRadius: BorderRadius.circular(12),
+                                // Puzzle Grid Subtle Overlay
+                                Positioned.fill(
+                                  child: Opacity(
+                                    opacity: 0.15,
+                                    child: CustomPaint(
+                                      painter: _JigsawGridOutlinePainter(
+                                        gridSize: 2,
+                                        edges: _generateEdges(2),
+                                      ),
+                                    ),
                                   ),
-                                  child: Text(
-                                    t.title,
-                                    style: GoogleFonts.jua(fontSize: 14, color: KidsTheme.textDark),
-                                    textAlign: TextAlign.center,
-                                    overflow: TextOverflow.ellipsis,
+                                ),
+                                // Title Tag Pill at Bottom
+                                Positioned(
+                                  left: 6,
+                                  right: 6,
+                                  bottom: 6,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.92),
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+                                    ),
+                                    child: Text(
+                                      t.title,
+                                      style: GoogleFonts.jua(fontSize: 13, color: KidsTheme.textDark),
+                                      textAlign: TextAlign.center,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
                                 ),
                               ],

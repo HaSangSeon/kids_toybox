@@ -365,9 +365,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
                 _buildTargetPreviewCard(theme),
                 const SizedBox(height: 8),
                 Expanded(child: _buildPuzzleArea(theme)),
-                const SizedBox(height: 8),
-                _buildBottomControlBar(theme),
-                const SizedBox(height: 10),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -698,6 +696,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
   }
 
   // ── 🖼️ 큼직한 완성본 액자 카드 ─────────────────────────────────────────
+  // ── 🖼️ 큼직하고 고급스러운 완성본 카드 ─────────────────────────────────
   Widget _buildTargetPreviewCard(_PuzzleTheme theme) {
     return GestureDetector(
       onTap: () {
@@ -708,61 +707,80 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
         });
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.95),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.amber.shade400, width: 3),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white, width: 3),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 105,
-              height: 105,
+              width: 140,
+              height: 140,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: theme.bg.first, width: 2.5),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: theme.bg.first, width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.bg.last.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                  ),
+                ],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(13),
+                borderRadius: BorderRadius.circular(15),
                 child: CustomPaint(
                   painter: _FullIllustrationPainter(themeIndex: _themeIndex),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.amber.shade100,
-                    borderRadius: BorderRadius.circular(10),
+                    gradient: LinearGradient(colors: [Colors.amber.shade400, Colors.orange.shade500]),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
-                    '🖼️ 완성 그림 목표',
-                    style: GoogleFonts.jua(fontSize: 12, color: Colors.brown.shade900),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('🎯', style: TextStyle(fontSize: 13)),
+                      const SizedBox(width: 4),
+                      Text('완성 목표 그림', style: GoogleFonts.jua(fontSize: 13, color: Colors.white)),
+                    ],
                   ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  theme.name,
+                  style: GoogleFonts.jua(fontSize: 20, color: theme.bg.last),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  theme.name,
-                  style: GoogleFonts.jua(fontSize: 16, color: theme.bg.last),
+                  '$_currentLevel단계 (${_gridSize}x$_gridSize 퍼즐)',
+                  style: GoogleFonts.jua(fontSize: 13, color: Colors.grey.shade700),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '🔍 터치하면 크게 확대',
-                  style: GoogleFonts.jua(fontSize: 11, color: Colors.grey.shade600),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.touch_app_rounded, size: 14, color: Colors.deepOrange),
+                    const SizedBox(width: 3),
+                    Text('터치하여 확대', style: GoogleFonts.jua(fontSize: 12, color: Colors.deepOrange)),
+                  ],
                 ),
               ],
             ),
