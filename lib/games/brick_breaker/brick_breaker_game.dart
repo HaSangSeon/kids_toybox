@@ -242,14 +242,14 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
 
   final Random _random = Random();
 
-  static const List<String> _brickEmojis = ['🍬', '🍭', '🍫', '🍩', '🍪', '🍰', '🧁', '🎂'];
   static const List<Color> _brickBaseColors = [
-    Color(0xFFFF6B9D), // pink
-    Color(0xFF7C4DFF), // purple
-    Color(0xFFFFB300), // amber
-    Color(0xFF00C853), // green
-    Color(0xFF2979FF), // blue
-    Color(0xFFFF5722), // deep orange
+    Color(0xFFFF5252), // 레고 레드
+    Color(0xFFFF9800), // 비비드 오렌지
+    Color(0xFFFFEB3B), // 레고 옐로우
+    Color(0xFF4CAF50), // 에메랄드 그린
+    Color(0xFF2196F3), // 스카이 블루
+    Color(0xFF9C27B0), // 로열 퍼플
+    Color(0xFF00BCD4), // 터쿼이즈
   ];
 
   @override
@@ -351,7 +351,7 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
     final double totalPadding = padding * (cols + 1);
     final double brickWidth  = (_screenSize.width - totalPadding) / cols;
     const double brickHeight = 36.0;
-    const double topOffset   = 100.0;
+    const double topOffset   = 90.0;
 
     for (int r = 0; r < rows; r++) {
       for (int c = 0; c < cols; c++) {
@@ -367,10 +367,10 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
         BrickType type;
         int hp;
         Color baseColor = _brickBaseColors[(r + _level) % _brickBaseColors.length];
-        String emoji = _brickEmojis[(r + c + _level) % _brickEmojis.length];
+        String emoji = '';
 
         if (_level == 1) {
-          // 1단계: 1방 터치 쉬운 사탕 100%
+          // 1단계: 1방 터치 쉬운 기본 브릭 100%
           type = BrickType.normal;
           hp = 1;
         } else if (_level == 2) {
@@ -402,7 +402,7 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
             hp = 1;
           }
         } else {
-          // 4단계 (대폭발 캔디 파티!): 폭탄 💣 (22% 우수수 배치!), 1방 (50%), 2방 (28%)
+          // 4단계: 폭탄 💣 (22%), 1방 (50%), 2방 (28%)
           if (rng < 0.22) {
             type = BrickType.bomb;
             hp = 1;
@@ -863,9 +863,9 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF2C194D), // 몽환적인 딥 캔디 퍼플
-              Color(0xFF4A154B), // 아기자기 파스텔 퍼플
-              Color(0xFF1F1135),
+              Color(0xFF1E1B4B), // 세련된 딥 아케이드 네이비/퍼플
+              Color(0xFF312E81),
+              Color(0xFF0F172A),
             ],
           ),
         ),
@@ -873,10 +873,7 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
           child: Column(
             children: [
               _buildHeader(),
-              // Active item indicators
-              if (_isWidePaddle || _isSlowBall || _isFireball)
-                _buildItemStatus(),
-              // Game Area
+              // Game Area (고정 높이로 레이아웃 흔들림 완전 방지)
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -930,6 +927,15 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
 
                               // ── Balls ─────────────────────────────────────
                               ..._balls.map(_buildBall),
+
+                              // ── Active item indicators (상단 오버레이로 화면 밀림 없음!) ──
+                              if (_isWidePaddle || _isSlowBall || _isFireball)
+                                Positioned(
+                                  top: 6,
+                                  left: 12,
+                                  right: 12,
+                                  child: _buildItemStatus(),
+                                ),
 
                               // ── Overlays ──────────────────────────────────
                               if (!_isPlaying && !_isGameOver && !_isGameClear && _balls.isNotEmpty)
@@ -1009,7 +1015,7 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('🍬', style: TextStyle(fontSize: 18)),
+                  const Text('🧱', style: TextStyle(fontSize: 18)),
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
@@ -1112,7 +1118,7 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '⭐ 몇 단계로 할까요? 🍬',
+                    '⭐ 몇 단계로 할까요? 🧱',
                     style: GoogleFonts.jua(
                       fontSize: 22,
                       color: KidsTheme.textDark,
@@ -1123,17 +1129,17 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
 
                   Row(
                     children: [
-                      _dialogLevelBtn(setModalState, 1, '1단계\n(쉬운 사탕)', '⭐'),
+                      _dialogLevelBtn(setModalState, 1, '1단계\n(쉬운 블록)', '⭐'),
                       const SizedBox(width: 8),
-                      _dialogLevelBtn(setModalState, 2, '2단계\n(달콤 사탕)', '⭐⭐'),
+                      _dialogLevelBtn(setModalState, 2, '2단계\n(네온 블록)', '⭐⭐'),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      _dialogLevelBtn(setModalState, 3, '3단계\n(무지개 사탕)', '⭐⭐⭐'),
+                      _dialogLevelBtn(setModalState, 3, '3단계\n(레고 브릭)', '⭐⭐⭐'),
                       const SizedBox(width: 8),
-                      _dialogLevelBtn(setModalState, 4, '4단계\n(도전 캔디)', '⭐⭐⭐⭐'),
+                      _dialogLevelBtn(setModalState, 4, '4단계\n(슈퍼 브릭)', '⭐⭐⭐⭐'),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -1232,8 +1238,14 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
 
   Widget _buildItemStatus() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white24, width: 1),
+      ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           if (_isFireball)
             _ActiveItemChip(label: '🔥 파이어볼', secs: _fireballTimer, color: const Color(0xFFFF5722)),
@@ -1246,11 +1258,19 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
     );
   }
 
-  // ── Bricks ─────────────────────────────────────────────────────────────────
+  // ── Bricks (생생한 3D 레고/블록 브릭 디자인) ──────────────────────────────────
 
   Widget _buildBrick(Brick brick) {
-    final hpRatio = brick.maxHp > 1 ? brick.hp / brick.maxHp : 1.0;
-    final darken  = 1.0 - (1.0 - hpRatio) * 0.45;
+    final bool isBomb = brick.type == BrickType.bomb;
+    final bool isTough = brick.type == BrickType.tough;
+    final double hpRatio = brick.maxHp > 1 ? brick.hp / brick.maxHp : 1.0;
+    final double darken = 1.0 - (1.0 - hpRatio) * 0.35;
+
+    final Color blockColor = isBomb
+        ? const Color(0xFFFF2A2A)
+        : HSLColor.fromColor(brick.color)
+            .withLightness((HSLColor.fromColor(brick.color).lightness * darken).clamp(0.0, 1.0))
+            .toColor();
 
     return Positioned(
       left:   brick.left,
@@ -1259,57 +1279,77 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
       height: brick.height,
       child: Container(
         decoration: BoxDecoration(
-          color: HSLColor.fromColor(brick.color)
-              .withLightness((HSLColor.fromColor(brick.color).lightness * darken).clamp(0.0, 1.0))
-              .toColor(),
-          borderRadius: BorderRadius.circular(10),
+          color: blockColor,
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: Colors.white.withOpacity(0.3),
-            width: 1.5,
+            color: isTough
+                ? (brick.hp > 1 ? const Color(0xFFFFE082) : Colors.white70)
+                : Colors.white.withOpacity(0.55),
+            width: isTough ? 2.2 : 1.6,
           ),
           boxShadow: [
+            // 하단 3D 베벨 그림자
             BoxShadow(
-              color: brick.color.withOpacity(0.6),
+              color: Colors.black.withOpacity(0.4),
+              offset: const Offset(0, 3.5),
+              blurRadius: 1,
+            ),
+            // 은은한 글로우
+            BoxShadow(
+              color: blockColor.withOpacity(0.4),
               blurRadius: 6,
-              offset: const Offset(0, 3),
+              offset: const Offset(0, 1),
             ),
           ],
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
             colors: [
-              Colors.white.withOpacity(0.25),
-              Colors.transparent,
+              Colors.white.withOpacity(0.4),
+              Colors.white.withOpacity(0.05),
+              Colors.black.withOpacity(0.25),
             ],
+            stops: const [0.0, 0.4, 1.0],
           ),
         ),
         child: Stack(
+          alignment: Alignment.center,
           children: [
-            Center(
-              child: Text(brick.emoji, style: const TextStyle(fontSize: 18)),
-            ),
-            // HP crack indicator
-            if (brick.maxHp > 1)
+            // 입체적인 레고/블록 원형 돌기(Stud) 2개
+            if (!isBomb)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildBrickStud(blockColor),
+                  _buildBrickStud(blockColor),
+                ],
+              ),
+
+            // 폭탄 블록인 경우 폭탄 아이콘
+            if (isBomb)
+              const Center(
+                child: Text('💣', style: TextStyle(fontSize: 19)),
+              ),
+
+            // 2방 단단한 블록(HP > 1) 표시
+            if (isTough && brick.hp > 1)
               Positioned(
-                right: 4, top: 4,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: List.generate(brick.maxHp, (i) => Container(
-                    width: 5, height: 5,
-                    margin: const EdgeInsets.only(left: 2),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: i < brick.hp
-                          ? Colors.white.withOpacity(0.9)
-                          : Colors.white.withOpacity(0.2),
-                    ),
-                  )),
+                right: 3, top: 3,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: Colors.amber, width: 1),
+                  ),
+                  child: const Text('2', style: TextStyle(color: Colors.amber, fontSize: 9, fontWeight: FontWeight.bold)),
                 ),
               ),
+
             // 아이템 드롭 예정 표시
-            if (brick.dropItem != null && brick.hp <= 1)
+            if (brick.dropItem != null && brick.hp <= 1 && !isBomb)
               Positioned(
-                left: 4, top: 4,
+                left: 3, top: 3,
                 child: Text(
                   DroppedItem(x: 0, y: 0, type: brick.dropItem!).emoji,
                   style: const TextStyle(fontSize: 10),
@@ -1317,6 +1357,25 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBrickStud(Color parentColor) {
+    return Container(
+      width: 13,
+      height: 7,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.35),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.white.withOpacity(0.6), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            offset: const Offset(0, 1),
+            blurRadius: 1,
+          )
+        ],
       ),
     );
   }

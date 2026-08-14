@@ -48,6 +48,62 @@ const _kThemes = <MazeTheme>[
     bgEmoji: '☁️', stepEmoji: '🐾',
   ),
   MazeTheme(
+    title: '멍멍이 마을 🐶', rows: 11, cols: 7,
+    playerEmoji: '🐶', goalEmoji: '🦴',
+    wallColor: Color(0xFFFFCC80), wallBorderColor: Color(0xFFFFB74D),
+    floorColor: Color(0xFFFFFDF8), visitedColor: Color(0xFFFFE0B2),
+    backgroundGradient: [Color(0xFFFFF8E1), Color(0xFFFFECB3)],
+    bgEmoji: '🐾', stepEmoji: '🐾',
+  ),
+  MazeTheme(
+    title: '야옹이 숲 🐱', rows: 11, cols: 7,
+    playerEmoji: '🐱', goalEmoji: '🐟',
+    wallColor: Color(0xFFFFAB91), wallBorderColor: Color(0xFFFF8A65),
+    floorColor: Color(0xFFFFFBF9), visitedColor: Color(0xFFFFCCBC),
+    backgroundGradient: [Color(0xFFFBE9E7), Color(0xFFFFCCBC)],
+    bgEmoji: '🧶', stepEmoji: '🐾',
+  ),
+  MazeTheme(
+    title: '당근 농장 🐰', rows: 13, cols: 7,
+    playerEmoji: '🐰', goalEmoji: '🥕',
+    wallColor: Color(0xFFFF8A65), wallBorderColor: Color(0xFFFF7043),
+    floorColor: Color(0xFFFFFDF9), visitedColor: Color(0xFFFFCCBC),
+    backgroundGradient: [Color(0xFFFBE9E7), Color(0xFFFFCCBC)],
+    bgEmoji: '🥕', stepEmoji: '🐾',
+  ),
+  MazeTheme(
+    title: '병아리 유치원 🐥', rows: 13, cols: 7,
+    playerEmoji: '🐥', goalEmoji: '🌻',
+    wallColor: Color(0xFFFFEE58), wallBorderColor: Color(0xFFFDD835),
+    floorColor: Color(0xFFFFFFF9), visitedColor: Color(0xFFFFF9C4),
+    backgroundGradient: [Color(0xFFFFFDE7), Color(0xFFFFF9C4)],
+    bgEmoji: '✨', stepEmoji: '🐾',
+  ),
+  MazeTheme(
+    title: '연못 나들이 🐸', rows: 13, cols: 7,
+    playerEmoji: '🐸', goalEmoji: '🪷',
+    wallColor: Color(0xFF81C784), wallBorderColor: Color(0xFF66BB6A),
+    floorColor: Color(0xFFF9FBF7), visitedColor: Color(0xFFC8E6C9),
+    backgroundGradient: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
+    bgEmoji: '🌿', stepEmoji: '🐾',
+  ),
+  MazeTheme(
+    title: '사파리 탐험 🐘', rows: 15, cols: 9,
+    playerEmoji: '🐘', goalEmoji: '🥜',
+    wallColor: Color(0xFF90CAF9), wallBorderColor: Color(0xFF64B5F6),
+    floorColor: Color(0xFFF9FCFF), visitedColor: Color(0xFFBBDEFB),
+    backgroundGradient: [Color(0xFFE3F2FD), Color(0xFFBBDEFB)],
+    bgEmoji: '🌴', stepEmoji: '🐾',
+  ),
+  MazeTheme(
+    title: '꿀꿀이 들판 🐷', rows: 15, cols: 9,
+    playerEmoji: '🐷', goalEmoji: '🍎',
+    wallColor: Color(0xFFF48FB1), wallBorderColor: Color(0xFFF06292),
+    floorColor: Color(0xFFFFF8FA), visitedColor: Color(0xFFF8BBD0),
+    backgroundGradient: [Color(0xFFFCE4EC), Color(0xFFF8BBD0)],
+    bgEmoji: '🌸', stepEmoji: '🐾',
+  ),
+  MazeTheme(
     title: '바다 탐험 🐠', rows: 11, cols: 7,
     playerEmoji: '🐠', goalEmoji: '🐚',
     wallColor: Color(0xFF4FC3F7), wallBorderColor: Color(0xFF29B6F6),
@@ -57,11 +113,11 @@ const _kThemes = <MazeTheme>[
   ),
   MazeTheme(
     title: '꽃밭 나들이 🐝', rows: 13, cols: 7,
-    playerEmoji: '🐝', goalEmoji: '🌻',
-    wallColor: Color(0xFF81C784), wallBorderColor: Color(0xFF66BB6A),
-    floorColor: Color(0xFFF9FBF7), visitedColor: Color(0xFFC8E6C9),
-    backgroundGradient: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
-    bgEmoji: '✨', stepEmoji: '🐾',
+    playerEmoji: '🐝', goalEmoji: '🌸',
+    wallColor: Color(0xFFAED581), wallBorderColor: Color(0xFF9CCC65),
+    floorColor: Color(0xFFFAFDF6), visitedColor: Color(0xFFDCEDC8),
+    backgroundGradient: [Color(0xFFF1F8E9), Color(0xFFDCEDC8)],
+    bgEmoji: '🌼', stepEmoji: '🐾',
   ),
   MazeTheme(
     title: '우주 비행 🚀', rows: 13, cols: 9,
@@ -90,9 +146,9 @@ const _kThemes = <MazeTheme>[
   MazeTheme(
     title: '마법의 성 🦄', rows: 17, cols: 9,
     playerEmoji: '🦄', goalEmoji: '🏰',
-    wallColor: Color(0xFFF06292), wallBorderColor: Color(0xFFEC407A),
-    floorColor: Color(0xFFFDF7F9), visitedColor: Color(0xFFF8BBD0),
-    backgroundGradient: [Color(0xFFFCE4EC), Color(0xFFF8BBD0)],
+    wallColor: Color(0xFFCE93D8), wallBorderColor: Color(0xFFBA68C8),
+    floorColor: Color(0xFFFDF7FD), visitedColor: Color(0xFFE1BEE7),
+    backgroundGradient: [Color(0xFFF3E5F5), Color(0xFFE1BEE7)],
     bgEmoji: '🌟', stepEmoji: '🐾',
   ),
 ];
@@ -355,10 +411,10 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
       final row = ((_py + cs / 2) / cs).floor().clamp(0, rows - 1);
       _visitedCells.add("$row,$col");
 
-      // 이동 소리 (테마별 동물 맞춤 사운드!)
+      // 이동 소리 (선택된 테마 동물에 딱 맞춘 깜찍한 울음소리/효과음!)
       _stepSoundCounter++;
       if (_stepSoundCounter % 8 == 0) {
-        AudioManager.instance.playMazeThemeMove(_themeIdx);
+        AudioManager.instance.playMazeThemeMove(_themeIdx, emoji: _theme.playerEmoji);
       }
 
       if (!_bounceCtrl.isAnimating) {
@@ -402,7 +458,7 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
     if ((_px - gx).abs() < _cellSize * 0.6 && (_py - gy).abs() < _cellSize * 0.6) {
       _isLevelClear = true;
       _confetti.play();
-      AudioManager.instance.playMazeClear();
+      AudioManager.instance.playMazeClear(emoji: _theme.playerEmoji, themeIdx: _themeIdx);
       HapticFeedback.heavyImpact();
 
       _nextLevelTimer?.cancel();
@@ -753,7 +809,7 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
                         final t = _kThemes[i];
                         return GestureDetector(
                           onTap: () {
-                            AudioManager.instance.playClick();
+                            AudioManager.instance.playMazeThemeMove(i, emoji: t.playerEmoji);
                             setModalState(() { _themeIdx = i; });
                             setState(() { _loadLevel(); });
                           },

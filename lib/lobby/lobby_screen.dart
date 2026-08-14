@@ -758,7 +758,7 @@ class _LobbyScreenState extends State<LobbyScreen>
             context,
             gameTitle: '공룡 점프',
             defaultSkin: '🦖',
-            gameSkins: const ['🦕', '🐉', '🦄', '🐢'],
+            gameSkins: const ['🦕', '🐎', '🐕', '🐇', '🦘', '🐆', '🐉', '🐢'],
             onStart: (skin) {
               Navigator.of(context).push(MaterialPageRoute(builder: (_) => DinoJumpGame(playerEmoji: skin)));
             },
@@ -766,9 +766,9 @@ class _LobbyScreenState extends State<LobbyScreen>
         },
       ),
       _GameData(
-        title: '사탕 벽돌깨기',
-        emoji: '🍬',
-        gradientColors: KidsTheme.gameGradients['pink']!,
+        title: '신나는 벽돌깨기',
+        emoji: '🧱',
+        gradientColors: KidsTheme.gameGradients['orange']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BrickBreakerGame())); },
       ),
       _GameData(
@@ -779,8 +779,8 @@ class _LobbyScreenState extends State<LobbyScreen>
       ),
       _GameData(
         title: '블럭 조립',
-        emoji: '🧱',
-        gradientColors: KidsTheme.gameGradients['orange']!,
+        emoji: '🧩',
+        gradientColors: KidsTheme.gameGradients['indigo']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BlockBuilderGame())); },
       ),
 

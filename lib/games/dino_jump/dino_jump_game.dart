@@ -59,6 +59,12 @@ class _DinoJumpGameState extends State<DinoJumpGame>
   late Ticker _ticker;
   Duration _lastElapsed = Duration.zero;
 
+  // Available Full-body running skins
+  static const List<String> _kRunningSkins = [
+    '🦖', '🦕', '🐎', '🐕', '🐇', '🦘', '🐆', '🐉', '🐢'
+  ];
+  late String _currentSkin;
+
   // Game state
   bool _isPlaying = false;
   bool _isGameOver = false;
@@ -98,6 +104,7 @@ class _DinoJumpGameState extends State<DinoJumpGame>
   @override
   void initState() {
     super.initState();
+    _currentSkin = widget.playerEmoji;
     _ticker = createTicker(_onTick);
   }
 
@@ -407,8 +414,6 @@ class _DinoJumpGameState extends State<DinoJumpGame>
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
-    final String playerEmoji = widget.playerEmoji;
-
     return Scaffold(
       body: GestureDetector(
         onTapDown: (_) => _onPressDown(),
@@ -571,9 +576,9 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                   final dinoLeft = constraints.maxWidth * 0.22 - 40;
                   final dinoBottom = -_dinoY * constraints.maxHeight - 10;
                   
-                  // Running bounce animation
+                  // Running bounce animation (경쾌하고 부드러운 도약 리듬)
                   final double runBounce = (!_isJumping && _isPlaying && !_isGameOver)
-                      ? (sin(_runningTime * 24).abs() * 7.0)
+                      ? (sin(_runningTime * 20).abs() * 7.5)
                       : (_isGameOver ? -14 : 0);
 
                   return Stack(
@@ -584,9 +589,9 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                         left: dinoLeft + 10,
                         bottom: -4,
                         child: Opacity(
-                          opacity: (1.0 - (-_dinoY * 2.5)).clamp(0.1, 0.7),
+                          opacity: (1.0 - (-_dinoY * 1.5)).clamp(0.15, 0.8),
                           child: Transform.scale(
-                            scaleX: (1.0 - (-_dinoY * 2.0)).clamp(0.3, 1.0),
+                            scaleX: (1.0 - (-_dinoY * 1.2)).clamp(0.4, 1.2),
                             scaleY: (1.0 - (-_dinoY * 2.0)).clamp(0.3, 1.0),
                             child: Container(
                               width: 60,
@@ -615,7 +620,7 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                                 scaleY: _dinoScaleY * 0.9,
                                 alignment: Alignment.center,
                                 child: Text(
-                                  playerEmoji,
+                                  _currentSkin,
                                   style: const TextStyle(fontSize: 78),
                                 ),
                               ),
@@ -623,35 +628,39 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                           );
                         }),
 
-                      // Dynamic Main Dino Character
+                      // Speed Wind Lines behind feet when running (발에서 뿜어져 뒤로 날아가는 방향으로 좌우 반전)
+                      if (!_isJumping && _isPlaying && !_isGameOver)
+                        Positioned(
+                          left: dinoLeft - 28, // 공룡/동물의 뒤쪽
+                          bottom: dinoBottom + runBounce - 2,
+                          child: Transform.flip(
+                            flipX: true, // 바람 꼬리 좌우 반전
+                            child: const Text('💨', style: TextStyle(fontSize: 32)),
+                          ),
+                        ),
+
+                      // Dynamic Main Dino Character (자연스럽게 앞으로 숙이고 리듬 타는 질주 모션)
                       Positioned(
                         left: dinoLeft,
                         bottom: dinoBottom + runBounce,
                         child: Transform.scale(
-                          scaleX: _dinoScaleX * -1.0 * (1.0 + (!_isJumping && _isPlaying ? sin(_runningTime * 28) * 0.06 : 0)), // Running elastic squash
-                          scaleY: _dinoScaleY * (1.0 - (!_isJumping && _isPlaying ? sin(_runningTime * 28) * 0.06 : 0)),
-                          alignment: Alignment.center,
+                          scaleX: _dinoScaleX * -1.0 * (1.0 + (!_isJumping && _isPlaying ? cos(_runningTime * 20) * 0.06 : 0)), // Running elastic squash & stretch
+                          scaleY: _dinoScaleY * (1.0 - (!_isJumping && _isPlaying ? cos(_runningTime * 20) * 0.06 : 0)),
+                          alignment: Alignment.bottomCenter,
                           child: Transform.rotate(
                             angle: _isGameOver
                                 ? -1.35
                                 : (_isJumping
-                                    ? (_dinoVy * 0.35).clamp(-0.4, 0.4) // Leans up on launch, down on fall
-                                    : (_isPlaying ? sin(_runningTime * 28) * 0.12 : 0)),
+                                    ? (_dinoVy * 0.3).clamp(-0.4, 0.35) // 점프 상승 시 도약 틸트, 착지 시 틸트
+                                    : (_isPlaying ? (-0.06 + sin(_runningTime * 20) * 0.08) : 0)), // 앞으로 숙이며 힘차게 전진하는 질주 각도
                             child: Stack(
                               alignment: Alignment.center,
                               clipBehavior: Clip.none,
                               children: [
                                 Text(
-                                  playerEmoji,
+                                  _currentSkin,
                                   style: const TextStyle(fontSize: 78),
                                 ),
-                                // Speed Wind Lines behind feet when running
-                                if (!_isJumping && _isPlaying && !_isGameOver)
-                                  const Positioned(
-                                    bottom: 0,
-                                    left: -18,
-                                    child: Text('💨', style: TextStyle(fontSize: 28)),
-                                  ),
                                 // Rocket Booster / Air burst when jumping
                                 if (_isJumping && _isPlaying)
                                   Positioned(
@@ -667,11 +676,11 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                                     top: -10,
                                     child: Text('🌟', style: TextStyle(fontSize: 36)),
                                   ),
-                                // Sweat drop when high speed
+                                // Sweat drop when high speed (달릴 때 얼굴 앞/이마 쪽에 맺힘)
                                 if (!_isJumping && _isPlaying && _obstacleSpeed > 0.85)
                                   const Positioned(
-                                    top: -12,
-                                    right: -10,
+                                    top: -14,
+                                    left: -10,
                                     child: Text('💦', style: TextStyle(fontSize: 26)),
                                   ),
                                 // Game Over dizzy stars
@@ -715,21 +724,15 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                                   decoration: BoxDecoration(
                                     color: isItem ? const Color(0xFFFFD54F) : const Color(0xFFFF5252),
                                     borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: Colors.white, width: 1.5),
-                                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
+                                    boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        isItem ? 'GET! 😋' : '피해요! ⚠️',
-                                        style: GoogleFonts.jua(
-                                          fontSize: 10,
-                                          color: isItem ? Colors.brown.shade900 : Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
+                                  child: Text(
+                                    isItem ? '먹어요! ✨' : '피해요! ⚠️',
+                                    style: GoogleFonts.jua(
+                                      fontSize: 11,
+                                      color: isItem ? const Color(0xFFE65100) : Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -737,13 +740,7 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                                 angle: rotation,
                                 child: Text(
                                   obs.emoji,
-                                  style: TextStyle(
-                                    fontSize: obs.size,
-                                    shadows: [
-                                      Shadow(color: isItem ? Colors.amberAccent : Colors.redAccent, blurRadius: 12),
-                                      const Shadow(color: Colors.black38, offset: Offset(1, 2), blurRadius: 4),
-                                    ],
-                                  ),
+                                  style: TextStyle(fontSize: obs.size),
                                 ),
                               ),
                             ],
@@ -773,7 +770,7 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                             border: Border.all(color: KidsTheme.borderDark, width: 3),
                             boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))],
                           ),
-                          child: Text(playerEmoji, style: const TextStyle(fontSize: 70)),
+                          child: Text(_currentSkin, style: const TextStyle(fontSize: 70)),
                         ),
                         const SizedBox(height: 16),
 
@@ -853,30 +850,30 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                 ),
               ),
 
-            // ── Game Over Overlay ──────────────────────────────────────────
+            // ── Game Over Overlay (아기자기하고 고급스러운 프리미엄 팝업) ──────
             if (_isGameOver)
               Positioned.fill(
                 child: Container(
-                  color: Colors.black.withValues(alpha: 0.55),
+                  color: Colors.black.withValues(alpha: 0.65),
                   child: Center(
                     child: Container(
-                      constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-                      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                      padding: const EdgeInsets.fromLTRB(24, 28, 24, 26),
+                      constraints: const BoxConstraints(maxWidth: 360, maxHeight: 640),
+                      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.96),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(36),
-                        border: Border.all(color: Colors.white, width: 3.5),
+                        border: Border.all(color: const Color(0xFFFFD54F), width: 3.5),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFF9F1C).withValues(alpha: 0.25),
+                            color: const Color(0xFFFFB300).withValues(alpha: 0.35),
                             blurRadius: 30,
-                            offset: const Offset(0, 10),
+                            offset: const Offset(0, 12),
                           ),
-                          BoxShadow(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            blurRadius: 6,
-                            offset: const Offset(0, -2),
+                          const BoxShadow(
+                            color: Colors.white,
+                            blurRadius: 4,
+                            offset: Offset(0, -2),
                           ),
                         ],
                       ),
@@ -884,223 +881,263 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                          // Crying Dino Header Icon Badge
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFF3E0),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: const Color(0xFFFFB74D), width: 2.5),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFFF9F1C).withValues(alpha: 0.2),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: const Text('😭', style: TextStyle(fontSize: 46)),
-                          ),
-                          const SizedBox(height: 12),
-                          
-                          // 3D Styled Title Text
-                          Text(
-                            '쿵! 부딪혔어요!',
-                            style: GoogleFonts.jua(
-                              fontSize: 30,
-                              fontWeight: FontWeight.bold,
-                              foreground: Paint()
-                                ..style = PaintingStyle.fill
-                                ..color = const Color(0xFFFF5964),
-                              shadows: const [
-                                Shadow(
-                                  color: Color(0xFFFFB74D),
-                                  offset: Offset(1.5, 1.5),
-                                  blurRadius: 0,
-                                ),
-                                Shadow(
-                                  color: Colors.black12,
-                                  offset: Offset(0, 4),
-                                  blurRadius: 8,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-
-                          // Score Pastel Card Box
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFF7ED),
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(color: const Color(0xFFFFE0B2), width: 2),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFFF9F1C).withValues(alpha: 0.1),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Column(
+                            // Header: Crying Dino & Character Badge
+                            Stack(
+                              alignment: Alignment.bottomRight,
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+                                  padding: const EdgeInsets.all(14),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFFE082),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    '최종 점수',
-                                    style: GoogleFonts.jua(fontSize: 13, color: const Color(0xFFE65100)),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Text('🎯', style: TextStyle(fontSize: 26)),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      '$_score',
-                                      style: GoogleFonts.jua(
-                                        fontSize: 42,
-                                        color: const Color(0xFF2D3748),
-                                        shadows: const [
-                                          Shadow(color: Colors.black12, offset: Offset(0, 2), blurRadius: 4),
-                                        ],
-                                      ),
+                                    gradient: const LinearGradient(
+                                      colors: [Color(0xFFFFF8E1), Color(0xFFFFECB3)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
                                     ),
-                                    Text(
-                                      ' 점',
-                                      style: GoogleFonts.jua(fontSize: 22, color: const Color(0xFF718096)),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: const Color(0xFFFFB74D), width: 3),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFFFF9F1C).withValues(alpha: 0.25),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 5),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(_currentSkin, style: const TextStyle(fontSize: 48)),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Text('😭', style: TextStyle(fontSize: 22)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            
+                            // Title
+                            Text(
+                              '쿵! 아쉬워요!',
+                              style: GoogleFonts.jua(
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFFFF5252),
+                                shadows: const [
+                                  Shadow(color: Color(0xFFFFCDD2), offset: Offset(1.5, 1.5), blurRadius: 0),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Score Card Box
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFFFFFDE7), Color(0xFFFFF9C4)],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                ),
+                                borderRadius: BorderRadius.circular(22),
+                                border: Border.all(color: const Color(0xFFFFE082), width: 2),
+                                boxShadow: const [
+                                  BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3)),
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Text('🎯', style: TextStyle(fontSize: 22)),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        '$_score',
+                                        style: GoogleFonts.jua(
+                                          fontSize: 38,
+                                          color: const Color(0xFF2E3A59),
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        ' 점',
+                                        style: GoogleFonts.jua(fontSize: 20, color: const Color(0xFF718096)),
+                                      ),
+                                    ],
+                                  ),
+                                  if (_score >= _bestScore && _score > 0) ...[
+                                    const SizedBox(height: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [Color(0xFFFFB300), Color(0xFFFF6F00)],
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        '🏆 최고 기록 달성! 🎉',
+                                        style: GoogleFonts.jua(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),
+                                      ),
                                     ),
                                   ],
-                                ),
-                                if (_score >= _bestScore && _score > 0) ...[
-                                  const SizedBox(height: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [Color(0xFFFFD700), Color(0xFFFF8C00)],
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: const Color(0xFFFFD700).withValues(alpha: 0.4),
-                                          blurRadius: 6,
-                                          offset: const Offset(0, 2),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // 🐾 다음 달리기 캐릭터 선택 바 (가로 스크롤)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF3F4F6),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 4, bottom: 6),
+                                    child: Row(
+                                      children: [
+                                        const Text('🎨', style: TextStyle(fontSize: 14)),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '달리기 캐릭터 선택',
+                                          style: GoogleFonts.jua(fontSize: 13, color: const Color(0xFF4B5563), fontWeight: FontWeight.bold),
                                         ),
                                       ],
                                     ),
-                                    child: Text(
-                                      '🏆 최고 기록 달성! 🎉',
-                                      style: GoogleFonts.jua(fontSize: 13, color: Colors.white),
+                                  ),
+                                  SizedBox(
+                                    height: 48,
+                                    child: ListView.builder(
+                                      scrollDirection: Axis.horizontal,
+                                      itemCount: _kRunningSkins.length,
+                                      itemBuilder: (context, i) {
+                                        final skin = _kRunningSkins[i];
+                                        final isSelected = skin == _currentSkin;
+                                        return GestureDetector(
+                                          onTap: () {
+                                            AudioManager.instance.playClick();
+                                            setState(() {
+                                              _currentSkin = skin;
+                                            });
+                                          },
+                                          child: AnimatedContainer(
+                                            duration: const Duration(milliseconds: 150),
+                                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: isSelected ? const Color(0xFFFFECB3) : Colors.white,
+                                              borderRadius: BorderRadius.circular(16),
+                                              border: Border.all(
+                                                color: isSelected ? const Color(0xFFFF9800) : Colors.grey.shade300,
+                                                width: isSelected ? 2.5 : 1,
+                                              ),
+                                              boxShadow: isSelected
+                                                  ? [
+                                                      BoxShadow(
+                                                        color: const Color(0xFFFF9800).withValues(alpha: 0.35),
+                                                        blurRadius: 6,
+                                                        offset: const Offset(0, 2),
+                                                      ),
+                                                    ]
+                                                  : null,
+                                            ),
+                                            child: Center(
+                                              child: Text(skin, style: const TextStyle(fontSize: 24)),
+                                            ),
+                                          ),
+                                        );
+                                      },
                                     ),
                                   ),
                                 ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // 3D Action Buttons
+                            Row(
+                              children: [
+                                // Home button
+                                Expanded(
+                                  flex: 2,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      AudioManager.instance.playClick();
+                                      Navigator.of(context).pop();
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [Color(0xFFFF8A8A), Color(0xFFFF5252)],
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                        ),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(color: Colors.white, width: 2),
+                                        boxShadow: const [
+                                          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3)),
+                                        ],
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '🏠 로비로',
+                                          style: GoogleFonts.jua(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+
+                                // Restart button
+                                Expanded(
+                                  flex: 3,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      AudioManager.instance.playClick();
+                                      _startGame();
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                        ),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(color: Colors.white, width: 2),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF4CAF50).withValues(alpha: 0.4),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '🔄 다시 달리기!',
+                                          style: GoogleFonts.jua(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
-                          ),
-                          const SizedBox(height: 20),
-
-                          // 3D Glossy Action Buttons
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              // Exit Button (Red/Coral Glossy 3D)
-                              GestureDetector(
-                                onTap: () {
-                                  AudioManager.instance.playClick();
-                                  Navigator.of(context).pop();
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [Color(0xFFFF6B6B), Color(0xFFEE5253)],
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                    ),
-                                    borderRadius: BorderRadius.circular(22),
-                                    border: Border.all(color: Colors.white, width: 2.5),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFFFF6B6B).withValues(alpha: 0.4),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 5),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.home_rounded, color: Colors.white, size: 22),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '메인으로',
-                                        style: GoogleFonts.jua(
-                                          fontSize: 17,
-                                          color: Colors.white,
-                                          shadows: const [
-                                            Shadow(color: Colors.black26, offset: Offset(0, 1), blurRadius: 2),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-
-                              // Restart Button (Green Emerald Glossy 3D)
-                              GestureDetector(
-                                onTap: () {
-                                  AudioManager.instance.playClick();
-                                  _startGame();
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [Color(0xFF10B981), Color(0xFF059669)],
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                    ),
-                                    borderRadius: BorderRadius.circular(22),
-                                    border: Border.all(color: Colors.white, width: 2.5),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFF10B981).withValues(alpha: 0.4),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 5),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        '다시 달리기 🏃',
-                                        style: GoogleFonts.jua(
-                                          fontSize: 17,
-                                          color: Colors.white,
-                                          shadows: const [
-                                            Shadow(color: Colors.black26, offset: Offset(0, 1), blurRadius: 2),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

@@ -79,7 +79,7 @@ class AudioManager {
   Future<void> playJump() => playEffect('audio/jump.wav');
   Future<void> playEngine() => playEffect('audio/car_engine_drive.wav');
   Future<void> playThud() => playEffect('audio/thud.wav');
-  Future<void> playCrash() => playEffect('audio/crash.wav');
+  Future<void> playCrash() => playEffect('audio/car_crash_metal.wav');
   Future<void> playSplash() => playEffect('audio/splash.wav');
   Future<void> playReel() => playEffect('audio/reel.wav');
   Future<void> playScribble() => playEffect('audio/scribble.wav');
@@ -89,6 +89,13 @@ class AudioManager {
   Future<void> playMunch() => playEffect('audio/munch.wav');
   Future<void> playBoing() => playEffect('audio/boing.wav');
   Future<void> playChime() => playEffect('audio/chime.wav');
+
+  // 요리조리 자동차 아이템별 전용 사운드
+  Future<void> playRacingItemStar() => playEffect('audio/item_star.wav');
+  Future<void> playRacingItemDiamond() => playEffect('audio/item_diamond.wav');
+  Future<void> playRacingItemHeart() => playEffect('audio/item_heart.wav');
+  Future<void> playRacingItemShield() => playEffect('audio/item_shield.wav');
+  Future<void> playRacingItemBanana() => playEffect('audio/item_banana.wav');
   Future<void> playCardFlip() => playEffect('audio/jigsaw_pickup.wav');
   Future<void> playCardMatch() => playEffect('audio/jigsaw_snap_correct.wav');
   Future<void> playCardMismatch() => playEffect('audio/boing.wav');
@@ -145,24 +152,30 @@ class AudioManager {
   }
 
   // 요리사 놀이 전용 사운드
-  Future<void> playCookDrop() async {
+  Future<void> playCookDrop({String? ingredientKey}) async {
     if (!_soundEnabled) return;
-    // 냄비에 재료 퐁당! 상큼한 소리
-    playEffect('audio/splash.wav', rate: 1.3);
+    // 냄비에 재료를 쏙 넣을 때의 톡! 퐁당~ 보글보글 요리 사운드
+    playEffect('audio/bubble_pop.wav', rate: 1.2);
+    Future.delayed(const Duration(milliseconds: 60), () {
+      playEffect('audio/bubble_boguel.wav', rate: 1.35);
+    });
   }
 
   Future<void> playCookStir() async {
     if (!_soundEnabled) return;
-    // 냄비 휘젓는 톡톡 퐁당 소리
-    playEffect('audio/fish_bite.wav', rate: 1.2);
+    // 냄비 주걱으로 슥삭슥삭 저으며 보글보글 끓는 맛있는 소리
+    playEffect('audio/bubble_boguel.wav', rate: 1.25);
+    Future.delayed(const Duration(milliseconds: 40), () {
+      playEffect('audio/trace_draw.wav', rate: 1.4);
+    });
   }
 
   Future<void> playCookComplete() async {
     if (!_soundEnabled) return;
     // 요리 완성! 짠! 하고 화려하게 펼쳐지는 신나는 완성음
-    playEffect('audio/trace_success.wav');
-    Future.delayed(const Duration(milliseconds: 200), () {
-      playEffect('audio/chime.wav', rate: 1.25);
+    playEffect('audio/success.wav', rate: 1.1);
+    Future.delayed(const Duration(milliseconds: 180), () {
+      playEffect('audio/chime.wav', rate: 1.2);
     });
   }
 
@@ -299,38 +312,115 @@ class AudioManager {
     });
   }
 
-  // Maze sounds (테마별 동물/탈것 사운드)
+  // Maze sounds (테마별 귀여운 동물/캐릭터 맞춤 사운드)
   Future<void> playMazeMove() => playEffect('audio/maze_move.wav');
   
-  Future<void> playMazeThemeMove(int themeIdx) async {
+  Future<void> playMazeThemeMove(int themeIdx, {String? emoji}) async {
     if (!_soundEnabled) return;
-    switch (themeIdx % 7) {
-      case 0: // 🐭 생쥐: 찌익! 귀여운 생쥐 톡톡 발소리
-        playEffect('audio/squeak.wav', rate: 1.5);
-        break;
-      case 1: // 🐠 물고기: 퐁당! 첨벙 물방울 소리
-        playEffect('audio/maze_move.wav', rate: 1.1);
-        break;
-      case 2: // 🐝 꿀벌: 뿅뿅! 날개짓 튕기는 소리
-        playEffect('audio/boing.wav', rate: 1.75);
-        break;
-      case 3: // 🚀 우주 로켓: 슈웅~! 로켓 추진 소리
-        playEffect('audio/miss_woosh.wav', rate: 1.6);
-        break;
-      case 4: // 🦕 공룡: 쿵! 쿵! 묵직한 발자국
-        playEffect('audio/thud.wav', rate: 1.4);
-        break;
-      case 5: // 🐧 펭귄: 슉! 얼음 미끄러지기
-        playEffect('audio/splash.wav', rate: 1.6);
-        break;
-      case 6: // 🦄 유니콘: 샤랑~✨ 마법의 유니콘 경쾌한 별소리
-        playEffect('audio/chime.wav', rate: 1.7);
-        break;
+
+    // 이모지가 전달된 경우 이모지 우선 매칭, 없으면 themeIdx 매칭
+    final char = emoji ?? '';
+    
+    if (char == '🐭' || char.contains('쥐')) {
+      playEffect('audio/animal_mouse.wav', rate: 1.4);
+    } else if (char == '🐠' || char == '🐟' || char.contains('물고기')) {
+      playEffect('audio/bubble_boguel.wav', rate: 1.2);
+    } else if (char == '🐝' || char.contains('벌')) {
+      playEffect('audio/boing.wav', rate: 1.8);
+    } else if (char == '🚀' || char.contains('로켓')) {
+      playEffect('audio/miss_woosh.wav', rate: 1.5);
+    } else if (char == '🦕' || char == '🦖' || char.contains('공룡')) {
+      playEffect('audio/thud.wav', rate: 1.35);
+    } else if (char == '🐧' || char.contains('펭귄')) {
+      playEffect('audio/animal_penguin.wav', rate: 1.35);
+    } else if (char == '🦄' || char.contains('유니콘')) {
+      playEffect('audio/chime.wav', rate: 1.7);
+    } else if (char == '🐶' || char.contains('강아지') || char.contains('개')) {
+      playEffect('audio/animal_dog.wav', rate: 1.35);
+    } else if (char == '🐱' || char.contains('고양이')) {
+      playEffect('audio/animal_cat.wav', rate: 1.3);
+    } else if (char == '🐰' || char.contains('토끼')) {
+      playEffect('audio/animal_rabbit.wav', rate: 1.35);
+    } else if (char == '🐸' || char.contains('개구리')) {
+      playEffect('audio/animal_frog.wav', rate: 1.35);
+    } else if (char == '🐥' || char == '🐤' || char.contains('병아리')) {
+      playEffect('audio/animal_chick.wav', rate: 1.35);
+    } else if (char == '🐘' || char.contains('코끼리')) {
+      playEffect('audio/animal_elephant.wav', rate: 1.3);
+    } else if (char == '🐷' || char.contains('돼지')) {
+      playEffect('audio/animal_pig.wav', rate: 1.3);
+    } else if (char == '🐻' || char.contains('곰')) {
+      playEffect('audio/animal_bear.wav', rate: 1.35);
+    } else if (char == '🐵' || char.contains('원숭이')) {
+      playEffect('audio/animal_monkey.wav', rate: 1.35);
+    } else {
+      // themeIdx 기반 폴백 매칭
+      switch (themeIdx % 14) {
+        case 0: // 🐭 생쥐
+          playEffect('audio/animal_mouse.wav', rate: 1.4);
+          break;
+        case 1: // 🐠 물고기
+          playEffect('audio/bubble_boguel.wav', rate: 1.2);
+          break;
+        case 2: // 🐝 꿀벌
+          playEffect('audio/boing.wav', rate: 1.8);
+          break;
+        case 3: // 🚀 로켓
+          playEffect('audio/miss_woosh.wav', rate: 1.5);
+          break;
+        case 4: // 🦕 공룡
+          playEffect('audio/thud.wav', rate: 1.35);
+          break;
+        case 5: // 🐧 펭귄
+          playEffect('audio/animal_penguin.wav', rate: 1.35);
+          break;
+        case 6: // 🦄 유니콘
+          playEffect('audio/chime.wav', rate: 1.7);
+          break;
+        case 7: // 🐶 강아지
+          playEffect('audio/animal_dog.wav', rate: 1.35);
+          break;
+        case 8: // 🐱 고양이
+          playEffect('audio/animal_cat.wav', rate: 1.3);
+          break;
+        case 9: // 🐰 토끼
+          playEffect('audio/animal_rabbit.wav', rate: 1.35);
+          break;
+        case 10: // 🐸 개구리
+          playEffect('audio/animal_frog.wav', rate: 1.35);
+          break;
+        case 11: // 🐥 병아리
+          playEffect('audio/animal_chick.wav', rate: 1.35);
+          break;
+        case 12: // 🐘 코끼리
+          playEffect('audio/animal_elephant.wav', rate: 1.3);
+          break;
+        case 13: // 🐷 아기돼지
+          playEffect('audio/animal_pig.wav', rate: 1.3);
+          break;
+        default:
+          playEffect('audio/maze_move.wav', rate: 1.2);
+          break;
+      }
     }
   }
 
   Future<void> playMazeBump() => playEffect('audio/maze_bump.wav');
-  Future<void> playMazeClear() => playEffect('audio/maze_clear.wav');
+  
+  Future<void> playMazeClear({String? emoji, int? themeIdx}) async {
+    if (!_soundEnabled) return;
+    // 1. 미로 클리어 팡파레
+    await playEffect('audio/maze_clear.wav');
+    
+    // 2. 잠시 후 동물의 신나는 축하 울음소리 재생
+    Future.delayed(const Duration(milliseconds: 280), () {
+      if (emoji != null) {
+        playEmojiSound(emoji);
+      } else if (themeIdx != null) {
+        playMazeThemeMove(themeIdx);
+      }
+    });
+  }
 
   // 🏰 탑쌓기 전용 실감나는 건축 & 콤보 사운드
   Future<void> playTowerBlockDrop({double pitch = 1.0}) async {

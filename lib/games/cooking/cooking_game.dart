@@ -228,7 +228,7 @@ class _ColorMixingGameState extends State<CookingGame>
     Future.delayed(const Duration(milliseconds: 350), () {
       if (!mounted) return;
       setState(() => _pot.add(ingredient.key));
-      AudioManager.instance.playCookDrop();
+      AudioManager.instance.playCookDrop(ingredientKey: ingredient.key);
     });
   }
 

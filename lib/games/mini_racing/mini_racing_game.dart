@@ -464,7 +464,39 @@ class _MiniRacingGameState extends State<MiniRacingGame> with SingleTickerProvid
     super.dispose();
   }
 
-  void _startGame(Size size) {
+  /// 선택한 차량에 맞는 엔진 사운드를 루프 재생
+  void _startEngineSound() {
+    if (!AudioManager.instance.soundEnabled) return;
+    _isEngineReady = false;
+    _enginePlayer.stop();
+
+    // 선택된 차량별 엔진 사운드 매핑
+    String soundFile;
+    if (_selectedCar.emojiToy == '🚓') {
+      soundFile = 'audio/sound_police.wav';
+    } else if (_selectedCar.emojiToy == '🚒') {
+      soundFile = 'audio/sound_fire.wav';
+    } else if (_selectedCar.emojiToy == '🚜') {
+      soundFile = 'audio/sound_tractor.wav';
+    } else if (_selectedCar.emojiToy == '🚑') {
+      soundFile = 'audio/sound_ambulance.wav';
+    } else {
+      // 슈퍼카: 자체 합성 엔진 루프 사운드
+      soundFile = 'audio/engine_loop.wav';
+    }
+
+    _enginePlayer.setReleaseMode(ReleaseMode.loop);
+    _enginePlayer.play(AssetSource(soundFile), volume: 0.88).then((_) {
+      _isEngineReady = true;
+      // 초기 속도 기반 피치 설정
+      final rate = (0.9 + (_speed - 280.0) / 400.0).clamp(0.85, 1.7);
+      _enginePlayer.setPlaybackRate(rate);
+    }).catchError((e) {
+      debugPrint("Engine sound play failed: $e");
+    });
+  }
+
+  void _startGame(Size size, {bool autoStart = false}) {
     _screenSize = size;
     _carX = _screenSize.width / 2;
     _targetCarX = _screenSize.width / 2;
@@ -480,9 +512,15 @@ class _MiniRacingGameState extends State<MiniRacingGame> with SingleTickerProvid
     _popups.clear();
     _isPlaying = true;
     _isGameOver = false;
-    _isStarted = false; // Show start screen first!
-    _isEngineReady = false;
-    _enginePlayer.stop();
+    _isStarted = autoStart;
+    
+    if (autoStart) {
+      _startEngineSound();
+    } else {
+      _isEngineReady = false;
+      _enginePlayer.stop();
+    }
+
     for (int i = 0; i < 6; i++) {
       _spawnDecor(initialY: _random.nextDouble() * _screenSize.height);
     }
@@ -628,10 +666,11 @@ class _MiniRacingGameState extends State<MiniRacingGame> with SingleTickerProvid
         _spawnEntity();
       }
 
-      // 엔진 소리 피치 실시간 조절 (오디오 스레드 부하 방지를 위해 변화가 클 때만 호출)
+      // 엔진 소리 피치 실시간 조절: 속도에 따라 자연스럽게 올라가는 배기음
       if (AudioManager.instance.soundEnabled && _isEngineReady) {
-        final rate = (0.9 + (_speed - 280.0) / 350.0).clamp(0.9, 1.8);
-        if ((rate - _lastEngineRate).abs() > 0.08) {
+        // 0.85(저속) ~ 1.65(최고속) 범위에서 자연스럽게 상승
+        final rate = (0.85 + (_speed - 280.0) / 420.0).clamp(0.85, 1.65);
+        if ((rate - _lastEngineRate).abs() > 0.04) {
           _lastEngineRate = rate;
           _enginePlayer.setPlaybackRate(rate).catchError((_) {});
         }
@@ -683,7 +722,7 @@ class _MiniRacingGameState extends State<MiniRacingGame> with SingleTickerProvid
       case RacingEntityType.star:
         _score += 10;
         _speed += 3.0; // 속도 소폭 상승
-        AudioManager.instance.playChime();
+        AudioManager.instance.playRacingItemStar();
         HapticFeedback.lightImpact();
         _spawnParticles(cx, cy, 10, Colors.yellow);
         _addPopup(cx, cy, '+10 ⭐', Colors.yellow.shade800);
@@ -693,7 +732,7 @@ class _MiniRacingGameState extends State<MiniRacingGame> with SingleTickerProvid
       case RacingEntityType.diamond:
         _score += 30;
         _speed += 5.0;
-        AudioManager.instance.playSuccess();
+        AudioManager.instance.playRacingItemDiamond();
         HapticFeedback.mediumImpact();
         _spawnParticles(cx, cy, 18, Colors.cyan);
         _addPopup(cx, cy, '💎 대박! +30', Colors.cyan.shade700);
@@ -703,12 +742,12 @@ class _MiniRacingGameState extends State<MiniRacingGame> with SingleTickerProvid
       case RacingEntityType.heart:
         if (_lives < 3) {
           _lives++;
-          AudioManager.instance.playSuccess();
+          AudioManager.instance.playRacingItemHeart();
           _spawnParticles(cx, cy, 12, Colors.red);
           _addPopup(cx, cy, '❤️ 생명 충전!', Colors.red);
         } else {
           _score += 15;
-          AudioManager.instance.playChime();
+          AudioManager.instance.playRacingItemStar();
           _addPopup(cx, cy, '+15 ⭐', Colors.yellow.shade800);
         }
         HapticFeedback.lightImpact();
@@ -716,7 +755,7 @@ class _MiniRacingGameState extends State<MiniRacingGame> with SingleTickerProvid
 
       case RacingEntityType.shield:
         _hasShield = true;
-        AudioManager.instance.playSuccess();
+        AudioManager.instance.playRacingItemShield();
         HapticFeedback.mediumImpact();
         _spawnParticles(cx, cy, 15, Colors.purpleAccent);
         _addPopup(cx, cy, '🔰 보호막 보디가드!', Colors.purple);
@@ -725,12 +764,12 @@ class _MiniRacingGameState extends State<MiniRacingGame> with SingleTickerProvid
       case RacingEntityType.banana:
         if (_hasShield) {
           _hasShield = false;
-          AudioManager.instance.playBoing();
+          AudioManager.instance.playRacingItemShield();
           _addPopup(cx, cy, '🔰 보호막 방어!', Colors.purple);
         } else {
           // 스핀 현상
           _spinTimer = 1.0;
-          AudioManager.instance.playBoing();
+          AudioManager.instance.playRacingItemBanana();
           HapticFeedback.heavyImpact();
           _spawnParticles(cx, cy, 12, Colors.yellow.shade600);
           _addPopup(cx, cy, '🌀 뱅글뱅글 바나나!', Colors.orange.shade800);
@@ -955,102 +994,161 @@ class _MiniRacingGameState extends State<MiniRacingGame> with SingleTickerProvid
                     ),
                   )),
 
-                  // ── 헤더 UI ──
+                  // ── 헤더 UI (아기자기 & 탭 쉬운 프리미엄 헤더) ──
                   Positioned(
-                    top: 16,
-                    left: 16,
-                    right: 16,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // 1. 나가기 버튼
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTapDown: (_) {
-                            _enginePlayer.stop();
-                            AudioManager.instance.playClick();
-                            Navigator.of(context).pop();
-                          },
-                          child: Container(
-                            height: 40,
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            decoration: BoxDecoration(
-                              color: KidsTheme.red.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: KidsTheme.red.withValues(alpha: 0.3), width: 1.5),
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.black.withValues(alpha: 0.55),
+                            Colors.black.withValues(alpha: 0.0),
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // 1. 🏠 홈 버튼 (크고 눌리기 쉬운 사이즈)
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              _enginePlayer.stop();
+                              AudioManager.instance.playClick();
+                              Navigator.of(context).pop();
+                            },
+                            child: Container(
+                              width: 54,
+                              height: 54,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFFFF8A8A), Color(0xFFFF5252)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2.5),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFFF5252).withValues(alpha: 0.5),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: const Center(
+                                child: Text('🏠', style: TextStyle(fontSize: 24)),
+                              ),
                             ),
-                            alignment: Alignment.center,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                          ),
+                          const SizedBox(width: 8),
+
+                          // 2. 중앙: 테마명 + 레벨 뱃지
+                          Expanded(
+                            child: Container(
+                              height: 54,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.92),
+                                borderRadius: BorderRadius.circular(27),
+                                border: Border.all(color: Colors.white, width: 2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.15),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  // 레벨 뱃지
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFFFFB300), Color(0xFFFF6F00)],
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      'Lv.$_level',
+                                      style: GoogleFonts.jua(
+                                        fontSize: 13,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      _theme.name,
+                                      style: GoogleFonts.jua(
+                                        fontSize: 15,
+                                        color: KidsTheme.textDark,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+
+                          // 3. 점수 + 하트 카드
+                          Container(
+                            height: 54,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.92),
+                              borderRadius: BorderRadius.circular(27),
+                              border: Border.all(color: Colors.white, width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.15),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.home_rounded, color: KidsTheme.red, size: 20),
-                                const SizedBox(width: 4),
-                                Text('메인으로', style: GoogleFonts.jua(fontSize: 16, color: KidsTheme.red)),
+                                Text(
+                                  '🎯 $_score',
+                                  style: GoogleFonts.jua(fontSize: 17, color: KidsTheme.orange, fontWeight: FontWeight.bold),
+                                ),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: List.generate(3, (index) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(left: 1),
+                                      child: Opacity(
+                                        opacity: index < _lives ? 1.0 : 0.25,
+                                        child: const Text('❤️', style: TextStyle(fontSize: 13)),
+                                      ),
+                                    );
+                                  }),
+                                ),
                               ],
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-
-                        // 2. 테마 이름 (중앙)
-                        Expanded(
-                          child: Container(
-                            height: 40,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)],
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              _theme.name,
-                              style: GoogleFonts.jua(fontSize: 16, color: KidsTheme.textDark),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-
-                        // 3. 점수 및 하트 묶음
-                        Container(
-                          height: 40,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 4)],
-                          ),
-                          alignment: Alignment.center,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '🎯 $_score',
-                                style: GoogleFonts.jua(fontSize: 18, color: KidsTheme.orange),
-                              ),
-                              const SizedBox(width: 8),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: List.generate(3, (index) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(left: 2),
-                                    child: Opacity(
-                                      opacity: index < _lives ? 1.0 : 0.3,
-                                      child: const Text('❤️', style: TextStyle(fontSize: 16)),
-                                    ),
-                                  );
-                                }),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
 
-                  // ── 게임 오버 레이아웃 ──
+                  // ── 게임 오버 레이아웃 (아기자기 & 고급스러운 프리미엄 팝업) ──
                   if (_isGameOver)
                     Positioned.fill(
                       child: Container(
@@ -1058,61 +1156,217 @@ class _MiniRacingGameState extends State<MiniRacingGame> with SingleTickerProvid
                         child: Center(
                           child: Container(
                             constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 32),
-                            padding: const EdgeInsets.all(28),
+                            margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                            padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(28),
-                              border: Border.all(color: KidsTheme.orange, width: 5),
-                            ),
-                            child: SingleChildScrollView(
-child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Text('💥', style: TextStyle(fontSize: 72)),
-                                const SizedBox(height: 8),
-                                Text('쿠웅! 사고가 났어요!', style: GoogleFonts.jua(fontSize: 34, color: KidsTheme.red)),
-                                const SizedBox(height: 8),
-                                Text('최종 점수: $_score 점 🎯', style: GoogleFonts.jua(fontSize: 24, color: KidsTheme.textDark)),
-                                const SizedBox(height: 24),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          _enginePlayer.stop();
-                                          AudioManager.instance.playClick();
-                                          Navigator.of(context).pop();
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(vertical: 12),
-                                          margin: const EdgeInsets.only(right: 6),
-                                          decoration: BoxDecoration(color: Colors.grey.shade500, borderRadius: BorderRadius.circular(20)),
-                                          alignment: Alignment.center,
-                                          child: Text('메인으로 🏠', style: GoogleFonts.jua(fontSize: 18, color: Colors.white)),
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          AudioManager.instance.playClick();
-                                          _startGame(_screenSize);
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(vertical: 12),
-                                          margin: const EdgeInsets.only(left: 6),
-                                          decoration: BoxDecoration(color: KidsTheme.green, borderRadius: BorderRadius.circular(20)),
-                                          alignment: Alignment.center,
-                                          child: Text('다시 달리기 🏎️', style: GoogleFonts.jua(fontSize: 18, color: Colors.white)),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                              borderRadius: BorderRadius.circular(36),
+                              border: Border.all(color: const Color(0xFFFF9F1C), width: 3.5),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFFF9F1C).withValues(alpha: 0.35),
+                                  blurRadius: 30,
+                                  offset: const Offset(0, 12),
+                                ),
+                                const BoxShadow(
+                                  color: Colors.white,
+                                  blurRadius: 4,
+                                  offset: Offset(0, -2),
                                 ),
                               ],
                             ),
-),
+                            child: SingleChildScrollView(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // Header: Crash & Car Badge
+                                  Stack(
+                                    alignment: Alignment.bottomRight,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(14),
+                                        decoration: BoxDecoration(
+                                          gradient: const LinearGradient(
+                                            colors: [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          ),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: const Color(0xFFFFB74D), width: 3),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: const Color(0xFFFF9F1C).withValues(alpha: 0.25),
+                                              blurRadius: 12,
+                                              offset: const Offset(0, 5),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Text(
+                                          _selectedCar.supercar != null
+                                              ? _selectedCar.supercar!.name.split(' ').last
+                                              : (_selectedCar.emojiToy ?? '🏎️'),
+                                          style: const TextStyle(fontSize: 48),
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Text('💥', style: TextStyle(fontSize: 22)),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+
+                                  // Title Text
+                                  Text(
+                                    '쿠웅! 사고가 났어요!',
+                                    style: GoogleFonts.jua(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFFFF5252),
+                                      shadows: const [
+                                        Shadow(color: Color(0xFFFFCDD2), offset: Offset(1.5, 1.5), blurRadius: 0),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+
+                                  // Score Card Box
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFFFFFDE7), Color(0xFFFFF9C4)],
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                      ),
+                                      borderRadius: BorderRadius.circular(22),
+                                      border: Border.all(color: const Color(0xFFFFE082), width: 2),
+                                      boxShadow: const [
+                                        BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3)),
+                                      ],
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            const Text('🎯', style: TextStyle(fontSize: 22)),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              '$_score',
+                                              style: GoogleFonts.jua(
+                                                fontSize: 38,
+                                                color: const Color(0xFF2E3A59),
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            Text(
+                                              ' 점',
+                                              style: GoogleFonts.jua(fontSize: 20, color: const Color(0xFF718096)),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            gradient: const LinearGradient(
+                                              colors: [Color(0xFFFFB300), Color(0xFFFF6F00)],
+                                            ),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            '🚗 도달 레벨 : Lv.$_level ${_theme.name}',
+                                            style: GoogleFonts.jua(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 18),
+
+                                  // 3D Action Buttons
+                                  Row(
+                                    children: [
+                                      // Home button
+                                      Expanded(
+                                        flex: 2,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            _enginePlayer.stop();
+                                            AudioManager.instance.playClick();
+                                            Navigator.of(context).pop();
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(vertical: 13),
+                                            decoration: BoxDecoration(
+                                              gradient: const LinearGradient(
+                                                colors: [Color(0xFFFF8A8A), Color(0xFFFF5252)],
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                              ),
+                                              borderRadius: BorderRadius.circular(20),
+                                              border: Border.all(color: Colors.white, width: 2),
+                                              boxShadow: const [
+                                                BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3)),
+                                              ],
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                '🏠 로비로',
+                                                style: GoogleFonts.jua(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+
+                                      // Restart button
+                                      Expanded(
+                                        flex: 3,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            AudioManager.instance.playClick();
+                                            _startGame(_screenSize, autoStart: true);
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(vertical: 13),
+                                            decoration: BoxDecoration(
+                                              gradient: const LinearGradient(
+                                                colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                              ),
+                                              borderRadius: BorderRadius.circular(20),
+                                              border: Border.all(color: Colors.white, width: 2),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: const Color(0xFF4CAF50).withValues(alpha: 0.4),
+                                                  blurRadius: 8,
+                                                  offset: const Offset(0, 4),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                '🏎️ 다시 달리기!',
+                                                style: GoogleFonts.jua(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -1135,203 +1389,224 @@ child: Column(
         color: Colors.black.withValues(alpha: 0.75),
         child: Center(
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 24),
-            padding: const EdgeInsets.all(24),
+            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 620),
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: KidsTheme.orange, width: 6),
-            ),
-            child: SingleChildScrollView(
-child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('🏎️', style: TextStyle(fontSize: 64)),
-                const SizedBox(height: 8),
-                Text(
-                  '요리조리 자동차',
-                  style: GoogleFonts.jua(fontSize: 32, color: KidsTheme.orange),
-                ),
-                const SizedBox(height: 16),
-                
-                // 먹는 것 섹션
-                Text(
-                  '⭕ 먹으면 점수가 올라요! (득템)',
-                  style: GoogleFonts.jua(fontSize: 16, color: KidsTheme.green),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildGuideItem('⭐', '별 (+10)'),
-                    const SizedBox(width: 12),
-                    _buildGuideItem('💎', '다이아 (+30)'),
-                    const SizedBox(width: 12),
-                    _buildGuideItem('❤️', '하트 (생명+1)'),
-                    const SizedBox(width: 12),
-                    _buildGuideItem('🔰', '보호막 (무적)'),
-                  ],
-                ),
-                const SizedBox(height: 20),
-
-                // 피하는 것 섹션
-                Text(
-                  '❌ 부딪히면 아파요! (피하기)',
-                  style: GoogleFonts.jua(fontSize: 16, color: KidsTheme.red),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildGuideItem('🪨', '바위 (아쿵!)'),
-                    const SizedBox(width: 16),
-                    _buildGuideItem('🚧', '공사콘 (아쿵!)'),
-                    const SizedBox(width: 16),
-                    _buildGuideItem('🍌', '바나나 (미끌!)'),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                Text(
-                  '화면을 드래그하거나\n아래 터치버튼으로 좌우 이동해요!',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.jua(fontSize: 14, color: KidsTheme.textDark),
-                ),
-                const SizedBox(height: 16),
-
-                // ── 자동차 선택 차고지 ──
-                Text(
-                  '🏎️ 자동차 차고지 (내 마음대로 선택!)',
-                  style: GoogleFonts.jua(fontSize: 16, color: KidsTheme.purple),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 80,
-                  child: ValueListenableBuilder<List<String>>(
-                    valueListenable: PlayerDataManager.instance.unlockedToysNotifier,
-                    builder: (context, unlockedToys, child) {
-                      final racingToys = ['🚓', '🚒', '🚜', '🚑'].where((toy) => unlockedToys.contains(toy)).toList();
-                      final totalItems = SupercarSkin.values.length + racingToys.length;
-
-                      return ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: totalItems,
-                        itemBuilder: (context, index) {
-                          final isSupercar = index < SupercarSkin.values.length;
-                          final SelectedCar carOption = isSupercar
-                              ? SelectedCar(supercar: SupercarSkin.values[index])
-                              : SelectedCar(emojiToy: racingToys[index - SupercarSkin.values.length]);
-
-                          final isSelected = carOption == _selectedCar;
-                          final mainColor = isSupercar ? carOption.supercar!.mainColor : const Color(0xFF6A1B9A);
-                          final name = isSupercar ? carOption.supercar!.name : (carOption.emojiToy == '🚓' ? '경찰차' : carOption.emojiToy == '🚒' ? '소방차' : carOption.emojiToy == '🚜' ? '트랙터' : '구급차');
-
-                          return GestureDetector(
-                            onTap: () {
-                              AudioManager.instance.playClick();
-                              setState(() {
-                                _selectedCar = carOption;
-                              });
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              margin: const EdgeInsets.symmetric(horizontal: 4),
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: isSelected ? mainColor.withValues(alpha: 0.15) : Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: isSelected ? mainColor : Colors.grey.shade300,
-                                  width: isSelected ? 3 : 1,
-                                ),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 28,
-                                    height: 42,
-                                    child: isSupercar
-                                        ? CustomPaint(painter: SupercarPainter(skin: carOption.supercar!))
-                                        : Center(child: Text(carOption.emojiToy!, style: const TextStyle(fontSize: 28))),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    name,
-                                    style: GoogleFonts.jua(
-                                      fontSize: 11,
-                                      color: isSelected ? KidsTheme.textDark : Colors.grey.shade600,
-                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                GestureDetector(
-                  onTap: () {
-                    AudioManager.instance.playClick();
-                    setState(() {
-                      _isStarted = true;
-                    });
-                    if (AudioManager.instance.soundEnabled) {
-                      _isEngineReady = false;
-                      _enginePlayer.play(AssetSource('audio/engine.wav'), volume: 0.85).then((_) {
-                        _isEngineReady = true;
-                      }).catchError((e) {
-                        debugPrint("Engine play failed: $e");
-                      });
-                    }
-                  },
-                  child: Container(
-                    constraints: const BoxConstraints(maxWidth: 360, maxHeight: 600),
-margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: KidsTheme.green,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: KidsTheme.green.withValues(alpha: 0.4),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      '출발하기! 🚀',
-                      style: GoogleFonts.jua(fontSize: 24, color: Colors.white),
-                    ),
-                  ),
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(color: const Color(0xFFFF9F1C), width: 4),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFF9F1C).withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
-),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Title Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('🏎️', style: TextStyle(fontSize: 32)),
+                      const SizedBox(width: 6),
+                      Text(
+                        '요리조리 자동차',
+                        style: GoogleFonts.jua(fontSize: 26, color: KidsTheme.orange, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ── 자동차 선택 차고지 (가장 중요하므로 상단 배치) ──
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4, bottom: 4),
+                          child: Row(
+                            children: [
+                              const Text('🚗', style: TextStyle(fontSize: 14)),
+                              const SizedBox(width: 4),
+                              Text(
+                                '출전 자동차 선택',
+                                style: GoogleFonts.jua(fontSize: 13, color: const Color(0xFF4B5563), fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(
+                          height: 72,
+                          child: ValueListenableBuilder<List<String>>(
+                            valueListenable: PlayerDataManager.instance.unlockedToysNotifier,
+                            builder: (context, unlockedToys, child) {
+                              final racingToys = ['🚓', '🚒', '🚜', '🚑'].where((toy) => unlockedToys.contains(toy)).toList();
+                              final totalItems = SupercarSkin.values.length + racingToys.length;
+
+                              return ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: totalItems,
+                                itemBuilder: (context, index) {
+                                  final isSupercar = index < SupercarSkin.values.length;
+                                  final SelectedCar carOption = isSupercar
+                                      ? SelectedCar(supercar: SupercarSkin.values[index])
+                                      : SelectedCar(emojiToy: racingToys[index - SupercarSkin.values.length]);
+
+                                  final isSelected = carOption == _selectedCar;
+                                  final mainColor = isSupercar ? carOption.supercar!.mainColor : const Color(0xFF6A1B9A);
+                                  final name = isSupercar
+                                      ? carOption.supercar!.name.split(' ')[0]
+                                      : (carOption.emojiToy == '🚓' ? '경찰차' : carOption.emojiToy == '🚒' ? '소방차' : carOption.emojiToy == '🚜' ? '트랙터' : '구급차');
+
+                                  return GestureDetector(
+                                    onTap: () {
+                                      AudioManager.instance.playClick();
+                                      setState(() {
+                                        _selectedCar = carOption;
+                                      });
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 150),
+                                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: isSelected ? mainColor.withValues(alpha: 0.15) : Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(
+                                          color: isSelected ? mainColor : Colors.grey.shade300,
+                                          width: isSelected ? 2.5 : 1,
+                                        ),
+                                        boxShadow: isSelected
+                                            ? [
+                                                BoxShadow(
+                                                  color: mainColor.withValues(alpha: 0.3),
+                                                  blurRadius: 6,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ]
+                                            : null,
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          SizedBox(
+                                            width: 24,
+                                            height: 36,
+                                            child: isSupercar
+                                                ? CustomPaint(painter: SupercarPainter(skin: carOption.supercar!))
+                                                : Center(child: Text(carOption.emojiToy!, style: const TextStyle(fontSize: 24))),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            name,
+                                            style: GoogleFonts.jua(
+                                              fontSize: 10,
+                                              color: isSelected ? KidsTheme.textDark : Colors.grey.shade600,
+                                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // ── 콤팩트 가이드 (아이템 & 장애물) ──
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFDE7),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: const Color(0xFFFFE082), width: 1.5),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        // 득템
+                        Row(
+                          children: [
+                            const Text('⭐💎❤️🔰', style: TextStyle(fontSize: 16)),
+                            const SizedBox(width: 4),
+                            Text('먹어요! 😋', style: GoogleFonts.jua(fontSize: 12, color: const Color(0xFFE65100), fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        Container(width: 1, height: 20, color: const Color(0xFFFFD54F)),
+                        // 피하기
+                        Row(
+                          children: [
+                            const Text('🪨🚧🍌', style: TextStyle(fontSize: 16)),
+                            const SizedBox(width: 4),
+                            Text('피해요! ⚠️', style: GoogleFonts.jua(fontSize: 12, color: const Color(0xFFD32F2F), fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // ── 출발하기 버튼 (언제나 한눈에 바로 보이는 크고 시원한 3D 버튼) ──
+                  GestureDetector(
+                    onTap: () {
+                      AudioManager.instance.playClick();
+                      setState(() {
+                        _isStarted = true;
+                      });
+                      _startEngineSound();
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF4CAF50).withValues(alpha: 0.45),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          '🏎️ 출발하기! 🚀',
+                          style: GoogleFonts.jua(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildGuideItem(String emoji, String label) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(emoji, style: const TextStyle(fontSize: 28)),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: GoogleFonts.jua(fontSize: 10, color: KidsTheme.textDark),
-        ),
-      ],
     );
   }
 }

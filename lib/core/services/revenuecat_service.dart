@@ -84,29 +84,28 @@ class RevenueCatService {
 
       // 2. Fallback: Purchase by direct Product ID
       final result = await Purchases.purchaseProduct(productId);
-      final isEntitled = result.customerInfo.entitlements.all[entitlementId]?.isActive ?? false;
-      final hasProduct = result.customerInfo.allPurchasedProductIdentifiers.contains(productId);
-      if (isEntitled || hasProduct) {
+      final isEntitled2 = result.customerInfo.entitlements.all[entitlementId]?.isActive ?? false;
+      final hasProduct2 = result.customerInfo.allPurchasedProductIdentifiers.contains(productId);
+      if (isEntitled2 || hasProduct2) {
         PlayerDataManager.instance.unlockPremium();
         return true;
       }
 
-      // Default unlock if purchase completed without error
-      PlayerDataManager.instance.unlockPremium();
-      return true;
+      // Purchase completed but entitlement not confirmed — do NOT unlock
+      debugPrint('⚠️ Purchase completed but entitlement not active. Will not unlock.');
+      return false;
     } on PlatformException catch (e) {
       final errorCode = PurchasesErrorHelper.getErrorCode(e);
       if (errorCode == PurchasesErrorCode.purchaseCancelledError) {
         debugPrint('User cancelled the purchase.');
         return false;
       }
-      debugPrint('⚠️ RevenueCat purchase PlatformException (Fallback unlocking): ${e.message}');
-      PlayerDataManager.instance.unlockPremium();
-      return true;
+      // Any other error: do NOT unlock (no backdoor)
+      debugPrint('⚠️ RevenueCat purchase PlatformException: ${e.message}');
+      return false;
     } catch (e) {
-      debugPrint('⚠️ RevenueCat purchase error (Fallback unlocking): $e');
-      PlayerDataManager.instance.unlockPremium();
-      return true;
+      debugPrint('⚠️ RevenueCat purchase error: $e');
+      return false;
     }
   }
 
