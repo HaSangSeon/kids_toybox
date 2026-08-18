@@ -15,6 +15,7 @@ class AudioManager {
   final AudioPlayer _bgmPlayer = AudioPlayer();
   final AudioPlayer _munchPlayer = AudioPlayer();
   final AudioPlayer _animalPlayer = AudioPlayer();
+  final AudioPlayer _successPlayer = AudioPlayer();
   
   bool _soundEnabled = true;
   bool _bgmEnabled = true;
@@ -29,6 +30,7 @@ class AudioManager {
       _voicePlayer.stop();
       _munchPlayer.stop();
       _animalPlayer.stop();
+      _successPlayer.stop();
     }
   }
 
@@ -51,6 +53,18 @@ class AudioManager {
       await _effectPlayer.play(AssetSource(path));
     } catch (e) {
       debugPrint("Audio play failed: $path. Error: $e");
+    }
+  }
+
+  /// Play a completion/fanfare sound on dedicated player so drag sounds won't cut it off
+  Future<void> playSuccessSound(String path, {double rate = 1.0}) async {
+    if (!_soundEnabled) return;
+    try {
+      await _successPlayer.stop();
+      await _successPlayer.setPlaybackRate(rate);
+      await _successPlayer.play(AssetSource(path));
+    } catch (e) {
+      debugPrint("Success audio play failed: $path. Error: $e");
     }
   }
 
@@ -90,6 +104,22 @@ class AudioManager {
   Future<void> playBoing() => playEffect('audio/boing.wav');
   Future<void> playChime() => playEffect('audio/chime.wav');
 
+  // 🐛 지렁이 게임 전용 사운드
+  /// 일반 먹이를 먹을 때: 귀엽고 촉촉한 냠냠 소리
+  Future<void> playSnakeEat() => playEffect('audio/munch.wav', rate: 1.2);
+
+  /// 스타 아이템을 먹을 때: 냠냠 + 반짝이는 chime 콤보
+  Future<void> playSnakeEatStar() async {
+    if (!_soundEnabled) return;
+    playEffect('audio/munch.wav', rate: 1.4);
+    Future.delayed(const Duration(milliseconds: 80), () {
+      playEffect('audio/chime.wav', rate: 1.55);
+    });
+  }
+
+  /// 방향 전환할 때: 아이들이 좋아하는 통통 튀는 삑~ 소리
+  Future<void> playSnakeTurn() => playEffect('audio/squeak.wav', rate: 1.5);
+
   // 요리조리 자동차 아이템별 전용 사운드
   Future<void> playRacingItemStar() => playEffect('audio/item_star.wav');
   Future<void> playRacingItemDiamond() => playEffect('audio/item_diamond.wav');
@@ -127,7 +157,29 @@ class AudioManager {
   // 따라 쓰기 전용 사운드
   Future<void> playTraceStart() => playEffect('audio/trace_start.wav');
   Future<void> playTraceDraw({double rate = 1.0}) => playEffect('audio/trace_draw.wav', rate: rate);
-  Future<void> playTraceSuccess() => playEffect('audio/trace_success.wav');
+  Future<void> playTraceSuccess() => playSuccessSound('audio/trace_success.wav');
+
+  /// 브러시 도구별 전용 드로잉 사운드 (무지개, 별, 방울, 크레파스, 은하수)
+  Future<void> playTraceBrush(String brushName, {double rate = 1.0}) {
+    switch (brushName) {
+      case 'sparkle':
+        // 반짝이 별: 맑고 영롱한 별 사운드 ✨
+        return playEffect('audio/item_star.wav', rate: (rate * 1.15).clamp(0.8, 2.0));
+      case 'bubble':
+        // 마법 방울: 퐁퐁 터지는 귀여운 방울 소리 🫧
+        return playEffect('audio/bubble_pop.wav', rate: (rate * 1.1).clamp(0.8, 2.0));
+      case 'crayon':
+        // 크레파스: 사각사각 질감 넘치는 스케치 소리 🖍️
+        return playEffect('audio/scribble.wav', rate: (rate * 1.05).clamp(0.8, 2.0));
+      case 'comet':
+        // 네온 은하수: 샤샤샥 빠르고 신비로운 은하수 소리 🔥
+        return playEffect('audio/item_diamond.wav', rate: (rate * 1.2).clamp(0.8, 2.0));
+      case 'rainbow':
+      default:
+        // 무지개: 뾰로롱 마법 음계 소리 🌈
+        return playEffect('audio/trace_draw.wav', rate: rate.clamp(0.8, 2.0));
+    }
+  }
 
   // 직소 퍼즐 전용 사운드
   Future<void> playJigsawPickup() => playEffect('audio/jigsaw_pickup.wav');

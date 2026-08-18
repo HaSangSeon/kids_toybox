@@ -113,6 +113,7 @@ class _SnakeGameState extends State<SnakeGame>
   final List<Firefly> _fireflies = [];
   final Random _rng = Random();
   double _lastTickTime = 0;
+  double _turnSoundCooldown = 0.0; // 드래그 연속 재생 방지 쿨타임 (초)
 
   @override
   void initState() {
@@ -211,6 +212,7 @@ class _SnakeGameState extends State<SnakeGame>
 
     setState(() {
       _bounceAnim += dt * 4.0;
+      if (_turnSoundCooldown > 0) _turnSoundCooldown -= dt;
       _updateFireflies(dt);
       _updatePhysics(dt);
       _updateParticles(dt);
@@ -303,7 +305,7 @@ class _SnakeGameState extends State<SnakeGame>
         _score += _normalFood!.points;
         if (_score > _highScore) _highScore = _score;
         _targetSegmentCount += 2;
-        AudioManager.instance.playPop();
+        AudioManager.instance.playSnakeEat();
         _spawnParticles(_normalFood!.pos.dx, _normalFood!.pos.dy, const Color(0xFFFDE047), 14);
         _spawnNormalFood();
 
@@ -320,7 +322,7 @@ class _SnakeGameState extends State<SnakeGame>
         _score += _starFood!.points;
         if (_score > _highScore) _highScore = _score;
         _targetSegmentCount += 3;
-        AudioManager.instance.playSuccess();
+        AudioManager.instance.playSnakeEatStar();
         _spawnParticles(_starFood!.pos.dx, _starFood!.pos.dy, const Color(0xFFFFD700), 22);
         _starFood = null;
         _checkVictory();
@@ -375,7 +377,10 @@ class _SnakeGameState extends State<SnakeGame>
 
     if (dx.abs() + dy.abs() > 0.3) {
       _targetAngle = atan2(dy, dx);
-      AudioManager.instance.playClick();
+      if (_turnSoundCooldown <= 0) {
+        AudioManager.instance.playSnakeTurn();
+        _turnSoundCooldown = 0.2; // 0.2초 쿨타임
+      }
     }
   }
 
@@ -397,7 +402,7 @@ class _SnakeGameState extends State<SnakeGame>
     }
     if (diff.abs() > 2.8) return;
 
-    AudioManager.instance.playClick();
+    AudioManager.instance.playSnakeTurn();
     _targetAngle = angle;
   }
 

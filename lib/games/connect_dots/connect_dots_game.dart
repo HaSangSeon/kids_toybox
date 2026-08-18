@@ -197,6 +197,22 @@ const List<DotPuzzle> _puzzles = [
   ], isClosed: false),
 ];
 
+// 무지개 색상 배열 - 점을 연결할 때마다 순서대로 사용
+const List<Color> _rainbowPalette = [
+  Color(0xFFFF4D6D), // 딸기빨강
+  Color(0xFFFF8C42), // 당근주황
+  Color(0xFFFFD166), // 바나나노랑
+  Color(0xFF4ADE80), // 새싹초록
+  Color(0xFF38BDF8), // 하늘파랑
+  Color(0xFF818CF8), // 라벤더보라
+  Color(0xFFF472B6), // 핑크사탕
+  Color(0xFF34D399), // 민트초록
+  Color(0xFFE879F9), // 매직보라
+  Color(0xFFFBBF24), // 황금노랑
+  Color(0xFF60A5FA), // 블루베리
+  Color(0xFFFC8181), // 장미빨강
+];
+
 class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderStateMixin {
   int _score = 0;
   int _level = 1;
@@ -206,6 +222,8 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
   int _currentDotIndex = 1;
 
   List<Offset> _completedPoints = [];
+  // 각 세그먼트(선 구간)의 무지개 색상 인덱스 추적
+  List<int> _segmentColorIndices = [];
   Offset? _currentDragPos;
 
   final Random _random = Random();
@@ -261,6 +279,7 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
     _screenSize = size;
     _dots.clear();
     _completedPoints.clear();
+    _segmentColorIndices.clear();
     _currentDotIndex = 1;
     _isLevelClear = false;
     _currentDragPos = null;
@@ -311,6 +330,11 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
     final target = _targetDot;
     if (target == null) return;
     
+    // 새 세그먼트 색상 인덱스 추가 (완성된 점 수 기준)
+    final colorIdx = _completedPoints.isNotEmpty
+        ? (_segmentColorIndices.length) % _rainbowPalette.length
+        : 0;
+    _segmentColorIndices.add(colorIdx);
     _completedPoints.add(target.position);
     _currentDotIndex++;
     
@@ -709,7 +733,9 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
                         child: CustomPaint(
                           painter: DotsPainter(
                             completedPoints: _completedPoints,
+                            segmentColorIndices: _segmentColorIndices,
                             currentDragPos: _currentDragPos,
+                            nextSegmentColorIdx: _segmentColorIndices.length % _rainbowPalette.length,
                           ),
                         ),
                       ),
@@ -720,14 +746,23 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
                       ..._dots.map((dot) {
                         final target = _targetDot;
                         final isNext = (target == dot);
-                        final isCompleted = !isNext && _completedPoints.contains(dot.position);
+                        final dotCompletedIdx = _completedPoints.indexOf(dot.position);
+                        final isCompleted = !isNext && dotCompletedIdx >= 0;
+
+                        // 완성된 점은 해당 세그먼트의 무지개 색상으로
+                        final dotColor = isCompleted && dotCompletedIdx < _segmentColorIndices.length
+                            ? _rainbowPalette[_segmentColorIndices[dotCompletedIdx] % _rainbowPalette.length]
+                            : (isNext ? KidsTheme.orange : Colors.white);
+                        final glowColor = isCompleted && dotCompletedIdx < _segmentColorIndices.length
+                            ? _rainbowPalette[_segmentColorIndices[dotCompletedIdx] % _rainbowPalette.length]
+                            : KidsTheme.orange;
                         
                         return Positioned(
                           left: dot.position.dx - 28,
                           top: dot.position.dy - 28,
                           child: IgnorePointer(
                             child: AnimatedScale(
-                              scale: isNext ? 1.2 : (isCompleted ? 0.8 : 1.0),
+                              scale: isNext ? 1.2 : (isCompleted ? 0.85 : 1.0),
                               duration: const Duration(milliseconds: 300),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 300),
@@ -735,12 +770,19 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
                                 height: 56,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: isCompleted ? KidsTheme.green : (isNext ? KidsTheme.orange : Colors.white),
-                                  border: Border.all(color: isNext ? Colors.white : KidsTheme.borderDark, width: 4),
+                                  color: dotColor,
+                                  border: Border.all(
+                                    color: isCompleted || isNext ? Colors.white : KidsTheme.borderDark,
+                                    width: 4,
+                                  ),
                                   boxShadow: [
-                                    if (isNext)
-                                      BoxShadow(color: KidsTheme.orange.withValues(alpha: 0.6), blurRadius: 15, spreadRadius: 4),
-                                    if (!isNext)
+                                    if (isNext || isCompleted)
+                                      BoxShadow(
+                                        color: glowColor.withValues(alpha: 0.65),
+                                        blurRadius: isCompleted ? 12 : 18,
+                                        spreadRadius: isCompleted ? 2 : 4,
+                                      ),
+                                    if (!isNext && !isCompleted)
                                       const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
                                   ],
                                 ),
@@ -748,8 +790,8 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
                                   child: Text(
                                     "${dot.number}",
                                     style: GoogleFonts.jua(
-                                      fontSize: 26, 
-                                      color: isCompleted ? Colors.white : KidsTheme.textDark
+                                      fontSize: 26,
+                                      color: isCompleted || isNext ? Colors.white : KidsTheme.textDark,
                                     ),
                                   ),
                                 ),
@@ -1033,49 +1075,115 @@ class _BirdPainter extends CustomPainter {
 
 class DotsPainter extends CustomPainter {
   final List<Offset> completedPoints;
+  final List<int> segmentColorIndices;
   final Offset? currentDragPos;
+  final int nextSegmentColorIdx;
 
   DotsPainter({
     required this.completedPoints,
+    required this.segmentColorIndices,
     required this.currentDragPos,
+    required this.nextSegmentColorIdx,
   });
+
+  void _drawSegment(Canvas canvas, Offset from, Offset to, Color color) {
+    // 1. 글로우 (바깥쪽 부드러운 광채)
+    final glowPaint = Paint()
+      ..color = color.withValues(alpha: 0.35)
+      ..strokeWidth = 22
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+    canvas.drawLine(from, to, glowPaint);
+
+    // 2. 흰색 테두리 (선명도 향상)
+    final borderPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.7)
+      ..strokeWidth = 15
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(from, to, borderPaint);
+
+    // 3. 무지개 색상 메인 라인
+    final mainPaint = Paint()
+      ..color = color
+      ..strokeWidth = 10
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(from, to, mainPaint);
+
+    // 4. 하이라이트 (윗부분 밝은 빛)
+    final highlightPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.55)
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    // 선의 약간 위쪽에 하이라이트
+    final dx = (to.dy - from.dy);
+    final dy = (from.dx - to.dx);
+    final len = sqrt(dx * dx + dy * dy);
+    if (len > 0) {
+      final nx = dx / len * 2.5;
+      final ny = dy / len * 2.5;
+      canvas.drawLine(
+        Offset(from.dx + nx, from.dy + ny),
+        Offset(to.dx + nx, to.dy + ny),
+        highlightPaint,
+      );
+    }
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = KidsTheme.blue
-      ..strokeWidth = 10
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = PaintingStyle.stroke;
-      
-    final shadowPaint = Paint()
-      ..color = KidsTheme.blue.withValues(alpha: 0.3)
-      ..strokeWidth = 16
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = PaintingStyle.stroke;
+    if (completedPoints.isEmpty) return;
 
-    // Draw completed lines
-    if (completedPoints.isNotEmpty) {
-      final path = Path();
-      path.moveTo(completedPoints[0].dx, completedPoints[0].dy);
-      for (int i = 1; i < completedPoints.length; i++) {
-        path.lineTo(completedPoints[i].dx, completedPoints[i].dy);
+    // 완성된 세그먼트 구간별로 무지개 색상으로 각각 그리기
+    for (int i = 0; i < completedPoints.length - 1; i++) {
+      final colorIdx = i < segmentColorIndices.length
+          ? segmentColorIndices[i] % _rainbowPalette.length
+          : i % _rainbowPalette.length;
+      _drawSegment(
+        canvas,
+        completedPoints[i],
+        completedPoints[i + 1],
+        _rainbowPalette[colorIdx],
+      );
+    }
+
+    // 드래그 중인 라인 (다음 세그먼트 색상으로 미리보기)
+    if (currentDragPos != null && completedPoints.isNotEmpty) {
+      final nextColor = _rainbowPalette[nextSegmentColorIdx % _rainbowPalette.length];
+      // 점선 스타일로 드래그 라인 표시
+      final from = completedPoints.last;
+      final to = currentDragPos!;
+      final dashPaint = Paint()
+        ..color = nextColor.withValues(alpha: 0.6)
+        ..strokeWidth = 8
+        ..strokeCap = StrokeCap.round
+        ..style = PaintingStyle.stroke;
+      // 점선 그리기
+      final totalDx = to.dx - from.dx;
+      final totalDy = to.dy - from.dy;
+      final totalLen = sqrt(totalDx * totalDx + totalDy * totalDy);
+      if (totalLen > 0) {
+        const dashLen = 16.0;
+        const gapLen = 10.0;
+        double drawn = 0;
+        while (drawn < totalLen) {
+          final segEnd = (drawn + dashLen).clamp(0.0, totalLen);
+          canvas.drawLine(
+            Offset(from.dx + totalDx * drawn / totalLen, from.dy + totalDy * drawn / totalLen),
+            Offset(from.dx + totalDx * segEnd / totalLen, from.dy + totalDy * segEnd / totalLen),
+            dashPaint,
+          );
+          drawn += dashLen + gapLen;
+        }
       }
-      
-      // Draw dragging line
-      if (currentDragPos != null) {
-        path.lineTo(currentDragPos!.dx, currentDragPos!.dy);
-      }
-      
-      canvas.drawPath(path, shadowPaint);
-      canvas.drawPath(path, paint);
     }
   }
 
   @override
   bool shouldRepaint(covariant DotsPainter oldDelegate) {
-    return true; // Simplified for game loop
+    return true;
   }
 }

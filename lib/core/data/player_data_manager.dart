@@ -23,17 +23,21 @@ class PlayerDataManager {
     _playerDataBox = await Hive.openBox('player_data_box');
     
     // Check if running on an emulator/simulator
-    try {
-      final deviceInfo = DeviceInfoPlugin();
-      if (Platform.isAndroid) {
-        final androidInfo = await deviceInfo.androidInfo;
-        _isEmulator = !androidInfo.isPhysicalDevice;
-      } else if (Platform.isIOS) {
-        final iosInfo = await deviceInfo.iosInfo;
-        _isEmulator = !iosInfo.isPhysicalDevice;
+    // ⚠️ Release 빌드에서는 에뮬레이터 자동 해금을 완전히 비활성화:
+    // 루팅/커스텀 ROM 기기에서 isPhysicalDevice가 false를 반환하는 경우를 방지.
+    if (!kReleaseMode) {
+      try {
+        final deviceInfo = DeviceInfoPlugin();
+        if (Platform.isAndroid) {
+          final androidInfo = await deviceInfo.androidInfo;
+          _isEmulator = !androidInfo.isPhysicalDevice;
+        } else if (Platform.isIOS) {
+          final iosInfo = await deviceInfo.iosInfo;
+          _isEmulator = !iosInfo.isPhysicalDevice;
+        }
+      } catch (e) {
+        debugPrint('Error checking device info: $e');
       }
-    } catch (e) {
-      debugPrint('Error checking device info: $e');
     }
 
     // Load initial star coins

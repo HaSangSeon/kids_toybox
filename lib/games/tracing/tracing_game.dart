@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:confetti/confetti.dart';
 import '../../core/theme/kids_theme.dart';
 import '../../core/audio/audio_manager.dart';
 import '../../core/data/player_data_manager.dart';
@@ -54,6 +55,16 @@ class ShapeDef {
     this.isCurved = false,
     this.isCircle = false,
     this.circleRect,
+  });
+}
+
+class DrawnStroke {
+  final List<Offset> points;
+  final MagicBrushType brushType;
+
+  DrawnStroke({
+    required this.points,
+    required this.brushType,
   });
 }
 
@@ -116,9 +127,8 @@ class _TracingGameState extends State<TracingGame> with TickerProviderStateMixin
   int _categoryIndex = 0;
   bool _isLevelClear = false;
 
-  final List<Offset> _userPath = [];
-  int _targetPointIndex = 0;
-  bool _isReversed = false;
+  final List<DrawnStroke> _userStrokes = [];
+  final Map<int, Set<int>> _strokeCoveredCheckpoints = {};
 
   late List<ShapeDef> _allShapes;
   late List<ShapeDef> _filteredShapes;
@@ -132,15 +142,17 @@ class _TracingGameState extends State<TracingGame> with TickerProviderStateMixin
 
   // Mascot Cheer State
   late AnimationController _mascotBounceController;
-  String _mascotMessage = '손가락으로 라인을 따라 그려봐! ✨';
+  String _mascotMessage = '라인을 따라 자유롭게 쓱쓱 그려봐! ✨';
   final Random _random = Random();
 
-  // Living Picture Animation
+  // Living Picture & Confetti
   late AnimationController _livingObjectController;
+  late ConfettiController _confettiController;
 
   @override
   void initState() {
     super.initState();
+    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
     _initShapes();
     _updateFilteredShapes();
 
@@ -173,6 +185,7 @@ class _TracingGameState extends State<TracingGame> with TickerProviderStateMixin
   void dispose() {
     _tickerTimer?.cancel();
     _autoNextTimer?.cancel();
+    _confettiController.dispose();
     _mascotBounceController.dispose();
     _livingObjectController.dispose();
     super.dispose();
@@ -245,12 +258,12 @@ class _TracingGameState extends State<TracingGame> with TickerProviderStateMixin
   void _resetLevelState() {
     _autoNextTimer?.cancel();
     _autoNextTimer = null;
-    _userPath.clear();
-    _targetPointIndex = 0;
-    _isReversed = false;
+    _confettiController.stop();
+    _userStrokes.clear();
+    _strokeCoveredCheckpoints.clear();
     _isLevelClear = false;
     _popStars.clear();
-    _mascotMessage = _currentShape.hint.isNotEmpty ? _currentShape.hint : '라인을 따라 손가락을 쓱쓱!';
+    _mascotMessage = _currentShape.hint.isNotEmpty ? _currentShape.hint : '라인을 따라 꼼꼼하게 쓱쓱 그려봐! ✨';
   }
 
   ShapeDef get _currentShape {
@@ -317,141 +330,190 @@ class _TracingGameState extends State<TracingGame> with TickerProviderStateMixin
     return false;
   }
 
-  void _onPanStart(DragStartDetails details, Size size) {
-    if (_isLevelClear) return;
-    final points = _getScaledPoints(size);
-    if (points.isEmpty) return;
-
-    final touchPos = details.localPosition;
-
-    if (_targetPointIndex == 0) {
-      double distFirst = (touchPos - points.first).distance;
-      double distLast = (touchPos - points.last).distance;
-
-      // 학습 카테고리(한글, 숫자, 알파벳)는 올바른 획순(시작점)부터만 그리도록 거꾸로 그리기 금지!
-      bool allowReverse = _selectedCategory == TracingCategory.shapes || _selectedCategory == TracingCategory.objects;
-
-      if (distFirst < 60) {
-        _isReversed = false;
-        _userPath.add(points.first);
-        _targetPointIndex = 1;
-        AudioManager.instance.playTraceStart();
-        _spawnTouchParticles(points.first);
-        _triggerMascotCheer('시작이 좋아! 획순대로 쓱쓱! 🐥');
-        setState(() {});
-      } else if (allowReverse && distLast < 60) {
-        _isReversed = true;
-        _userPath.add(points.last);
-        _targetPointIndex = 1;
-        AudioManager.instance.playTraceStart();
-        _spawnTouchParticles(points.last);
-        _triggerMascotCheer('반대쪽에서 시작! 멋져! 🌟');
-        setState(() {});
+  List<List<Offset>> _getDenseCheckpointsByStroke(List<Offset> points, Rect? circleRect) {
+    if (circleRect != null) {
+      final center = circleRect.center;
+      final rx = circleRect.width / 2;
+      final ry = circleRect.height / 2;
+      const int steps = 48;
+      List<Offset> circlePoints = [];
+      for (int i = 0; i < steps; i++) {
+        final angle = i * 2 * pi / steps;
+        circlePoints.add(Offset(center.dx + rx * cos(angle), center.dy + ry * sin(angle)));
       }
-    } else if (_targetPointIndex < points.length) {
-      // 획을 뗐다가 다음 획(또는 진행 중인 획)을 계속 그릴 때
-      int actualIdx = _isReversed ? (points.length - 1 - _targetPointIndex) : _targetPointIndex;
-      double distCurrentTarget = (touchPos - points[actualIdx]).distance;
-      
-      int prevIdx = _isReversed ? (actualIdx + 1) : (actualIdx - 1);
-      double distPrevTarget = (prevIdx >= 0 && prevIdx < points.length)
-          ? (touchPos - points[prevIdx]).distance
-          : 999.0;
+      return [circlePoints];
+    }
 
-      if (distCurrentTarget < 65 || distPrevTarget < 65) {
-        if (_userPath.isNotEmpty && _userPath.last != Offset.infinite) {
-          _userPath.add(Offset.infinite);
+    List<List<Offset>> rawStrokes = [];
+    List<Offset> current = [];
+    for (var p in points) {
+      if (p == Offset.infinite) {
+        if (current.isNotEmpty) {
+          rawStrokes.add(List.from(current));
+          current.clear();
         }
-        _userPath.add(touchPos);
-        AudioManager.instance.playTraceStart();
-        _spawnTouchParticles(touchPos);
-        setState(() {});
+      } else {
+        current.add(p);
+      }
+    }
+    if (current.isNotEmpty) rawStrokes.add(current);
+
+    List<List<Offset>> strokeCheckpoints = [];
+    for (var stroke in rawStrokes) {
+      if (stroke.isEmpty) continue;
+      List<Offset> cps = [];
+      if (stroke.length == 1) {
+        cps.add(stroke[0]);
+      } else {
+        for (int i = 0; i < stroke.length - 1; i++) {
+          final p1 = stroke[i];
+          final p2 = stroke[i + 1];
+          final dist = (p2 - p1).distance;
+          int steps = max(1, (dist / 8.0).ceil());
+          for (int s = 0; s < steps; s++) {
+            cps.add(Offset.lerp(p1, p2, s / steps)!);
+          }
+        }
+        cps.add(stroke.last);
+      }
+      if (cps.isNotEmpty) {
+        strokeCheckpoints.add(cps);
+      }
+    }
+    return strokeCheckpoints;
+  }
+
+  void _checkCoverage(Offset p1, Offset p2, List<List<Offset>> strokes, Size size) {
+    const double hitRadius = 24.0; // 외곽선 두께(38px)에 맞춘 정확한 반경
+    bool newlyAdded = false;
+
+    for (int s = 0; s < strokes.length; s++) {
+      final strokePoints = strokes[s];
+      _strokeCoveredCheckpoints.putIfAbsent(s, () => <int>{});
+      final coveredSet = _strokeCoveredCheckpoints[s]!;
+
+      for (int i = 0; i < strokePoints.length; i++) {
+        if (coveredSet.contains(i)) continue;
+        if (_hitTest(p1, p2, strokePoints[i], hitRadius)) {
+          coveredSet.add(i);
+          newlyAdded = true;
+        }
+      }
+    }
+
+
+
+    int totalCheckpoints = 0;
+    int totalCovered = 0;
+    bool allStrokesSufficient = true;
+
+    for (int s = 0; s < strokes.length; s++) {
+      final strokeLen = strokes[s].length;
+      final coveredLen = _strokeCoveredCheckpoints[s]?.length ?? 0;
+      totalCheckpoints += strokeLen;
+      totalCovered += coveredLen;
+
+      // 모든 획이 각각 최소 90% 이상 끝까지 칠해져야 인정
+      if (strokeLen > 0 && (coveredLen / strokeLen) < 0.90) {
+        allStrokesSufficient = false;
+      }
+    }
+
+    if (totalCheckpoints == 0) return;
+    final double overallProgress = totalCovered / totalCheckpoints;
+
+    // 모든 획 각각 90% 이상 & 전체 외곽선 95% 이상 끝까지 꽉 채웠을 때만 완성 연출 발동!
+    if (allStrokesSufficient && overallProgress >= 0.95) {
+      _onStageCompleted(size);
+    } else if (newlyAdded) {
+      final double pitch = (1.0 + overallProgress * 0.9).clamp(1.0, 2.0);
+      _playBrushSound(pitch);
+      HapticFeedback.selectionClick();
+
+      if (totalCovered % 12 == 0) {
+        final cheerMsgs = ['우와! 잘 그리고 있어! 🌈', '멋져 멋져! ✨', '끝까지 쓱쓱! 🎨', '우아 참 잘해요! 🐥'];
+        _triggerMascotCheer(cheerMsgs[_random.nextInt(cheerMsgs.length)]);
       }
     }
   }
 
+  DateTime _lastBrushSoundTime = DateTime.now().subtract(const Duration(seconds: 1));
+
+  void _playBrushSound(double pitch) {
+    // 완성 상태에서는 축하 팡파레가 웅장하게 들리도록 드로잉 소리를 잠시 차단
+    if (_isLevelClear) return;
+    final now = DateTime.now();
+    if (now.difference(_lastBrushSoundTime).inMilliseconds < 100) return;
+    _lastBrushSoundTime = now;
+    AudioManager.instance.playTraceBrush(_selectedBrush.name, rate: pitch);
+  }
+
+  void _onStageCompleted(Size size) {
+    if (_isLevelClear) return;
+    setState(() {
+      _isLevelClear = true;
+      _mascotMessage = '🎉 ${_currentShape.name} 정말 멋지게 완성했어! 최고야! 🌟';
+    });
+
+    _confettiController.play();
+    AudioManager.instance.playTraceSuccess();
+    HapticFeedback.heavyImpact();
+    PlayerDataManager.instance.addStarCoin(1);
+
+    _livingObjectController.forward(from: 0.0);
+
+    // 사방으로 퍼지는 화려한 축하 별가루 파티클
+    final center = Offset(size.width / 2, size.height / 2);
+    for (int i = 0; i < 25; i++) {
+      _spawnTouchParticles(center + Offset((_random.nextDouble() - 0.5) * 160, (_random.nextDouble() - 0.5) * 160));
+    }
+  }
+
+  void _onPanStart(DragStartDetails details, Size size) {
+    final points = _getScaledPoints(size);
+    if (points.isEmpty) return;
+    final circleRect = _getScaledCircleRect(size);
+
+    final touchPos = details.localPosition;
+    _userStrokes.add(DrawnStroke(
+      points: [touchPos],
+      brushType: _selectedBrush,
+    ));
+    _playBrushSound(1.0);
+    _spawnTouchParticles(touchPos);
+
+    if (!_isLevelClear) {
+      final strokes = _getDenseCheckpointsByStroke(points, circleRect);
+      _checkCoverage(touchPos, touchPos, strokes, size);
+    }
+    setState(() {});
+  }
+
   void _onPanUpdate(DragUpdateDetails details, Size size) {
-    if (_isLevelClear || _userPath.isEmpty) return;
+    if (_userStrokes.isEmpty) return;
 
     final points = _getScaledPoints(size);
     if (points.isEmpty) return;
+    final circleRect = _getScaledCircleRect(size);
 
     final currentPos = details.localPosition;
-    _userPath.add(currentPos);
+    final currentStroke = _userStrokes.last;
+    final prevPos = currentStroke.points.isNotEmpty ? currentStroke.points.last : currentPos;
+
+    currentStroke.points.add(currentPos);
     _spawnTouchParticles(currentPos);
 
-    if (_targetPointIndex < points.length) {
-      int actualTargetIndex = _isReversed ? (points.length - 1 - _targetPointIndex) : _targetPointIndex;
-      
-      // 유효한 이전 드래그 위치 찾기 (Offset.infinite 제외)
-      Offset prevPos = currentPos;
-      for (int i = _userPath.length - 2; i >= 0; i--) {
-        if (_userPath[i] != Offset.infinite) {
-          prevPos = _userPath[i];
-          break;
-        }
-      }
-      
-      // Precision radius (50.0) so completion requires drawing smoothly
-      double hitRadius = 50.0;
-      bool hitActual = _hitTest(prevPos, currentPos, points[actualTargetIndex], hitRadius);
-
-      bool isClosed = (points.first - points.last).distance < 15;
-      bool hitAlt = false;
-
-      if (!hitActual && isClosed && _targetPointIndex == 1) {
-        int altIndex = _isReversed ? 1 : (points.length - 2);
-        if (_hitTest(prevPos, currentPos, points[altIndex], hitRadius)) {
-          hitAlt = true;
-          _isReversed = !_isReversed;
-        }
-      }
-
-      if (hitActual || hitAlt) {
-        _targetPointIndex++;
-        double pitch = 1.0 + (_targetPointIndex * 0.12);
-        if (pitch > 2.0) pitch = 2.0;
-        AudioManager.instance.playTraceDraw(rate: pitch);
-        HapticFeedback.selectionClick();
-
-        // Random mascot cheers
-        final cheerMsgs = ['우와! 최고야! 🌈', '거의 다 그려가! 🔥', '멋져 멋져! ✨', '우아 참 잘해요! 🐥'];
-        _triggerMascotCheer(cheerMsgs[_random.nextInt(cheerMsgs.length)]);
-
-        if (_targetPointIndex >= points.length) {
-          _onStageCompleted(size);
-        }
-      }
+    if (!_isLevelClear) {
+      final strokes = _getDenseCheckpointsByStroke(points, circleRect);
+      _checkCoverage(prevPos, currentPos, strokes, size);
+    } else {
+      HapticFeedback.selectionClick();
     }
     setState(() {});
   }
 
   void _onPanEnd(DragEndDetails details) {
-    // 획을 뗐을 때 그려진 선과 진행도를 지우지 않고 유지합니다!
-  }
-
-  void _onStageCompleted(Size size) {
-    _autoNextTimer?.cancel();
-    AudioManager.instance.playTraceSuccess();
-    AudioManager.instance.playEmojiSound(_currentShape.emoji);
-    HapticFeedback.heavyImpact();
-
-    // Give 1 Global Star Coin for the Gacha Shop!
-    PlayerDataManager.instance.addStarCoin(1);
-
-    _livingObjectController.forward(from: 0.0);
-
-    setState(() {
-      _isLevelClear = true;
-      _mascotMessage = '우와! ${_currentShape.name} 완공 축하해! 🌟🎉';
-    });
-
-    // 8초 후 자동 다음 단계 (따라 그린 그림을 아이와 부모가 감상할 시간 부여)
-    _autoNextTimer = Timer(const Duration(seconds: 8), () {
-      if (mounted && _isLevelClear) {
-        _nextLevel();
-      }
-    });
+    // Current stroke is complete
   }
 
   void _triggerMascotCheer(String text) {
@@ -560,8 +622,7 @@ class _TracingGameState extends State<TracingGame> with TickerProviderStateMixin
                               onPanEnd: _onPanEnd,
                               child: CustomPaint(
                                 painter: TracingPathPainter(
-                                  pathPoints: _userPath,
-                                  brushType: _selectedBrush,
+                                  strokes: _userStrokes,
                                   hueTime: _hueTime,
                                   isCurved: _currentShape.isCurved,
                                   isCircle: _currentShape.isCircle,
@@ -579,106 +640,74 @@ class _TracingGameState extends State<TracingGame> with TickerProviderStateMixin
                             ),
                           ),
 
-                          // Guided Pulse Marker on Target Point (shows children where to touch!)
-                          if (!_isLevelClear && points.isNotEmpty) _buildGuidedPulseMarker(points),
-
-                          // 클리어 시: 아이가 직접 따라 그린 작품은 100% 가림없이 뚜렷하게 감상하고, 하단에 단 하나의 왕 커다란 [다음 단계 ➡️] 버튼 배치
-                          if (_isLevelClear)
-                            Positioned(
-                              bottom: 16,
-                              left: 16,
-                              right: 16,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.95),
-                                  borderRadius: BorderRadius.circular(28),
-                                  border: Border.all(color: const Color(0xFFFFD700), width: 3.5),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFFFF9F1C).withValues(alpha: 0.35),
-                                      blurRadius: 18,
-                                      offset: const Offset(0, 6),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      '🎉 ${_currentShape.name} 완성! 🎉',
-                                      style: GoogleFonts.jua(
-                                        fontSize: 22,
-                                        color: const Color(0xFF2B3A4A),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-
-                                    // 왕 왕 크고 신나는 [다음 단계로 넘어 가기! ➡️] 버튼
-                                    GestureDetector(
-                                      onTap: () {
-                                        AudioManager.instance.playClick();
-                                        _nextLevel();
-                                      },
-                                      child: Container(
-                                        width: double.infinity,
-                                        height: 58,
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            colors: [Color(0xFF4ADE80), Color(0xFF16A34A)],
-                                            begin: Alignment.topCenter,
-                                            end: Alignment.bottomCenter,
-                                          ),
-                                          borderRadius: BorderRadius.circular(22),
-                                          border: Border.all(color: Colors.white, width: 2.5),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: const Color(0xFF16A34A).withValues(alpha: 0.45),
-                                              blurRadius: 10,
-                                              offset: const Offset(0, 4),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            '다음 단계로 넘어 가기! ➡️',
-                                            style: GoogleFonts.jua(
-                                              fontSize: 22,
-                                              color: Colors.white,
-                                              shadows: const [
-                                                Shadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-
-                          // 평소일 때: 좌측 하단 이전/다음 스테이지 버튼
+                          // 하단 네비게이션 버튼 바 (평소 드로잉 중)
                           if (!_isLevelClear)
                             Positioned(
-                              left: 12,
-                              bottom: 16,
+                              left: 16,
+                              right: 16,
+                              bottom: 14,
                               child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  _buildCircleBtn(
+                                  // ◀ 이전 단계 버튼
+                                  _buildNavPillButton(
+                                    label: '이전',
                                     icon: Icons.arrow_back_rounded,
-                                    color: Colors.orange,
+                                    color: const Color(0xFFFF9F1C),
                                     onTap: _prevLevel,
                                   ),
-                                  const SizedBox(width: 8),
-                                  _buildCircleBtn(
+
+                                  // 다음 단계 ➡️ 버튼
+                                  _buildNavPillButton(
+                                    label: '다음',
                                     icon: Icons.arrow_forward_rounded,
-                                    color: Colors.green,
+                                    color: const Color(0xFF10B981),
+                                    isForward: true,
                                     onTap: _nextLevel,
                                   ),
                                 ],
                               ),
                             ),
+
+                          // 🎉 완성 시: 상단 칭찬 배지 (터치 통과되어 계속 그리기 가능!) & 하단 액션 바
+                          if (_isLevelClear) ...[
+                            // 화려한 축하 폭죽 컨페티
+                            Align(
+                              alignment: Alignment.topCenter,
+                              child: IgnorePointer(
+                                child: ConfettiWidget(
+                                  confettiController: _confettiController,
+                                  blastDirectionality: BlastDirectionality.explosive,
+                                  shouldLoop: false,
+                                  numberOfParticles: 40,
+                                  gravity: 0.18,
+                                  emissionFrequency: 0.05,
+                                  colors: const [
+                                    Colors.pinkAccent,
+                                    Colors.amber,
+                                    Colors.cyanAccent,
+                                    Colors.purpleAccent,
+                                    Colors.greenAccent,
+                                    Colors.orangeAccent,
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 10,
+                              left: 20,
+                              right: 20,
+                              child: IgnorePointer(
+                                child: _buildCelebrationBadge(),
+                              ),
+                            ),
+                            Positioned(
+                              left: 16,
+                              right: 16,
+                              bottom: 14,
+                              child: _buildCelebrationBottomBar(),
+                            ),
+                          ],
                         ],
                       );
                     },
@@ -700,70 +729,43 @@ class _TracingGameState extends State<TracingGame> with TickerProviderStateMixin
 
     switch (_selectedCategory) {
       case TracingCategory.shapes:
-        gradientColors = [const Color(0xFFFFF4E6), const Color(0xFFFFE0B2), const Color(0xFFFFD180)];
+        gradientColors = [const Color(0xFFFFF9E6), const Color(0xFFFFECC8), const Color(0xFFFFD89E)];
         break;
       case TracingCategory.numbers:
-        gradientColors = [const Color(0xFFE8F8F5), const Color(0xFFA3E4D7), const Color(0xFF76D7C4)];
+        gradientColors = [const Color(0xFFE8FDF5), const Color(0xFFC4F5E5), const Color(0xFFA2ECD5)];
         break;
       case TracingCategory.hangul:
-        gradientColors = [const Color(0xFFEBF5FB), const Color(0xFFA9CCE3), const Color(0xFF7FB3D5)];
+        gradientColors = [const Color(0xFFF0F7FF), const Color(0xFFD6EBFF), const Color(0xFFBCE0FD)];
         break;
       case TracingCategory.alphabet:
-        gradientColors = [const Color(0xFFF5EEF8), const Color(0xFFD7BDE2), const Color(0xFFBB8FCE)];
+        gradientColors = [const Color(0xFFFDF0FF), const Color(0xFFF2D6FF), const Color(0xFFE3B8FE)];
         break;
       case TracingCategory.objects:
-        gradientColors = [const Color(0xFF2E1A47), const Color(0xFF1F2421), const Color(0xFF141923)];
+        gradientColors = [const Color(0xFF231742), const Color(0xFF1B1832), const Color(0xFF0F172A)];
         break;
     }
 
-    final isDark = _selectedCategory == TracingCategory.objects;
-    final floatOffset = sin(_hueTime * 2) * 6;
-
     return Stack(
       children: [
-        // Gradient background
+        // Gradient sky background
         AnimatedContainer(
           duration: const Duration(milliseconds: 500),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: gradientColors,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
             ),
           ),
         ),
 
-        // Floating Cute Decorative Doodles
-        Positioned(
-          top: 40 + floatOffset,
-          left: 20,
-          child: Opacity(
-            opacity: isDark ? 0.3 : 0.2,
-            child: Text(isDark ? '✨' : '☁️', style: const TextStyle(fontSize: 42)),
-          ),
-        ),
-        Positioned(
-          top: 100 - floatOffset,
-          right: 30,
-          child: Opacity(
-            opacity: isDark ? 0.3 : 0.25,
-            child: Text(isDark ? '🌟' : '🎈', style: const TextStyle(fontSize: 38)),
-          ),
-        ),
-        Positioned(
-          bottom: 120 + floatOffset,
-          left: 25,
-          child: Opacity(
-            opacity: isDark ? 0.3 : 0.2,
-            child: Text(isDark ? '🪐' : '🌸', style: const TextStyle(fontSize: 36)),
-          ),
-        ),
-        Positioned(
-          bottom: 80 - floatOffset,
-          right: 25,
-          child: Opacity(
-            opacity: isDark ? 0.3 : 0.25,
-            child: Text(isDark ? '🚀' : '🎨', style: const TextStyle(fontSize: 40)),
+        // Live Animated Drifting Clouds, Twinkling Stars & Floating Magic Bubbles!
+        Positioned.fill(
+          child: CustomPaint(
+            painter: CuteBackgroundParticlePainter(
+              hueTime: _hueTime,
+              category: _selectedCategory,
+            ),
           ),
         ),
       ],
@@ -981,249 +983,146 @@ class _TracingGameState extends State<TracingGame> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildGuidedPulseMarker(List<Offset> points) {
-    Offset target;
-    int idx = _targetPointIndex;
-    while (idx < points.length && points[idx] == Offset.infinite) {
-      idx++;
-    }
-    if (idx >= points.length) {
-      target = points.lastWhere((p) => p != Offset.infinite, orElse: () => points.last);
-    } else {
-      target = points[idx];
-    }
-
-    return Positioned(
-      left: target.dx - 30,
-      top: target.dy - 30,
-      child: IgnorePointer(
-        child: TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0.85, end: 1.25),
-          duration: const Duration(milliseconds: 700),
-          curve: Curves.easeInOut,
-          builder: (context, scale, child) {
-            return Transform.scale(
-              scale: scale,
-              child: Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.amber.withValues(alpha: 0.3),
-                  border: Border.all(color: Colors.amber, width: 3),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.amber.withValues(alpha: 0.5),
-                      blurRadius: 15,
-                    ),
-                  ],
-                ),
-                child: const Center(
-                  child: Text('👉', style: TextStyle(fontSize: 28)),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLivingPictureAnimation(Size size) {
+  Widget _buildCelebrationBadge() {
     return AnimatedBuilder(
       animation: _livingObjectController,
       builder: (context, child) {
         final val = _livingObjectController.value;
         final emoji = _currentShape.emoji;
 
-        // Upper stage area animation for floating living emoji
-        double dx = size.width / 2 - 45;
-        double dy = (size.height * 0.16) - (sin(val * pi * 2) * 12);
-        double scale = 1.0 + (sin(val * pi * 3) * 0.18);
-        double rotate = sin(val * pi * 4) * 0.12;
+        double scale = 1.0 + (sin(val * pi * 3) * 0.16);
+        double rotate = sin(val * pi * 4) * 0.10;
 
-        if (emoji == '🚗') {
-          dx = -80 + (val * (size.width + 160));
-          dy = size.height * 0.14;
-        } else if (emoji == '🚀') {
-          dy = (size.height * 0.35) - (val * (size.height * 0.4));
-          dx = size.width * 0.5 - 45;
-        }
-
-        return Stack(
-          children: [
-            // Darkened backdrop blur overlay for clear popup readability
-            Positioned.fill(
-              child: Container(
-                color: Colors.black.withValues(alpha: 0.35),
+        return Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFD166), Color(0xFFFF9F1C)],
               ),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white, width: 2.5),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFF9F1C).withValues(alpha: 0.45),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-
-            // Upper Floating Living Emoji
-            Positioned(
-              left: dx,
-              top: dy,
-              child: Transform.rotate(
-                angle: rotate,
-                child: Transform.scale(
-                  scale: scale,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.amber.withValues(alpha: 0.7),
-                          blurRadius: 25,
-                          spreadRadius: 8,
-                        ),
-                      ],
-                    ),
-                    child: Text(emoji, style: const TextStyle(fontSize: 60)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Transform.rotate(
+                  angle: rotate,
+                  child: Transform.scale(
+                    scale: scale,
+                    child: Text(emoji, style: const TextStyle(fontSize: 28)),
                   ),
                 ),
-              ),
-            ),
-
-            // Completion Dialog Box (Centered below emoji, perfectly aligned without overlapping!)
-            Center(
-              child: SingleChildScrollView(
-                child: Container(
-                  width: 320,
-                  margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                  padding: const EdgeInsets.all(22),
-                  decoration: BoxDecoration(
+                const SizedBox(width: 8),
+                Text(
+                  '🎉 참 잘했어요! ${_currentShape.name} 완성! 🎉',
+                  style: GoogleFonts.jua(
+                    fontSize: 18,
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(32),
-                    border: Border.all(color: Colors.amber.shade300, width: 3),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.25),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Badge Title
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.amber.shade400, Colors.deepOrange.shade400],
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.amber.shade300.withValues(alpha: 0.5),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          '🎉 참 잘했어요! 🎉',
-                          style: GoogleFonts.jua(fontSize: 24, color: Colors.white),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      Text(
-                        '${_currentShape.name} 완성! ✨',
-                        style: GoogleFonts.jua(fontSize: 20, color: const Color(0xFF333333)),
-                      ),
-                      const SizedBox(height: 18),
-
-                      // Action Buttons Row (neatly aligned without any overlapping)
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Retry button
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange.shade100,
-                              foregroundColor: Colors.orange.shade900,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            ),
-                            onPressed: () {
-                              AudioManager.instance.playClick();
-                              setState(() {
-                                _isLevelClear = false;
-                                _userPath.clear();
-                                _targetPointIndex = 0;
-                              });
-                            },
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.refresh_rounded, size: 18),
-                                const SizedBox(width: 4),
-                                Text('다시하기', style: GoogleFonts.jua(fontSize: 14)),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-
-                          // Exit button
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.grey.shade200,
-                              foregroundColor: Colors.grey.shade800,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            ),
-                            onPressed: () {
-                              AudioManager.instance.playClick();
-                              Navigator.of(context).pop();
-                            },
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.home_rounded, size: 18),
-                                const SizedBox(width: 4),
-                                Text('나가기', style: GoogleFonts.jua(fontSize: 14)),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-
-                          // Next level button
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green.shade500,
-                              foregroundColor: Colors.white,
-                              elevation: 3,
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            ),
-                            onPressed: () {
-                              if (_isLevelClear) _nextLevel();
-                            },
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text('다음 ⚡', style: GoogleFonts.jua(fontSize: 15)),
-                                const SizedBox(width: 2),
-                                const Icon(Icons.arrow_forward_rounded, size: 18),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                    shadows: const [
+                      Shadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 1)),
                     ],
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         );
       },
+    );
+  }
+
+  Widget _buildCelebrationBottomBar() {
+    return Row(
+      children: [
+        // 다시 쓰기 버튼
+        GestureDetector(
+          onTap: () {
+            AudioManager.instance.playClick();
+            setState(() {
+              _resetLevelState();
+            });
+          },
+          child: Container(
+            height: 52,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.95),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.orange.shade400, width: 2.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.orange.withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.refresh_rounded, color: Colors.orange.shade800, size: 20),
+                const SizedBox(width: 4),
+                Text('다시 쓰기', style: GoogleFonts.jua(fontSize: 16, color: Colors.orange.shade800)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+
+        // 커다란 다음 단계로 가기 버튼
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              AudioManager.instance.playClick();
+              _nextLevel();
+            },
+            child: Container(
+              height: 52,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF4ADE80), Color(0xFF16A34A)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white, width: 2.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF16A34A).withValues(alpha: 0.45),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '다음 단계로 가기! ➡️',
+                      style: GoogleFonts.jua(
+                        fontSize: 18,
+                        color: Colors.white,
+                        shadows: const [
+                          Shadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1311,26 +1210,150 @@ class _TracingGameState extends State<TracingGame> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildCircleBtn({required IconData icon, required Color color, required VoidCallback onTap}) {
+  Widget _buildNavPillButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+    bool isForward = false,
+  }) {
     return GestureDetector(
       onTap: () {
         AudioManager.instance.playClick();
         onTap();
       },
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          boxShadow: KidsTheme.softShadows,
+          color: Colors.white.withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: color.withValues(alpha: 0.8), width: 2.5),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: Icon(icon, color: Colors.white, size: 24),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: isForward
+              ? [
+                  Text(label, style: GoogleFonts.jua(fontSize: 16, color: color)),
+                  const SizedBox(width: 4),
+                  Icon(icon, color: color, size: 20),
+                ]
+              : [
+                  Icon(icon, color: color, size: 20),
+                  const SizedBox(width: 4),
+                  Text(label, style: GoogleFonts.jua(fontSize: 16, color: color)),
+                ],
+        ),
       ),
     );
   }
+
+
 }
 
 // --- CUSTOM PAINTERS ---
+
+// --- DYNAMIC CUTE BACKGROUND PAINTER ---
+
+class CuteBackgroundParticlePainter extends CustomPainter {
+  final double hueTime;
+  final TracingCategory category;
+
+  CuteBackgroundParticlePainter({required this.hueTime, required this.category});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rand = Random(42);
+
+    // 1. Floating Clouds & Cute Shapes
+    for (int i = 0; i < 7; i++) {
+      final double baseX = (rand.nextDouble() * size.width);
+      final double baseY = (rand.nextDouble() * size.height);
+      final double speed = 12.0 + (i * 4.0);
+      final double x = (baseX + hueTime * speed) % (size.width + 120) - 60;
+      final double y = baseY + sin(hueTime * 1.5 + i) * 14.0;
+      final double cloudScale = 0.7 + (i % 3) * 0.25;
+
+      final cloudPaint = Paint()
+        ..color = category == TracingCategory.objects
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.white.withValues(alpha: 0.35)
+        ..style = PaintingStyle.fill;
+
+      // Draw cute puffy cloud
+      canvas.drawCircle(Offset(x, y), 22 * cloudScale, cloudPaint);
+      canvas.drawCircle(Offset(x - 16 * cloudScale, y + 4 * cloudScale), 16 * cloudScale, cloudPaint);
+      canvas.drawCircle(Offset(x + 16 * cloudScale, y + 4 * cloudScale), 16 * cloudScale, cloudPaint);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(center: Offset(x, y + 8 * cloudScale), width: 44 * cloudScale, height: 16 * cloudScale),
+          Radius.circular(8 * cloudScale),
+        ),
+        cloudPaint,
+      );
+    }
+
+    // 2. Twinkling & Floating Stars / Sparkles
+    for (int i = 0; i < 14; i++) {
+      final double x = (rand.nextDouble() * size.width + sin(hueTime + i) * 10) % size.width;
+      final double y = (rand.nextDouble() * size.height + cos(hueTime + i * 2) * 10) % size.height;
+      final double pulse = 0.5 + 0.5 * sin(hueTime * 3.0 + i * 1.5);
+      final double starSize = (3.0 + (i % 4) * 2.0) * (0.6 + pulse * 0.5);
+
+      final starPaint = Paint()
+        ..color = category == TracingCategory.objects
+            ? Colors.amberAccent.withValues(alpha: 0.25 + pulse * 0.45)
+            : (i % 2 == 0 ? Colors.amber : Colors.white).withValues(alpha: 0.3 + pulse * 0.4)
+        ..style = PaintingStyle.fill;
+
+      // Draw 4-point sparkle star
+      final path = Path();
+      path.moveTo(x, y - starSize);
+      path.quadraticBezierTo(x, y, x + starSize, y);
+      path.quadraticBezierTo(x, y, x, y + starSize);
+      path.quadraticBezierTo(x, y, x - starSize, y);
+      path.quadraticBezierTo(x, y, x, y - starSize);
+      canvas.drawPath(path, starPaint);
+    }
+
+    // 3. Floating Colorful Bubbles
+    for (int i = 0; i < 10; i++) {
+      final double baseX = (rand.nextDouble() * size.width);
+      final double baseY = (rand.nextDouble() * size.height);
+      final double y = (baseY - hueTime * (18.0 + (i % 3) * 6)) % (size.height + 40) - 20;
+      final double x = baseX + sin(hueTime * 2.0 + i) * 16.0;
+      final double bubbleRadius = 8.0 + (i % 5) * 4.0;
+
+      final bubblePaint = Paint()
+        ..color = [
+          Colors.pinkAccent,
+          Colors.lightBlueAccent,
+          Colors.amberAccent,
+          Colors.purpleAccent,
+          Colors.tealAccent,
+        ][i % 5].withValues(alpha: 0.22)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0;
+
+      canvas.drawCircle(Offset(x, y), bubbleRadius, bubblePaint);
+
+      // Bubble highlight shine
+      final shinePaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.45)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(x - bubbleRadius * 0.35, y - bubbleRadius * 0.35), bubbleRadius * 0.25, shinePaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CuteBackgroundParticlePainter oldDelegate) => true;
+}
 
 class GridBackgroundPainter extends CustomPainter {
   final bool isSpace;
@@ -1338,17 +1361,27 @@ class GridBackgroundPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = isSpace ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.04)
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
+    // Soft sketchbook page background with smooth glow
+    final bgPaint = Paint()
+      ..color = isSpace ? const Color(0xFF1E1530).withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.7)
+      ..style = PaintingStyle.fill;
 
-    double step = 32.0;
-    for (double y = 40; y < size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-    for (double x = 32; x < size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(8, 8, size.width - 16, size.height - 16),
+      const Radius.circular(28),
+    );
+    canvas.drawRRect(rrect, bgPaint);
+
+    // Dotted gentle grid for neat drawing guidance
+    final dotPaint = Paint()
+      ..color = isSpace ? Colors.white.withValues(alpha: 0.12) : const Color(0xFF94A3B8).withValues(alpha: 0.22)
+      ..style = PaintingStyle.fill;
+
+    const double step = 28.0;
+    for (double y = 28; y < size.height - 16; y += step) {
+      for (double x = 28; x < size.width - 16; x += step) {
+        canvas.drawCircle(Offset(x, y), 1.8, dotPaint);
+      }
     }
   }
 
@@ -1450,15 +1483,13 @@ class TracingOutlinePainter extends CustomPainter {
 }
 
 class TracingPathPainter extends CustomPainter {
-  final List<Offset> pathPoints;
-  final MagicBrushType brushType;
+  final List<DrawnStroke> strokes;
   final double hueTime;
   final bool isCurved;
   final bool isCircle;
 
   TracingPathPainter({
-    required this.pathPoints,
-    required this.brushType,
+    required this.strokes,
     required this.hueTime,
     this.isCurved = false,
     this.isCircle = false,
@@ -1466,31 +1497,18 @@ class TracingPathPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (pathPoints.isEmpty) return;
+    if (strokes.isEmpty) return;
 
-    final path = Path();
-    List<List<Offset>> strokes = [];
-    List<Offset> currentStroke = [];
-    for (var p in pathPoints) {
-      if (p == Offset.infinite) {
-        if (currentStroke.isNotEmpty) {
-          strokes.add(List.from(currentStroke));
-          currentStroke.clear();
-        }
-      } else {
-        currentStroke.add(p);
-      }
-    }
-    if (currentStroke.isNotEmpty) {
-      strokes.add(currentStroke);
-    }
-
-    for (var stroke in strokes) {
+    for (var drawnStroke in strokes) {
+      final stroke = drawnStroke.points;
       if (stroke.isEmpty) continue;
-      path.moveTo(stroke[0].dx, stroke[0].dy);
-      if (stroke.length == 1) continue;
 
-      if (stroke.length == 2 || !isCurved) {
+      final path = Path();
+      path.moveTo(stroke[0].dx, stroke[0].dy);
+
+      if (stroke.length == 1) {
+        path.addOval(Rect.fromCircle(center: stroke[0], radius: 18));
+      } else if (stroke.length == 2 || !isCurved) {
         for (int i = 1; i < stroke.length; i++) {
           path.lineTo(stroke[i].dx, stroke[i].dy);
         }
@@ -1513,53 +1531,66 @@ class TracingPathPainter extends CustomPainter {
           path.cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, p2.dx, p2.dy);
         }
       }
+
+      Paint paint = Paint()
+        ..strokeWidth = 36
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..style = stroke.length == 1 ? PaintingStyle.fill : PaintingStyle.stroke;
+
+      switch (drawnStroke.brushType) {
+        case MagicBrushType.rainbow:
+          final hsv = HSVColor.fromAHSV(1.0, (hueTime * 60) % 360, 0.85, 0.95);
+          paint.color = hsv.toColor();
+          final aura = Paint()
+            ..color = paint.color.withValues(alpha: 0.4)
+            ..strokeWidth = 46
+            ..strokeCap = StrokeCap.round
+            ..strokeJoin = StrokeJoin.round
+            ..style = stroke.length == 1 ? PaintingStyle.fill : PaintingStyle.stroke;
+          canvas.drawPath(path, aura);
+          break;
+
+        case MagicBrushType.sparkle:
+          paint.color = Colors.amber;
+          final aura = Paint()
+            ..color = Colors.amberAccent.withValues(alpha: 0.35)
+            ..strokeWidth = 44
+            ..strokeCap = StrokeCap.round
+            ..strokeJoin = StrokeJoin.round
+            ..style = stroke.length == 1 ? PaintingStyle.fill : PaintingStyle.stroke;
+          canvas.drawPath(path, aura);
+          break;
+
+        case MagicBrushType.bubble:
+          paint.color = Colors.cyan.shade300;
+          final aura = Paint()
+            ..color = Colors.lightBlueAccent.withValues(alpha: 0.35)
+            ..strokeWidth = 44
+            ..strokeCap = StrokeCap.round
+            ..strokeJoin = StrokeJoin.round
+            ..style = stroke.length == 1 ? PaintingStyle.fill : PaintingStyle.stroke;
+          canvas.drawPath(path, aura);
+          break;
+
+        case MagicBrushType.crayon:
+          paint.color = Colors.deepOrangeAccent;
+          paint.strokeWidth = 32;
+          break;
+
+        case MagicBrushType.comet:
+          paint.color = Colors.pinkAccent;
+          final glow = Paint()
+            ..color = Colors.cyanAccent.withValues(alpha: 0.5)
+            ..strokeWidth = 48
+            ..strokeCap = StrokeCap.round
+            ..style = stroke.length == 1 ? PaintingStyle.fill : PaintingStyle.stroke;
+          canvas.drawPath(path, glow);
+          break;
+      }
+
+      canvas.drawPath(path, paint);
     }
-
-    Paint paint = Paint()
-      ..strokeWidth = 36
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = PaintingStyle.stroke;
-
-    switch (brushType) {
-      case MagicBrushType.rainbow:
-        final hsv = HSVColor.fromAHSV(1.0, (hueTime * 60) % 360, 0.85, 0.95);
-        paint.color = hsv.toColor();
-        // Glowing aura
-        final aura = Paint()
-          ..color = paint.color.withValues(alpha: 0.4)
-          ..strokeWidth = 46
-          ..strokeCap = StrokeCap.round
-          ..strokeJoin = StrokeJoin.round
-          ..style = PaintingStyle.stroke;
-        canvas.drawPath(path, aura);
-        break;
-
-      case MagicBrushType.sparkle:
-        paint.color = Colors.amber;
-        break;
-
-      case MagicBrushType.bubble:
-        paint.color = Colors.cyan.shade300;
-        break;
-
-      case MagicBrushType.crayon:
-        paint.color = Colors.deepOrangeAccent;
-        paint.strokeWidth = 32;
-        break;
-
-      case MagicBrushType.comet:
-        paint.color = Colors.pinkAccent;
-        final glow = Paint()
-          ..color = Colors.cyanAccent.withValues(alpha: 0.5)
-          ..strokeWidth = 48
-          ..strokeCap = StrokeCap.round
-          ..style = PaintingStyle.stroke;
-        canvas.drawPath(path, glow);
-        break;
-    }
-
-    canvas.drawPath(path, paint);
   }
 
   @override

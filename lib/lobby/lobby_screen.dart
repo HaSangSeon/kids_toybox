@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme/kids_theme.dart';
@@ -34,6 +33,8 @@ import '../games/slide_puzzle/slide_puzzle_game.dart';
 import '../games/color_mixing/color_mixing_game.dart';
 import '../games/cooking/cooking_game.dart';
 import '../games/car_wash/car_wash_game.dart';
+import '../games/tooth_brushing/tooth_brushing_game.dart';
+import '../games/pet_hospital/pet_hospital_game.dart';
 import '../core/widgets/skin_select_modal.dart';
 import '../core/widgets/pacman_icon.dart';
 
@@ -619,9 +620,9 @@ class _LobbyScreenState extends State<LobbyScreen>
                         ),
                         child: Text(
                           'NEW',
-                          style: GoogleFonts.nunito(
+                          style: GoogleFonts.jua(
                             fontSize: 10,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
                         ),
@@ -660,7 +661,28 @@ class _LobbyScreenState extends State<LobbyScreen>
   // ── Game Data ─────────────────────────────────────────────────────────────
   List<_GameData> _gameData() {
     return [
-      // 🆓 [무료 게임 16종 - 상단 배치]
+      // 🆓 [무료 게임 17종 - 상단 배치]
+      _GameData(
+        title: '꼬마 동물 병원',
+        emoji: '🏥',
+        customIcon: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            const Text('🏥', style: TextStyle(fontSize: 38)),
+            Positioned(
+              top: -6, right: -6,
+              child: const Text('🩺', style: TextStyle(fontSize: 18)),
+            ),
+            Positioned(
+              bottom: -4, left: -4,
+              child: const Text('✨', style: TextStyle(fontSize: 16)),
+            ),
+          ],
+        ),
+        gradientColors: KidsTheme.gameGradients['teal'] ?? const [Color(0xFF26A69A), Color(0xFF00897B)],
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PetHospitalGame())); },
+      ),
       _GameData(
         title: '삐까번쩍 세차장',
         emoji: '🚗',
@@ -681,6 +703,27 @@ class _LobbyScreenState extends State<LobbyScreen>
         ),
         gradientColors: KidsTheme.gameGradients['teal']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CarWashGame())); },
+      ),
+      _GameData(
+        title: '치카치카',
+        emoji: '🪥',
+        customIcon: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            const Text('🪥', style: TextStyle(fontSize: 34)),
+            Positioned(
+              top: -6, right: -6,
+              child: const Text('✨', style: TextStyle(fontSize: 16)),
+            ),
+            Positioned(
+              bottom: -4, left: -4,
+              child: const Text('🫧', style: TextStyle(fontSize: 18)),
+            ),
+          ],
+        ),
+        gradientColors: KidsTheme.gameGradients['teal'] ?? const [Color(0xFF26A69A), Color(0xFF00897B)],
+        isPremium: true,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ToothBrushingGame())); },
       ),
       _GameData(
         title: '풍선 팡팡',
@@ -851,7 +894,6 @@ class _LobbyScreenState extends State<LobbyScreen>
         emoji: '✏️',
         gradientColors: KidsTheme.gameGradients['lime']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ConnectDotsGame())); },
-        isPremium: true,
       ),
       _GameData(
         title: '따라 쓰기',
