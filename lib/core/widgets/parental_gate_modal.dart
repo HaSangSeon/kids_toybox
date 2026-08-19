@@ -135,9 +135,8 @@ class _ParentalGateModalState extends State<ParentalGateModal> {
             Text(
               '설정 변경이나 외부 링크로 가기 위해\n아래 수학 문제를 풀어주세요!',
               textAlign: TextAlign.center,
-              style: GoogleFonts.nunito(
+              style: GoogleFonts.jua(
                 fontSize: 15,
-                fontWeight: FontWeight.bold,
                 color: KidsTheme.textLight,
               ),
             ),

@@ -187,7 +187,27 @@ class AudioManager {
   Future<void> playJigsawSnapIncorrect() => playEffect('audio/jigsaw_snap_incorrect.wav');
   Future<void> playJigsawSuccess() => playEffect('audio/jigsaw_success.wav');
 
-  // 데칼코마니 마법 전용 사운드
+  // 데칼코마니 마법 & 드로잉 전용 사운드
+  /// 일반 물감 드로잉: 퐁! 퐁! 터지는 귀엽고 상쾌한 물방울 물감 사운드 🫧
+  Future<void> playDecalPaintDraw({double rate = 1.15}) {
+    return playEffect('audio/bubble_pop.wav', rate: rate.clamp(0.8, 2.0));
+  }
+
+  /// 무지개/글리터 드로잉: 맑고 영롱하게 반짝이는 별빛 마법 사운드 ✨
+  Future<void> playDecalRainbowDraw({double rate = 1.25}) {
+    return playEffect('audio/item_star.wav', rate: rate.clamp(0.8, 2.0));
+  }
+
+  /// 스탬프 콕 찍기: 통통 튀는 사랑스러운 뽁! 사운드 💖
+  Future<void> playDecalStamp({double rate = 1.2}) {
+    return playEffect('audio/item_heart.wav', rate: rate.clamp(0.8, 2.0));
+  }
+
+  /// 지우개 슥삭: 부드럽고 귀여운 삑삑 사운드 🧽
+  Future<void> playDecalEraser({double rate = 1.3}) {
+    return playEffect('audio/squeak.wav', rate: rate.clamp(0.8, 2.0));
+  }
+
   Future<void> playMagicFold() async {
     if (!_soundEnabled) return;
     // 아기자기한 마법 접기 소리 (샤라랑~✨)

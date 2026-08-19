@@ -651,14 +651,19 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Colors.white, Color(0xFFF0F7FF)],
+              gradient: LinearGradient(
+                colors: _isLevelClear
+                    ? [Colors.white, const Color(0xFFFFF9C4)]
+                    : [Colors.white, const Color(0xFFF0F7FF)],
               ),
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white, width: 2),
+              border: Border.all(
+                color: _isLevelClear ? const Color(0xFFFFD700) : Colors.white,
+                width: 2,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF4D96FF).withValues(alpha: 0.2),
+                  color: (_isLevelClear ? const Color(0xFFFF9F1C) : const Color(0xFF4D96FF)).withValues(alpha: 0.2),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -667,38 +672,39 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('🖍️', style: TextStyle(fontSize: 20)),
+                Text(_isLevelClear ? _currentPuzzle.emoji : '🖍️', style: const TextStyle(fontSize: 20)),
                 const SizedBox(width: 6),
                 Text(
-                  '점 잇기 놀이',
+                  _isLevelClear ? '🎉 ${_currentPuzzle.name} 완~성! 👏' : '점 잇기 놀이',
                   style: GoogleFonts.jua(
                     fontSize: 19,
                     color: const Color(0xFF2B3A4A),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFF6B6B), Color(0xFFFF8E8E)],
+                if (!_isLevelClear) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFF6B6B), Color(0xFFFF8E8E)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'Stage $_level',
-                    style: GoogleFonts.nunito(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
+                    child: Text(
+                      'Stage $_level',
+                      style: GoogleFonts.jua(
+                        fontSize: 12,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
 
-          // 우측 균형을 위한 여백 (별 점수 뱃지 제거)
+          // 우측 균형을 위한 여백
           const SizedBox(width: 44),
         ],
       ),
@@ -724,7 +730,26 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
 
                 return Stack(
                   children: [
-                    // 선 그리기 레이어
+                    // 1. 완성 시 서서히 피어나는 알록달록 일러스트 아트워크
+                    if (_isLevelClear)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: FadeTransition(
+                            opacity: _successAnimController,
+                            child: CustomPaint(
+                              painter: PuzzleCompletedArtPainter(
+                                puzzle: _currentPuzzle,
+                                paddingX: 60.0,
+                                paddingTop: 140.0,
+                                availWidth: constraints.maxWidth - 120.0,
+                                availHeight: constraints.maxHeight - 240.0,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    // 2. 선 그리기 레이어
                     Positioned.fill(
                       child: GestureDetector(
                         onPanStart: _onPanStart,
@@ -809,21 +834,52 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
                       child: _buildHeader(),
                     ),
 
-                    // 클리어 시: 완성된 그림은 100% 뚜렷하게 가림없이 감상하고, 하단에 왕 왕 커다란 [다음 단계 ➡️] 버튼 배치
-                    if (_isLevelClear) ...[
-                      // 1. 완성된 퍼즐 이모지 (그림 중앙에서 앙증맞게 퐁퐁 바운스)
-                      Positioned.fill(
-                        child: IgnorePointer(
-                          child: Center(
-                            child: ScaleTransition(
-                              scale: _successScaleAnim,
-                              child: Text(
-                                _currentPuzzle.emoji,
-                                style: const TextStyle(
-                                  fontSize: 120,
-                                  shadows: [
-                                    Shadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 8)),
-                                    Shadow(color: Colors.white, blurRadius: 30),
+                    // 클리어 시: 완성된 그림은 100% 가림 없이 시원하게 감상하고, 하단 중앙에 깔끔한 플로팅 [다음 그림 그리기 ➡️] 버튼만 배치
+                    if (_isLevelClear)
+                      Positioned(
+                        bottom: 16,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: ScaleTransition(
+                            scale: _successScaleAnim,
+                            child: GestureDetector(
+                              onTap: () {
+                                AudioManager.instance.playClick();
+                                _nextLevel();
+                              },
+                              child: Container(
+                                height: 52,
+                                padding: const EdgeInsets.symmetric(horizontal: 28),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF4ADE80), Color(0xFF16A34A)],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                  ),
+                                  borderRadius: BorderRadius.circular(26),
+                                  border: Border.all(color: Colors.white, width: 2.5),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF16A34A).withValues(alpha: 0.45),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '다음 그림 그리기 ➡️',
+                                      style: GoogleFonts.jua(
+                                        fontSize: 19,
+                                        color: Colors.white,
+                                        shadows: const [
+                                          Shadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 1.5)),
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -831,91 +887,6 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
                           ),
                         ),
                       ),
-
-                      // 2. 하단 플로팅 완성 카드 및 왕 왕 커다란 [다음 단계로 ➡️] 버튼
-                      Positioned(
-                        bottom: 20,
-                        left: 16,
-                        right: 16,
-                        child: ScaleTransition(
-                          scale: _successScaleAnim,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.95),
-                              borderRadius: BorderRadius.circular(28),
-                              border: Border.all(color: const Color(0xFFFFD700), width: 3.5),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFFF9F1C).withValues(alpha: 0.35),
-                                  blurRadius: 18,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // 타이틀 텍스트
-                                Text(
-                                  '🎉 ${_currentPuzzle.name} 완~성! 🎉',
-                                  style: GoogleFonts.jua(
-                                    fontSize: 22,
-                                    color: const Color(0xFF2B3A4A),
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-
-                                // 왕 왕 크고 신나는 [다음 단계로 ➡️] 버튼
-                                GestureDetector(
-                                  onTap: () {
-                                    AudioManager.instance.playClick();
-                                    _nextLevel();
-                                  },
-                                  child: Container(
-                                    width: double.infinity,
-                                    height: 58,
-                                    decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [Color(0xFF4ADE80), Color(0xFF16A34A)],
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                      ),
-                                      borderRadius: BorderRadius.circular(22),
-                                      border: Border.all(color: Colors.white, width: 2.5),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: const Color(0xFF16A34A).withValues(alpha: 0.45),
-                                          blurRadius: 10,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Center(
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            '다음 단계로 넘어 가기! ➡️',
-                                            style: GoogleFonts.jua(
-                                              fontSize: 22,
-                                              color: Colors.white,
-                                              shadows: const [
-                                                Shadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 );
               },
@@ -1187,3 +1158,445 @@ class DotsPainter extends CustomPainter {
     return true;
   }
 }
+
+// ─── 완성 시 나타나는 사랑스러운 고화질 Vector 일러스트 페인터 ─────────────────
+class PuzzleCompletedArtPainter extends CustomPainter {
+  final DotPuzzle puzzle;
+  final double paddingX;
+  final double paddingTop;
+  final double availWidth;
+  final double availHeight;
+
+  PuzzleCompletedArtPainter({
+    required this.puzzle,
+    required this.paddingX,
+    required this.paddingTop,
+    required this.availWidth,
+    required this.availHeight,
+  });
+
+  Offset pt(double x, double y) => Offset(paddingX + x * availWidth, paddingTop + y * availHeight);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    switch (puzzle.emoji) {
+      case '🐌':
+        _drawSnail(canvas);
+        break;
+      case '⭐':
+        _drawStar(canvas);
+        break;
+      case '🏠':
+        _drawHouse(canvas);
+        break;
+      case '🐠':
+        _drawFish(canvas);
+        break;
+      case '💖':
+        _drawHeart(canvas);
+        break;
+      case '🦋':
+        _drawButterfly(canvas);
+        break;
+      case '🐱':
+        _drawCat(canvas);
+        break;
+      case '🍦':
+        _drawIceCream(canvas);
+        break;
+      case '🚗':
+        _drawCar(canvas);
+        break;
+      case '🧸':
+        _drawBear(canvas);
+        break;
+      case '🍓':
+        _drawStrawberry(canvas);
+        break;
+      case '👑':
+        _drawCrown(canvas);
+        break;
+      case '🚀':
+        _drawRocket(canvas);
+        break;
+      case '🍬':
+        _drawCandy(canvas);
+        break;
+      case '🍎':
+        _drawApple(canvas);
+        break;
+      case '🎈':
+        _drawBalloon(canvas);
+        break;
+      default:
+        _drawGeneric(canvas);
+    }
+  }
+
+  // 1. 🐌 느릿느릿 달팽이 (귀여운 민트 바디 + 똥글똥글 커다란 나선 등딱지 + 더듬이 눈 & 미소)
+  void _drawSnail(Canvas canvas) {
+    final bodyPaint = Paint()..color = const Color(0xFFA5D6A7)..style = PaintingStyle.fill;
+    final shellPaint = Paint()..color = const Color(0xFFFFB74D)..style = PaintingStyle.fill;
+    final swirlPaint = Paint()
+      ..color = const Color(0xFFE65100)
+      ..strokeWidth = 5.0
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    final eyeWhitePaint = Paint()..color = Colors.white..style = PaintingStyle.fill;
+    final eyeBlackPaint = Paint()..color = const Color(0xFF212121)..style = PaintingStyle.fill;
+    final blushPaint = Paint()..color = const Color(0xFFFF8A80).withValues(alpha: 0.7)..style = PaintingStyle.fill;
+    final strokePaint = Paint()
+      ..color = const Color(0xFF558B2F)
+      ..strokeWidth = 3.5
+      ..style = PaintingStyle.stroke;
+
+    // 1. 앙증맞은 달팽이 바디 (꼬리 -> 배 -> 머리)
+    final bodyPath = Path()
+      ..moveTo(pt(0.12, 0.78).dx, pt(0.12, 0.78).dy)
+      ..cubicTo(pt(0.08, 0.74).dx, pt(0.08, 0.74).dy, pt(0.35, 0.85).dx, pt(0.35, 0.85).dy, pt(0.85, 0.86).dx, pt(0.85, 0.86).dy)
+      ..cubicTo(pt(0.96, 0.85).dx, pt(0.96, 0.85).dy, pt(0.98, 0.65).dx, pt(0.98, 0.65).dy, pt(0.90, 0.58).dx, pt(0.90, 0.58).dy)
+      ..cubicTo(pt(0.82, 0.62).dx, pt(0.82, 0.62).dy, pt(0.70, 0.72).dx, pt(0.70, 0.72).dy, pt(0.50, 0.75).dx, pt(0.50, 0.75).dy)
+      ..close();
+    canvas.drawPath(bodyPath, bodyPaint);
+    canvas.drawPath(bodyPath, strokePaint);
+
+    // 2. 등딱지 원형 쉘
+    final shellCenter = pt(0.48, 0.56);
+    final shellRadius = availWidth * 0.26;
+    canvas.drawCircle(shellCenter, shellRadius, shellPaint);
+    final shellStroke = Paint()
+      ..color = const Color(0xFFEF6C00)
+      ..strokeWidth = 4.0
+      ..style = PaintingStyle.stroke;
+    canvas.drawCircle(shellCenter, shellRadius, shellStroke);
+
+    // 3. 등딱지 나선 (소용돌이)
+    final swirlPath = Path();
+    swirlPath.moveTo(shellCenter.dx + shellRadius * 0.75, shellCenter.dy);
+    swirlPath.arcTo(Rect.fromCircle(center: shellCenter, radius: shellRadius * 0.75), 0, pi, false);
+    swirlPath.arcTo(Rect.fromCircle(center: Offset(shellCenter.dx, shellCenter.dy - shellRadius * 0.1), radius: shellRadius * 0.52), pi, pi, false);
+    swirlPath.arcTo(Rect.fromCircle(center: Offset(shellCenter.dx, shellCenter.dy + shellRadius * 0.05), radius: shellRadius * 0.32), 0, pi, false);
+    swirlPath.arcTo(Rect.fromCircle(center: shellCenter, radius: shellRadius * 0.15), pi, pi, false);
+    canvas.drawPath(swirlPath, swirlPaint);
+
+    // 4. 더듬이 2개 & 왕눈이
+    final antennaPaint = Paint()
+      ..color = const Color(0xFF558B2F)
+      ..strokeWidth = 4.0
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    
+    // 왼쪽 더듬이
+    canvas.drawLine(pt(0.88, 0.58), pt(0.85, 0.38), antennaPaint);
+    canvas.drawCircle(pt(0.85, 0.38), 10, eyeWhitePaint);
+    canvas.drawCircle(pt(0.85, 0.38), 10, strokePaint);
+    canvas.drawCircle(pt(0.85, 0.38), 5.5, eyeBlackPaint);
+    canvas.drawCircle(pt(0.83, 0.36), 2.2, eyeWhitePaint); // 반짝이
+
+    // 오른쪽 더듬이
+    canvas.drawLine(pt(0.92, 0.60), pt(0.96, 0.40), antennaPaint);
+    canvas.drawCircle(pt(0.96, 0.40), 10, eyeWhitePaint);
+    canvas.drawCircle(pt(0.96, 0.40), 10, strokePaint);
+    canvas.drawCircle(pt(0.96, 0.40), 5.5, eyeBlackPaint);
+    canvas.drawCircle(pt(0.94, 0.38), 2.2, eyeWhitePaint); // 반짝이
+
+    // 5. 볼터치 & 방긋 미소
+    canvas.drawCircle(pt(0.92, 0.68), 7, blushPaint);
+    final smilePath = Path()
+      ..moveTo(pt(0.92, 0.74).dx, pt(0.92, 0.74).dy)
+      ..arcToPoint(pt(0.97, 0.70), radius: const Radius.circular(8), clockwise: false);
+    canvas.drawPath(smilePath, swirlPaint..strokeWidth = 3.0);
+  }
+
+  // 2. ⭐ 반짝반짝 별
+  void _drawStar(Canvas canvas) {
+    final fillPaint = Paint()..color = const Color(0xFFFFEE58)..style = PaintingStyle.fill;
+    final strokePaint = Paint()
+      ..color = const Color(0xFFF57F17)
+      ..strokeWidth = 3.5
+      ..style = PaintingStyle.stroke;
+    final path = Path();
+    final pts = puzzle.points;
+    path.moveTo(pt(pts[0].dx, pts[0].dy).dx, pt(pts[0].dx, pts[0].dy).dy);
+    for (int i = 1; i < pts.length; i++) {
+      path.lineTo(pt(pts[i].dx, pts[i].dy).dx, pt(pts[i].dx, pts[i].dy).dy);
+    }
+    path.close();
+    canvas.drawPath(path, fillPaint);
+    canvas.drawPath(path, strokePaint);
+
+    // 얼굴 (눈, 볼터치, 입)
+    final eyePaint = Paint()..color = const Color(0xFF212121)..style = PaintingStyle.fill;
+    final white = Paint()..color = Colors.white..style = PaintingStyle.fill;
+    canvas.drawCircle(pt(0.42, 0.50), 6, eyePaint);
+    canvas.drawCircle(pt(0.40, 0.48), 2, white);
+    canvas.drawCircle(pt(0.58, 0.50), 6, eyePaint);
+    canvas.drawCircle(pt(0.56, 0.48), 2, white);
+    canvas.drawCircle(pt(0.36, 0.56), 6, Paint()..color = const Color(0xFFFF8A80).withValues(alpha: 0.6));
+    canvas.drawCircle(pt(0.64, 0.56), 6, Paint()..color = const Color(0xFFFF8A80).withValues(alpha: 0.6));
+    final smile = Path()..moveTo(pt(0.46, 0.56).dx, pt(0.46, 0.56).dy)..arcToPoint(pt(0.54, 0.56), radius: const Radius.circular(6), clockwise: false);
+    canvas.drawPath(smile, Paint()..color = const Color(0xFFE65100)..strokeWidth = 3.0..style = PaintingStyle.stroke);
+  }
+
+  // 3. 🏠 예쁜 집
+  void _drawHouse(Canvas canvas) {
+    // 벽
+    canvas.drawRect(Rect.fromLTRB(pt(0.2, 0.45).dx, pt(0.2, 0.45).dy, pt(0.8, 0.9).dx, pt(0.8, 0.9).dy), Paint()..color = const Color(0xFFFFF9C4));
+    // 지붕
+    final roof = Path()
+      ..moveTo(pt(0.5, 0.1).dx, pt(0.5, 0.1).dy)
+      ..lineTo(pt(0.9, 0.45).dx, pt(0.9, 0.45).dy)
+      ..lineTo(pt(0.1, 0.45).dx, pt(0.1, 0.45).dy)
+      ..close();
+    canvas.drawPath(roof, Paint()..color = const Color(0xFFEF5350));
+    // 굴뚝
+    canvas.drawRect(Rect.fromLTRB(pt(0.68, 0.15).dx, pt(0.68, 0.15).dy, pt(0.76, 0.32).dx, pt(0.76, 0.32).dy), Paint()..color = const Color(0xFF8D6E63));
+    // 창문 (하늘색 격자)
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: pt(0.35, 0.62), width: 36, height: 36), const Radius.circular(6)), Paint()..color = const Color(0xFF81D4FA));
+    // 문 (초콜릿)
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: pt(0.65, 0.72), width: 34, height: 50), const Radius.circular(6)), Paint()..color = const Color(0xFF8D6E63));
+    canvas.drawCircle(pt(0.68, 0.72), 3, Paint()..color = const Color(0xFFFFD54F));
+  }
+
+  // 4. 🐠 물고기
+  void _drawFish(Canvas canvas) {
+    final fishBody = Path()
+      ..moveTo(pt(0.9, 0.5).dx, pt(0.9, 0.5).dy)
+      ..cubicTo(pt(0.7, 0.15).dx, pt(0.7, 0.15).dy, pt(0.2, 0.35).dx, pt(0.2, 0.35).dy, pt(0.05, 0.2).dx, pt(0.05, 0.2).dy)
+      ..lineTo(pt(0.05, 0.8).dx, pt(0.05, 0.8).dy)
+      ..cubicTo(pt(0.2, 0.65).dx, pt(0.2, 0.65).dy, pt(0.7, 0.85).dx, pt(0.7, 0.85).dy, pt(0.9, 0.5).dx, pt(0.9, 0.5).dy)
+      ..close();
+    canvas.drawPath(fishBody, Paint()..color = const Color(0xFFFF7043));
+    // 흰색 스트라이프
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: pt(0.55, 0.50), width: 22, height: 75), const Radius.circular(10)), Paint()..color = Colors.white);
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: pt(0.32, 0.50), width: 18, height: 55), const Radius.circular(8)), Paint()..color = Colors.white);
+    // 눈 & 뽀글이
+    canvas.drawCircle(pt(0.76, 0.44), 7, Paint()..color = Colors.white);
+    canvas.drawCircle(pt(0.76, 0.44), 4, Paint()..color = const Color(0xFF212121));
+  }
+
+  // 5. 💖 사랑해 하트
+  void _drawHeart(Canvas canvas) {
+    final path = Path();
+    final pts = puzzle.points;
+    path.moveTo(pt(pts[0].dx, pts[0].dy).dx, pt(pts[0].dx, pts[0].dy).dy);
+    path.cubicTo(pt(pts[1].dx, pts[1].dy).dx, pt(pts[1].dx, pts[1].dy).dy, pt(pts[2].dx, pts[2].dy).dx, pt(pts[2].dx, pts[2].dy).dy, pt(pts[3].dx, pts[3].dy).dx, pt(pts[3].dx, pts[3].dy).dy);
+    path.cubicTo(pt(pts[4].dx, pts[4].dy).dx, pt(pts[4].dx, pts[4].dy).dy, pt(pts[5].dx, pts[5].dy).dx, pt(pts[5].dx, pts[5].dy).dy, pt(pts[0].dx, pts[0].dy).dx, pt(pts[0].dx, pts[0].dy).dy);
+    path.close();
+    canvas.drawPath(path, Paint()..color = const Color(0xFFFF4081));
+    // 하이라이트 광택
+    canvas.drawOval(Rect.fromCenter(center: pt(0.32, 0.28), width: 26, height: 16), Paint()..color = Colors.white.withValues(alpha: 0.6));
+    // 얼굴
+    canvas.drawCircle(pt(0.42, 0.52), 5, Paint()..color = Colors.white);
+    canvas.drawCircle(pt(0.58, 0.52), 5, Paint()..color = Colors.white);
+    final smile = Path()..moveTo(pt(0.46, 0.58).dx, pt(0.46, 0.58).dy)..arcToPoint(pt(0.54, 0.58), radius: const Radius.circular(5), clockwise: false);
+    canvas.drawPath(smile, Paint()..color = Colors.white..strokeWidth = 3.0..style = PaintingStyle.stroke);
+  }
+
+  // 6. 🦋 팔랑팔랑 나비
+  void _drawButterfly(Canvas canvas) {
+    // 날개 채우기
+    final wings = Path();
+    final pts = puzzle.points;
+    wings.moveTo(pt(pts[0].dx, pts[0].dy).dx, pt(pts[0].dx, pts[0].dy).dy);
+    for (int i = 1; i < pts.length; i++) {
+      wings.lineTo(pt(pts[i].dx, pts[i].dy).dx, pt(pts[i].dx, pts[i].dy).dy);
+    }
+    wings.close();
+    canvas.drawPath(wings, Paint()..color = const Color(0xFFBA68C8));
+    // 날개 안쪽 무늬
+    canvas.drawCircle(pt(0.70, 0.35), 18, Paint()..color = const Color(0xFF4DD0E1));
+    canvas.drawCircle(pt(0.30, 0.35), 18, Paint()..color = const Color(0xFF4DD0E1));
+    canvas.drawCircle(pt(0.78, 0.70), 12, Paint()..color = const Color(0xFFFFD54F));
+    canvas.drawCircle(pt(0.22, 0.70), 12, Paint()..color = const Color(0xFFFFD54F));
+    // 몸통 & 더듬이
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: pt(0.5, 0.55), width: 14, height: 90), const Radius.circular(7)), Paint()..color = const Color(0xFF4A148C));
+  }
+
+  // 7. 🐱 귀여운 고양이
+  void _drawCat(Canvas canvas) {
+    final catFace = Path();
+    final pts = puzzle.points;
+    catFace.moveTo(pt(pts[0].dx, pts[0].dy).dx, pt(pts[0].dx, pts[0].dy).dy);
+    for (int i = 1; i < pts.length; i++) {
+      catFace.lineTo(pt(pts[i].dx, pts[i].dy).dx, pt(pts[i].dx, pts[i].dy).dy);
+    }
+    catFace.close();
+    canvas.drawPath(catFace, Paint()..color = const Color(0xFFFFCC80));
+    // 핑크 귓속
+    canvas.drawPath(Path()..moveTo(pt(0.25, 0.26).dx, pt(0.25, 0.26).dy)..lineTo(pt(0.36, 0.32).dx, pt(0.36, 0.32).dy)..lineTo(pt(0.22, 0.38).dx, pt(0.22, 0.38).dy)..close(), Paint()..color = const Color(0xFFFF80AB));
+    canvas.drawPath(Path()..moveTo(pt(0.75, 0.26).dx, pt(0.75, 0.26).dy)..lineTo(pt(0.64, 0.32).dx, pt(0.64, 0.32).dy)..lineTo(pt(0.78, 0.38).dx, pt(0.78, 0.38).dy)..close(), Paint()..color = const Color(0xFFFF80AB));
+    // 눈, 코, 수염
+    canvas.drawCircle(pt(0.38, 0.52), 6, Paint()..color = const Color(0xFF212121));
+    canvas.drawCircle(pt(0.62, 0.52), 6, Paint()..color = const Color(0xFF212121));
+    canvas.drawCircle(pt(0.50, 0.62), 4, Paint()..color = const Color(0xFFFF4081));
+    // 수염
+    final wPaint = Paint()..color = const Color(0xFF5D4037)..strokeWidth = 2.5..strokeCap = StrokeCap.round;
+    canvas.drawLine(pt(0.30, 0.58), pt(0.12, 0.54), wPaint);
+    canvas.drawLine(pt(0.30, 0.64), pt(0.12, 0.68), wPaint);
+    canvas.drawLine(pt(0.70, 0.58), pt(0.88, 0.54), wPaint);
+    canvas.drawLine(pt(0.70, 0.64), pt(0.88, 0.68), wPaint);
+  }
+
+  // 8. 🍦 달콤 아이스크림
+  void _drawIceCream(Canvas canvas) {
+    // 와플콘
+    final cone = Path()..moveTo(pt(0.3, 0.5).dx, pt(0.3, 0.5).dy)..lineTo(pt(0.7, 0.5).dx, pt(0.7, 0.5).dy)..lineTo(pt(0.5, 0.95).dx, pt(0.5, 0.95).dy)..close();
+    canvas.drawPath(cone, Paint()..color = const Color(0xFFFFB74D));
+    // 크림 스쿱
+    final cream = Path()..moveTo(pt(0.3, 0.5).dx, pt(0.3, 0.5).dy)..cubicTo(pt(0.1, 0.25).dx, pt(0.1, 0.25).dy, pt(0.5, 0.05).dx, pt(0.5, 0.05).dy, pt(0.85, 0.25).dx, pt(0.85, 0.25).dy)..lineTo(pt(0.7, 0.5).dx, pt(0.7, 0.5).dy)..close();
+    canvas.drawPath(cream, Paint()..color = const Color(0xFFFF80AB));
+    // 체리
+    canvas.drawCircle(pt(0.5, 0.12), 12, Paint()..color = const Color(0xFFD50000));
+  }
+
+  // 9. 🚗 빠방 자동차
+  void _drawCar(Canvas canvas) {
+    // 차체
+    final car = Path();
+    final pts = puzzle.points;
+    car.moveTo(pt(pts[0].dx, pts[0].dy).dx, pt(pts[0].dx, pts[0].dy).dy);
+    for (int i = 1; i < pts.length; i++) {
+      car.lineTo(pt(pts[i].dx, pts[i].dy).dx, pt(pts[i].dx, pts[i].dy).dy);
+    }
+    car.close();
+    canvas.drawPath(car, Paint()..color = const Color(0xFFE53935));
+    // 창문
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: pt(0.48, 0.32), width: 34, height: 24), const Radius.circular(5)), Paint()..color = const Color(0xFF81D4FA));
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: pt(0.68, 0.32), width: 30, height: 24), const Radius.circular(5)), Paint()..color = const Color(0xFF81D4FA));
+    // 바퀴
+    canvas.drawCircle(pt(0.25, 0.68), 16, Paint()..color = const Color(0xFF263238));
+    canvas.drawCircle(pt(0.25, 0.68), 7, Paint()..color = const Color(0xFFCFD8DC));
+    canvas.drawCircle(pt(0.65, 0.68), 16, Paint()..color = const Color(0xFF263238));
+    canvas.drawCircle(pt(0.65, 0.68), 7, Paint()..color = const Color(0xFFCFD8DC));
+    // 헤드라이트
+    canvas.drawCircle(pt(0.14, 0.52), 6, Paint()..color = const Color(0xFFFFEB3B));
+  }
+
+  // 10. 🧸 곰돌이
+  void _drawBear(Canvas canvas) {
+    final head = Path();
+    final pts = puzzle.points;
+    head.moveTo(pt(pts[0].dx, pts[0].dy).dx, pt(pts[0].dx, pts[0].dy).dy);
+    for (int i = 1; i < pts.length; i++) {
+      head.lineTo(pt(pts[i].dx, pts[i].dy).dx, pt(pts[i].dx, pts[i].dy).dy);
+    }
+    head.close();
+    canvas.drawPath(head, Paint()..color = const Color(0xFF8D6E63));
+    // 머즐
+    canvas.drawOval(Rect.fromCenter(center: pt(0.5, 0.66), width: 48, height: 36), Paint()..color = const Color(0xFFD7CCC8));
+    canvas.drawOval(Rect.fromCenter(center: pt(0.5, 0.62), width: 14, height: 10), Paint()..color = const Color(0xFF3E2723));
+    // 눈 & 볼터치
+    canvas.drawCircle(pt(0.36, 0.50), 6, Paint()..color = const Color(0xFF212121));
+    canvas.drawCircle(pt(0.64, 0.50), 6, Paint()..color = const Color(0xFF212121));
+    canvas.drawCircle(pt(0.28, 0.60), 8, Paint()..color = const Color(0xFFFF8A80).withValues(alpha: 0.6));
+    canvas.drawCircle(pt(0.72, 0.60), 8, Paint()..color = const Color(0xFFFF8A80).withValues(alpha: 0.6));
+  }
+
+  // 11. 🍓 딸기
+  void _drawStrawberry(Canvas canvas) {
+    final body = Path()..moveTo(pt(0.25, 0.18).dx, pt(0.25, 0.18).dy)..cubicTo(pt(0.05, 0.45).dx, pt(0.05, 0.45).dy, pt(0.25, 0.85).dx, pt(0.25, 0.85).dy, pt(0.5, 0.95).dx, pt(0.5, 0.95).dy)..cubicTo(pt(0.75, 0.85).dx, pt(0.75, 0.85).dy, pt(0.95, 0.45).dx, pt(0.95, 0.45).dy, pt(0.75, 0.18).dx, pt(0.75, 0.18).dy)..close();
+    canvas.drawPath(body, Paint()..color = const Color(0xFFE53935));
+    // 꼭지 잎
+    final leaf = Path()..moveTo(pt(0.5, 0.05).dx, pt(0.5, 0.05).dy)..lineTo(pt(0.75, 0.18).dx, pt(0.75, 0.18).dy)..lineTo(pt(0.5, 0.22).dx, pt(0.5, 0.22).dy)..lineTo(pt(0.25, 0.18).dx, pt(0.25, 0.18).dy)..close();
+    canvas.drawPath(leaf, Paint()..color = const Color(0xFF43A047));
+    // 씨앗
+    final seed = Paint()..color = const Color(0xFFFFEE58);
+    for (double y = 0.35; y <= 0.75; y += 0.12) {
+      for (double x = 0.32; x <= 0.68; x += 0.14) {
+        canvas.drawCircle(pt(x, y), 2.5, seed);
+      }
+    }
+  }
+
+  // 12. 👑 왕관
+  void _drawCrown(Canvas canvas) {
+    final crown = Path();
+    final pts = puzzle.points;
+    crown.moveTo(pt(pts[0].dx, pts[0].dy).dx, pt(pts[0].dx, pts[0].dy).dy);
+    for (int i = 1; i < pts.length; i++) {
+      crown.lineTo(pt(pts[i].dx, pts[i].dy).dx, pt(pts[i].dx, pts[i].dy).dy);
+    }
+    crown.close();
+    canvas.drawPath(crown, Paint()..color = const Color(0xFFFFD54F));
+    // 보석들
+    canvas.drawCircle(pt(0.05, 0.25), 8, Paint()..color = const Color(0xFFE53935));
+    canvas.drawCircle(pt(0.5, 0.1), 10, Paint()..color = const Color(0xFF1E88E5));
+    canvas.drawCircle(pt(0.95, 0.25), 8, Paint()..color = const Color(0xFF43A047));
+  }
+
+  // 13. 🚀 로켓
+  void _drawRocket(Canvas canvas) {
+    final rocket = Path();
+    final pts = puzzle.points;
+    rocket.moveTo(pt(pts[0].dx, pts[0].dy).dx, pt(pts[0].dx, pts[0].dy).dy);
+    for (int i = 1; i < pts.length; i++) {
+      rocket.lineTo(pt(pts[i].dx, pts[i].dy).dx, pt(pts[i].dx, pts[i].dy).dy);
+    }
+    rocket.close();
+    canvas.drawPath(rocket, Paint()..color = const Color(0xFFECEFF1));
+    // 창문
+    canvas.drawCircle(pt(0.5, 0.45), 18, Paint()..color = const Color(0xFF81D4FA));
+    canvas.drawCircle(pt(0.5, 0.45), 18, Paint()..color = const Color(0xFF0288D1)..strokeWidth = 3..style = PaintingStyle.stroke);
+    // 불꽃
+    final flame = Path()..moveTo(pt(0.40, 0.85).dx, pt(0.40, 0.85).dy)..lineTo(pt(0.5, 0.98).dx, pt(0.5, 0.98).dy)..lineTo(pt(0.60, 0.85).dx, pt(0.60, 0.85).dy)..close();
+    canvas.drawPath(flame, Paint()..color = const Color(0xFFFF9100));
+  }
+
+  // 14. 🍬 캔디
+  void _drawCandy(Canvas canvas) {
+    final candy = Path();
+    final pts = puzzle.points;
+    candy.moveTo(pt(pts[0].dx, pts[0].dy).dx, pt(pts[0].dx, pts[0].dy).dy);
+    for (int i = 1; i < pts.length; i++) {
+      candy.lineTo(pt(pts[i].dx, pts[i].dy).dx, pt(pts[i].dx, pts[i].dy).dy);
+    }
+    candy.close();
+    canvas.drawPath(candy, Paint()..color = const Color(0xFFFF80AB));
+    canvas.drawCircle(pt(0.5, 0.5), availWidth * 0.22, Paint()..color = const Color(0xFFF48FB1));
+    canvas.drawCircle(pt(0.5, 0.5), availWidth * 0.12, Paint()..color = Colors.white);
+  }
+
+  // 15. 🍎 사과
+  void _drawApple(Canvas canvas) {
+    final apple = Path()..moveTo(pt(0.5, 0.2).dx, pt(0.5, 0.2).dy)..cubicTo(pt(0.85, 0.1).dx, pt(0.85, 0.1).dy, pt(1.0, 0.5).dx, pt(1.0, 0.5).dy, pt(0.7, 0.9).dx, pt(0.7, 0.9).dy)..cubicTo(pt(0.5, 0.85).dx, pt(0.5, 0.85).dy, pt(0.3, 0.9).dx, pt(0.3, 0.9).dy, pt(0.0, 0.5).dx, pt(0.0, 0.5).dy)..cubicTo(pt(0.15, 0.1).dx, pt(0.15, 0.1).dy, pt(0.5, 0.2).dx, pt(0.5, 0.2).dy, pt(0.5, 0.2).dx, pt(0.5, 0.2).dy)..close();
+    canvas.drawPath(apple, Paint()..color = const Color(0xFFE53935));
+    // 잎 & 줄기
+    canvas.drawLine(pt(0.5, 0.2), pt(0.5, 0.05), Paint()..color = const Color(0xFF5D4037)..strokeWidth = 5..strokeCap = StrokeCap.round);
+    final leaf = Path()..moveTo(pt(0.5, 0.12).dx, pt(0.5, 0.12).dy)..cubicTo(pt(0.68, 0.02).dx, pt(0.68, 0.02).dy, pt(0.75, 0.18).dx, pt(0.75, 0.18).dy, pt(0.5, 0.12).dx, pt(0.5, 0.12).dy)..close();
+    canvas.drawPath(leaf, Paint()..color = const Color(0xFF43A047));
+    // 광택
+    canvas.drawOval(Rect.fromCenter(center: pt(0.32, 0.35), width: 22, height: 14), Paint()..color = Colors.white.withValues(alpha: 0.6));
+  }
+
+  // 16. 🎈 풍선
+  void _drawBalloon(Canvas canvas) {
+    canvas.drawOval(Rect.fromCenter(center: pt(0.5, 0.45), width: availWidth * 0.65, height: availHeight * 0.55), Paint()..color = const Color(0xFFFF5252));
+    // 매듭
+    final knot = Path()..moveTo(pt(0.46, 0.72).dx, pt(0.46, 0.72).dy)..lineTo(pt(0.54, 0.72).dx, pt(0.54, 0.72).dy)..lineTo(pt(0.5, 0.76).dx, pt(0.5, 0.76).dy)..close();
+    canvas.drawPath(knot, Paint()..color = const Color(0xFFD32F2F));
+    // 실
+    final string = Path()..moveTo(pt(0.5, 0.76).dx, pt(0.5, 0.76).dy)..cubicTo(pt(0.55, 0.82).dx, pt(0.55, 0.82).dy, pt(0.45, 0.88).dx, pt(0.45, 0.88).dy, pt(0.5, 0.95).dx, pt(0.5, 0.95).dy);
+    canvas.drawPath(string, Paint()..color = const Color(0xFF757575)..strokeWidth = 2.5..style = PaintingStyle.stroke);
+    // 광택
+    canvas.drawOval(Rect.fromCenter(center: pt(0.36, 0.32), width: 20, height: 12), Paint()..color = Colors.white.withValues(alpha: 0.6));
+  }
+
+  void _drawGeneric(Canvas canvas) {
+    final path = Path();
+    final pts = puzzle.points;
+    if (pts.isEmpty) return;
+    path.moveTo(pt(pts[0].dx, pts[0].dy).dx, pt(pts[0].dx, pts[0].dy).dy);
+    for (int i = 1; i < pts.length; i++) {
+      path.lineTo(pt(pts[i].dx, pts[i].dy).dx, pt(pts[i].dx, pts[i].dy).dy);
+    }
+    if (puzzle.isClosed) path.close();
+    canvas.drawPath(path, Paint()..color = const Color(0xFFFFE082).withValues(alpha: 0.85));
+  }
+
+  @override
+  bool shouldRepaint(covariant PuzzleCompletedArtPainter oldDelegate) {
+    return oldDelegate.puzzle != puzzle;
+  }
+}
+

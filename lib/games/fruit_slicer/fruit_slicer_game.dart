@@ -1304,7 +1304,7 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
                 const SizedBox(height: 6),
                 Text(
                   '하고 싶은 레벨을 골라 신나게 싹둑 해보세요!',
-                  style: GoogleFonts.nunito(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                  style: GoogleFonts.jua(fontSize: 12, color: Colors.grey.shade600),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 14),

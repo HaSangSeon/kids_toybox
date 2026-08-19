@@ -246,9 +246,8 @@ class _LobbyScreenState extends State<LobbyScreen>
                     child: Center(
                       child: Text(
                         '닫기 닫기! 👍',
-                        style: GoogleFonts.nunito(
+                        style: GoogleFonts.jua(
                           fontSize: 18,
-                          fontWeight: FontWeight.w900,
                           color: Colors.white,
                         ),
                       ),
@@ -279,9 +278,8 @@ class _LobbyScreenState extends State<LobbyScreen>
         ),
         Text(
           score,
-          style: GoogleFonts.nunito(
+          style: GoogleFonts.jua(
             fontSize: 22,
-            fontWeight: FontWeight.bold,
             color: KidsTheme.textLight,
           ),
         ),
@@ -449,7 +447,7 @@ class _LobbyScreenState extends State<LobbyScreen>
                           ],
                         ),
                         child: Text(
-                          '✨ 미니 게임 천국 (v1.0.3) ✨',
+                          '✨ 미니 게임 천국 (v1.0.9) ✨',
                           style: GoogleFonts.jua(
                             fontSize: 11,
                             color: Colors.white,

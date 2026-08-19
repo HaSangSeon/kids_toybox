@@ -129,6 +129,10 @@ class _DecalcomaniaGameState extends State<DecalcomaniaGame>
   bool _isFolding = false;
   bool _hasFolded = false;
 
+  // 아기자기한 드로잉 사운드 상태
+  int _lastStrokeSoundTime = 0;
+  int _pitchStep = 0;
+
   // 버튼 펄스 애니메이션 (접기 버튼)
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -267,7 +271,7 @@ class _DecalcomaniaGameState extends State<DecalcomaniaGame>
     });
   }
 
-  // ── 그리기 핸들러 ──────────────────────────────────────────────────────────
+  // ── 그리기 핸들러 (아이들이 좋아하는 귀엽고 퐁퐁 튀는 사운드) ───────────────
   void _onPanStart(DragStartDetails details, double halfWidth) {
     if (_isFolding) return;
     if (details.localPosition.dx > halfWidth) return;
@@ -294,9 +298,17 @@ class _DecalcomaniaGameState extends State<DecalcomaniaGame>
       _hasFolded = false;
       _hasDrawn = true;
     });
-    if (_brushMode != BrushMode.eraser) {
-      AudioManager.instance.playScribble();
+
+    // 귀여운 브러시 모드별 첫 터치 사운드
+    _lastStrokeSoundTime = DateTime.now().millisecondsSinceEpoch;
+    if (_brushMode == BrushMode.rainbow) {
+      AudioManager.instance.playDecalRainbowDraw(rate: 1.25);
+    } else if (_brushMode == BrushMode.eraser) {
+      AudioManager.instance.playDecalEraser(rate: 1.3);
+    } else {
+      AudioManager.instance.playDecalPaintDraw(rate: 1.15);
     }
+    HapticFeedback.lightImpact();
   }
 
   void _onPanUpdate(DragUpdateDetails details, double halfWidth) {
@@ -317,6 +329,19 @@ class _DecalcomaniaGameState extends State<DecalcomaniaGame>
       _currentStroke!.points.add(Offset(dx, details.localPosition.dy));
       _currentStroke!.colors.add(pointColor);
     });
+
+    // 드로잉 중 부드럽고 퐁퐁 튀는 리듬 사운드 (130ms 마다 멜로디 변조)
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - _lastStrokeSoundTime > 130) {
+      _lastStrokeSoundTime = now;
+      if (_brushMode == BrushMode.rainbow) {
+        AudioManager.instance.playDecalRainbowDraw(rate: 1.05 + ((_pitchStep++ % 5) * 0.1));
+      } else if (_brushMode == BrushMode.eraser) {
+        AudioManager.instance.playDecalEraser(rate: 1.2 + ((_pitchStep++ % 3) * 0.1));
+      } else {
+        AudioManager.instance.playDecalPaintDraw(rate: 1.05 + ((_pitchStep++ % 5) * 0.08));
+      }
+    }
   }
 
   void _onTapDown(TapDownDetails details, double halfWidth) {
@@ -337,7 +362,7 @@ class _DecalcomaniaGameState extends State<DecalcomaniaGame>
       _hasFolded = false;
       _hasDrawn = true;
     });
-    AudioManager.instance.playPop();
+    AudioManager.instance.playDecalStamp(rate: 1.25);
     HapticFeedback.lightImpact();
   }
 

@@ -114,11 +114,12 @@ class GameEngine extends ChangeNotifier {
   double timeCounter = 0.0;
 
   int get targetScore {
-    if (stage == 1) return 100;
-    if (stage == 2) return 150;
-    if (stage == 3) return 200;
-    if (stage == 4) return 250;
-    return 300;
+    if (stage == 1) return 200;
+    if (stage == 2) return 350;
+    if (stage == 3) return 550;
+    if (stage == 4) return 800;
+    if (stage == 5) return 1200;
+    return 1200 + (stage - 5) * 400;
   }
 
   void loseLife() {
@@ -572,8 +573,6 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -792,7 +791,7 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                                 color: displayColor,
                                 shadows: [
                                   Shadow(
-                                    color: KidsTheme.borderDark.withOpacity(0.5),
+                                    color: KidsTheme.borderDark.withValues(alpha: 0.5),
                                     offset: const Offset(3, 3),
                                     blurRadius: 2,
                                   ),
@@ -1127,36 +1126,90 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
     );
   }
 
-  // ── Stage Select Overlay ──────────────────────────────────────────────────
+  // ── Stage Select Overlay (깔끔하고 아기자기한 5단계 통일 디자인) ─────────────
   Widget _buildStageSelectOverlay() {
     final stagesInfo = [
-      (stage: 1, name: '1단계', desc: '기본 풍선 / 목표 100점', color: const Color(0xFF4ADE80), icon: '🎈', isRecommend: true),
-      (stage: 2, name: '2단계', desc: '황금 풍선 등장 / 목표 150점', color: const Color(0xFF60A5FA), icon: '⭐', isRecommend: false),
-      (stage: 3, name: '3단계', desc: '바람 추가 / 목표 200점', color: const Color(0xFFF59E0B), icon: '⚡', isRecommend: false),
-      (stage: 4, name: '4단계', desc: '방해 풍선 추가 / 목표 250점', color: const Color(0xFFEC4899), icon: '💣', isRecommend: false),
-      (stage: 5, name: '5단계', desc: '최고 난이도 / 목표 300점', color: const Color(0xFFA855F7), icon: '🏆', isRecommend: false),
+      (
+        stage: 1,
+        title: '아기 풍선',
+        scoreText: '목표 200점',
+        icon: '🎈',
+        cardBg: const Color(0xFFFFF0F2),
+        borderColor: const Color(0xFFFFCDD2),
+        badgeColor: const Color(0xFFFF5252),
+      ),
+      (
+        stage: 2,
+        title: '황금별 풍선',
+        scoreText: '목표 350점',
+        icon: '⭐',
+        cardBg: const Color(0xFFFFFDE7),
+        borderColor: const Color(0xFFFFF59D),
+        badgeColor: const Color(0xFFFBC02D),
+      ),
+      (
+        stage: 3,
+        title: '바람 슝슝',
+        scoreText: '목표 550점',
+        icon: '🍃',
+        cardBg: const Color(0xFFE8F5E9),
+        borderColor: const Color(0xFFA5D6A7),
+        badgeColor: const Color(0xFF4CAF50),
+      ),
+      (
+        stage: 4,
+        title: '폭탄 조심!',
+        scoreText: '목표 800점',
+        icon: '💣',
+        cardBg: const Color(0xFFFCE4EC),
+        borderColor: const Color(0xFFF8BBD0),
+        badgeColor: const Color(0xFFE91E63),
+      ),
+      (
+        stage: 5,
+        title: '팡팡 챔피언',
+        scoreText: '목표 1,200점',
+        icon: '👑',
+        cardBg: const Color(0xFFEDE7F6),
+        borderColor: const Color(0xFFD1C4E9),
+        badgeColor: const Color(0xFF7E57C2),
+      ),
     ];
 
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withValues(alpha: 0.70),
+        color: Colors.black.withValues(alpha: 0.65),
         child: Center(
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 340, maxHeight: 580),
-            margin: const EdgeInsets.all(20),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+            constraints: const BoxConstraints(maxWidth: 320, maxHeight: 480),
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(32),
-              boxShadow: const [
-                BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 8)),
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
               ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Clean Top Row: Close button on top right, clean title
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    Text(
+                      '어디까지 날아볼까요? 🎈',
+                      style: GoogleFonts.jua(
+                        fontSize: 16,
+                        color: const Color(0xFF37474F),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     GestureDetector(
                       onTap: () {
                         AudioManager.instance.playClick();
@@ -1165,48 +1218,26 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                         });
                       },
                       child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
+                        width: 32,
+                        height: 32,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF5F5F5),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.close_rounded, size: 20, color: KidsTheme.textDark),
+                        child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF757575)),
                       ),
                     ),
-                    Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text('🎈', style: TextStyle(fontSize: 26)),
-                          const SizedBox(width: 6),
-                          Text(
-                            '단계 선택',
-                            style: GoogleFonts.jua(fontSize: 22, color: KidsTheme.textDark),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 36),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  '하고 싶은 단계를 마음대로 골라보세요!',
-                  style: GoogleFonts.nunito(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+
+                // 5 Identical, Clean & Charming Stage Cards
                 Expanded(
-                  child: GridView.builder(
+                  child: ListView.separated(
                     padding: EdgeInsets.zero,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 1.15,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                    ),
+                    physics: const BouncingScrollPhysics(),
                     itemCount: stagesInfo.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       final info = stagesInfo[index];
                       final bool isCurrent = _engine.stage == info.stage;
@@ -1220,30 +1251,86 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                           });
                         },
                         child: Container(
+                          height: 58,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [info.color.withValues(alpha: 0.88), info.color],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
+                            color: info.cardBg,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isCurrent ? info.badgeColor : info.borderColor,
+                              width: isCurrent ? 2.2 : 1.2,
                             ),
-                            borderRadius: BorderRadius.circular(22),
-                            border: isCurrent ? Border.all(color: Colors.yellow, width: 3.5) : null,
                             boxShadow: [
                               BoxShadow(
-                                color: info.color.withValues(alpha: 0.35),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
+                                color: info.badgeColor.withValues(alpha: isCurrent ? 0.18 : 0.05),
+                                blurRadius: isCurrent ? 6 : 3,
+                                offset: const Offset(0, 2),
                               ),
                             ],
                           ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          child: Row(
                             children: [
-                              Text(info.icon, style: const TextStyle(fontSize: 44)),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${info.stage}단계',
-                                style: GoogleFonts.jua(fontSize: 16, color: Colors.white),
+                              // Cute Round Icon Emblem
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.06),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 1),
+                                    ),
+                                  ],
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(info.icon, style: const TextStyle(fontSize: 22)),
+                              ),
+                              const SizedBox(width: 12),
+
+                              // Stage Name & Score
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      '${info.stage}단계 • ${info.title}',
+                                      style: GoogleFonts.jua(
+                                        fontSize: 14.5,
+                                        color: const Color(0xFF263238),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      info.scoreText,
+                                      style: GoogleFonts.jua(
+                                        fontSize: 11,
+                                        color: const Color(0xFF78909C),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Selected or Play Tag
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isCurrent ? info.badgeColor : Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: isCurrent ? null : Border.all(color: info.borderColor),
+                                ),
+                                child: Text(
+                                  isCurrent ? '선택됨 ✨' : '시작 ▶',
+                                  style: GoogleFonts.jua(
+                                    fontSize: 11,
+                                    color: isCurrent ? Colors.white : const Color(0xFF546E7A),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
