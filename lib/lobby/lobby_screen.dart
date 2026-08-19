@@ -35,6 +35,7 @@ import '../games/cooking/cooking_game.dart';
 import '../games/car_wash/car_wash_game.dart';
 import '../games/tooth_brushing/tooth_brushing_game.dart';
 import '../games/pet_hospital/pet_hospital_game.dart';
+import '../games/firefighter/firefighter_game.dart';
 import '../core/widgets/skin_select_modal.dart';
 import '../core/widgets/pacman_icon.dart';
 
@@ -659,7 +660,28 @@ class _LobbyScreenState extends State<LobbyScreen>
   // ── Game Data ─────────────────────────────────────────────────────────────
   List<_GameData> _gameData() {
     return [
-      // 🆓 [무료 게임 17종 - 상단 배치]
+      // 🆓 [무료 게임 - 상단 배치]
+      _GameData(
+        title: '출동! 소방대',
+        emoji: '🚒',
+        customIcon: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            const Text('🚒', style: TextStyle(fontSize: 40)),
+            Positioned(
+              top: -6, right: -6,
+              child: const Text('🚨', style: TextStyle(fontSize: 18)),
+            ),
+            Positioned(
+              bottom: -4, left: -4,
+              child: const Text('💦', style: TextStyle(fontSize: 18)),
+            ),
+          ],
+        ),
+        gradientColors: KidsTheme.gameGradients['red'] ?? const [Color(0xFFFF5964), Color(0xFFE84393)],
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FirefighterGame())); },
+      ),
       _GameData(
         title: '꼬마 동물 병원',
         emoji: '🏥',

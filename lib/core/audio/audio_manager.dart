@@ -8,7 +8,22 @@ class AudioManager {
     return instance;
   }
 
-  AudioManager._internal();
+  AudioManager._internal() {
+    AudioPlayer.global.setAudioContext(
+      AudioContext(
+        android: const AudioContextAndroid(
+          isSpeakerphoneOn: false,
+          stayAwake: false,
+          contentType: AndroidContentType.music,
+          usageType: AndroidUsageType.game,
+          audioFocus: AndroidAudioFocus.none,
+        ),
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory.ambient,
+        ),
+      ),
+    );
+  }
 
   final AudioPlayer _effectPlayer = AudioPlayer();
   final AudioPlayer _voicePlayer = AudioPlayer();
@@ -16,6 +31,7 @@ class AudioManager {
   final AudioPlayer _munchPlayer = AudioPlayer();
   final AudioPlayer _animalPlayer = AudioPlayer();
   final AudioPlayer _successPlayer = AudioPlayer();
+  final AudioPlayer _sirenPlayer = AudioPlayer();
   
   bool _soundEnabled = true;
   bool _bgmEnabled = true;
@@ -31,6 +47,7 @@ class AudioManager {
       _munchPlayer.stop();
       _animalPlayer.stop();
       _successPlayer.stop();
+      _sirenPlayer.stop();
     }
   }
 
@@ -258,7 +275,7 @@ class AudioManager {
         await playEffect('audio/sound_police.wav');
         break;
       case 'fire':
-        await playEffect('audio/sound_fire.wav');
+        await playEffect('audio/firetruck_siren.wav');
         break;
       case 'ambulance':
         await playEffect('audio/sound_ambulance.wav');
@@ -509,6 +526,53 @@ class AudioManager {
     playEffect('audio/chime.wav', rate: pitch);
   }
 
+  // 🚒 꼬마 소방관 전용 실감나는 효과음
+  Future<void> playFireSiren() async {
+    if (!_soundEnabled) return;
+    try {
+      await _sirenPlayer.stop();
+      await _sirenPlayer.play(AssetSource('audio/firetruck_siren.wav'));
+    } catch (e) {
+      debugPrint("Fire siren play error: $e");
+    }
+  }
+
+  void stopFireSiren() {
+    _sirenPlayer.stop();
+  }
+
+  Future<void> playFireHoseSpray() async {
+    if (!_soundEnabled) return;
+    await playEffect('audio/car_water_spray.wav', rate: 1.1);
+  }
+
+  Future<void> playFireSteamHiss() async {
+    if (!_soundEnabled) return;
+    await playEffect('audio/car_rinse.wav', rate: 1.3);
+  }
+
+  Future<void> playFireExtinguishPop() async {
+    if (!_soundEnabled) return;
+    await playEffect('audio/bubble_pop.wav', rate: 1.3);
+    Future.delayed(const Duration(milliseconds: 60), () {
+      playEffect('audio/item_star.wav', rate: 1.25);
+    });
+  }
+
+  Future<void> playFireRescueCheer(String animalEmoji) async {
+    if (!_soundEnabled) return;
+    await playSuccessSound('audio/chime.wav', rate: 1.2);
+    Future.delayed(const Duration(milliseconds: 180), () {
+      playEmojiSound(animalEmoji);
+    });
+  }
+
+  Future<void> playFireMissionVictory() async {
+    if (!_soundEnabled) return;
+    // Soft, gentle pleasant chime without loud fanfare
+    await playEffect('audio/chime.wav', rate: 1.1);
+  }
+
   // Dispose players
   void dispose() {
     _effectPlayer.dispose();
@@ -516,5 +580,7 @@ class AudioManager {
     _bgmPlayer.dispose();
     _munchPlayer.dispose();
     _animalPlayer.dispose();
+    _successPlayer.dispose();
+    _sirenPlayer.dispose();
   }
 }
