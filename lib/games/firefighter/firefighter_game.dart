@@ -295,6 +295,7 @@ class _FirefighterGameState extends State<FirefighterGame>
   late AnimationController _truckBounceCtrl;
   double _dispatchProgress = 0.0;
   final List<Offset> _roadItems = [];
+  DateTime _lastEngineSoundTime = DateTime.now(); // 소방차 주행 엔진음 타이머
 
   // Extinguish Phase variables
   late AnimationController _gameLoopCtrl;
@@ -452,6 +453,15 @@ class _FirefighterGameState extends State<FirefighterGame>
     if (!mounted) return;
     final screenSize = MediaQuery.of(context).size;
 
+    // 🚒 소방차 주행 중 엔진음 재생 (dispatch 페이즈)
+    if (_phase == FireGamePhase.dispatch) {
+      final now = DateTime.now();
+      if (now.difference(_lastEngineSoundTime).inMilliseconds > 900) {
+        _lastEngineSoundTime = now;
+        AudioManager.instance.playEngine();
+      }
+    }
+
     // Update Flame Phases, Embers & Smoke
     if (_phase == FireGamePhase.extinguish) {
       for (final spot in _currentMission.spots) {
@@ -503,7 +513,7 @@ class _FirefighterGameState extends State<FirefighterGame>
     }
 
     // High Pressure Water Jet & Target Impact Detection
-    if (_phase == FireGamePhase.extinguish || _phase == FireGamePhase.celebrate) {
+    if (_phase == FireGamePhase.extinguish) {
       if (_isSpraying && _touchPos != null) {
         final now = DateTime.now();
         if (now.difference(_lastWaterSoundTime).inMilliseconds > 180) {
@@ -520,9 +530,7 @@ class _FirefighterGameState extends State<FirefighterGame>
             vel: Offset(cos(splashAngle) * splashSpeed, sin(splashAngle) * splashSpeed - 2.0),
             radius: 3.5 + _rng.nextDouble() * 4.0,
             life: 1.0,
-            color: _phase == FireGamePhase.celebrate
-                ? [Colors.pinkAccent, Colors.yellowAccent, Colors.cyanAccent, Colors.purpleAccent][_rng.nextInt(4)]
-                : const Color(0xFF38BDF8),
+            color: const Color(0xFF38BDF8),
           ));
         }
 
@@ -672,6 +680,9 @@ class _FirefighterGameState extends State<FirefighterGame>
   void _completeMission() {
     setState(() {
       _phase = FireGamePhase.celebrate;
+      _isSpraying = false;
+      _touchPos = null;
+      _splashes.clear();
     });
     AudioManager.instance.playFireMissionVictory();
     HapticFeedback.heavyImpact();
@@ -708,7 +719,7 @@ class _FirefighterGameState extends State<FirefighterGame>
             ),
           ),
 
-          // 3. 60FPS Realistic Flames, Smoke, Water Jet Stream, Steam & Splashes
+          // 3. 60FPS Realistic Flames, Smoke, Water Jet Stream, Steam, Splashes & Confetti
           if (_phase == FireGamePhase.extinguish || _phase == FireGamePhase.celebrate)
             Positioned.fill(
               child: IgnorePointer(
@@ -720,8 +731,8 @@ class _FirefighterGameState extends State<FirefighterGame>
                     splashes: _splashes,
                     steamParticles: _steamParticles,
                     confetti: _confetti,
-                    isSpraying: _isSpraying,
-                    touchPos: _touchPos,
+                    isSpraying: _phase == FireGamePhase.extinguish && _isSpraying,
+                    touchPos: _phase == FireGamePhase.extinguish ? _touchPos : null,
                     screenSize: MediaQuery.of(context).size,
                   ),
                 ),
@@ -1410,10 +1421,62 @@ class _FirefighterGameState extends State<FirefighterGame>
         alignment: Alignment.center,
         clipBehavior: Clip.none,
         children: [
+          // 🔥 HP 게이지 — 불꽃 바로 위에 배치 (잘 보이도록)
+          Positioned(
+            top: -28,
+            left: 0,
+            right: 0,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.70),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '🔥 ${spot.hp.toInt()}%',
+                    style: const TextStyle(
+                      fontSize: 9,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Container(
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.white54, width: 0.8),
+                  ),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: (spot.hp / 100.0).clamp(0.0, 1.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: spot.hp > 60
+                              ? [const Color(0xFFFF4500), const Color(0xFFFF8C00)]
+                              : spot.hp > 30
+                                  ? [const Color(0xFFFF8C00), const Color(0xFFFFD700)]
+                                  : [const Color(0xFF00E676), const Color(0xFF69F0AE)],
+                        ),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           // Trapped animal with shivering, teardrops, and crying speech bubble
           if (spot.trappedAnimal != null)
             Positioned(
-              top: -24,
+              top: 15,
               child: Column(
                 children: [
                   // Cute Pulsing Speech Bubble
@@ -1476,100 +1539,69 @@ class _FirefighterGameState extends State<FirefighterGame>
               ),
             ),
 
-          // Mini HP Gauge
-          Positioned(
-            bottom: -6,
-            child: Container(
-              width: 48,
-              height: 6,
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(3),
-              ),
-              child: FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: (spot.hp / 100.0).clamp(0.0, 1.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: spot.hp > 40 ? Colors.redAccent : Colors.orangeAccent,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 
   Widget _buildRealisticFiremanAndHose() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // 노즐 방향 계산
     double nozzleAngle = -pi / 2;
     if (_touchPos != null) {
-      final origin = Offset(
-        MediaQuery.of(context).size.width * 0.5,
-        MediaQuery.of(context).size.height * 0.88,
-      );
-      final dx = _touchPos!.dx - origin.dx;
-      final dy = _touchPos!.dy - origin.dy;
+      final firemanCenterX = screenWidth * 0.5;
+      final firemanCenterY = screenHeight * 0.92;
+      final dx = _touchPos!.dx - firemanCenterX;
+      final dy = _touchPos!.dy - firemanCenterY;
       nozzleAngle = atan2(dy, dx);
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Realistic Heavy Brass Fire Nozzle
-        Transform.rotate(
-          angle: nozzleAngle + (pi / 2),
-          alignment: Alignment.bottomCenter,
-          child: Container(
-            width: 18,
-            height: 48,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFFFFD700), // Golden brass nozzle tip
-                  Color(0xFFB8860B),
-                  Color(0xFFDC2626), // Fire red grip
-                  Color(0xFF1E293B), // Heavy rubber coupling
-                ],
-                stops: [0.0, 0.35, 0.70, 1.0],
+    return SizedBox(
+      width: screenWidth,
+      height: 130,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // 💧 구불구불한 실물 소방 호스 (CustomPainter)
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _FireHosePainter(
+                nozzleAngle: nozzleAngle,
+                isSpraying: _isSpraying,
+                screenWidth: screenWidth,
               ),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white, width: 1.5),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.35),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
+            ),
+          ),
+
+          // 🧑‍🚒 소방관 + 말풍선
+          Positioned(
+            bottom: 0,
+            left: screenWidth * 0.22,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const Text('🧑‍🚒', style: TextStyle(fontSize: 52)),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B).withValues(alpha: 0.90),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFF38BDF8), width: 1.5),
+                  ),
+                  child: Text(
+                    _isSpraying ? '솨아아-! 💦' : '터치하여 물대포 발사!',
+                    style: GoogleFonts.jua(fontSize: 13, color: Colors.white),
+                  ),
                 ),
               ],
             ),
           ),
-        ),
-        // Firefighter Hero Character & Speech Bubble
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('🧑‍🚒', style: TextStyle(fontSize: 52)),
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B).withValues(alpha: 0.90),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFF38BDF8), width: 1.5),
-              ),
-              child: Text(
-                _isSpraying ? '솨아아-! 💦' : '터치하여 물대포 발사!',
-                style: GoogleFonts.jua(fontSize: 13, color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1757,77 +1789,54 @@ class _FirefighterGameState extends State<FirefighterGame>
   // ─────────────────────────────────────────────────────────────────────────────
 
   Widget _buildCelebrateView() {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onPanStart: (details) {
-        setState(() {
-          _isSpraying = true;
-          _touchPos = details.localPosition;
-        });
-      },
-      onPanUpdate: (details) {
-        setState(() {
-          _touchPos = details.localPosition;
-        });
-      },
-      onPanEnd: (_) {
-        setState(() {
-          _isSpraying = false;
-        });
-      },
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          _buildSceneIllustration(),
-          Center(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 26),
-                  decoration: KidsTheme.toyDecoration(
-                    color: Colors.white,
-                    borderRadius: 30,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('🎖️', style: TextStyle(fontSize: 60)),
-                      const SizedBox(height: 6),
-                      Text(
-                        '미션 완료! 최고의 소방 영웅!',
-                        style: GoogleFonts.jua(fontSize: 23, color: const Color(0xFFFF5964)),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        _buildSceneIllustration(),
+        Center(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 26),
+                decoration: KidsTheme.toyDecoration(
+                  color: Colors.white,
+                  borderRadius: 30,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('🎖️', style: TextStyle(fontSize: 60)),
+                    const SizedBox(height: 6),
+                    Text(
+                      '미션 완료! 최고의 소방 영웅!',
+                      style: GoogleFonts.jua(fontSize: 23, color: const Color(0xFFFF5964)),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(18),
                       ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(_currentMission.rescuedAnimal, style: const TextStyle(fontSize: 34)),
-                            const SizedBox(width: 10),
-                            Flexible(
-                              child: Text(
-                                _currentMission.clearComment,
-                                style: GoogleFonts.jua(fontSize: 15, color: const Color(0xFF334155)),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        '화면을 터치해서 무지개 분수를 쏘아보세요! 🌈💦',
-                        style: GoogleFonts.jua(fontSize: 13, color: const Color(0xFF8D99AE)),
-                      ),
-                      const SizedBox(height: 18),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
+                          Text(_currentMission.rescuedAnimal, style: const TextStyle(fontSize: 34)),
+                          const SizedBox(width: 10),
+                          Flexible(
+                            child: Text(
+                              _currentMission.clearComment,
+                              style: GoogleFonts.jua(fontSize: 15, color: const Color(0xFF334155)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
                           GestureDetector(
                             onTap: () => _startMission(_currentMission),
                             child: Container(
@@ -1874,8 +1883,7 @@ class _FirefighterGameState extends State<FirefighterGame>
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 }
 
@@ -2327,4 +2335,154 @@ class _FireAndWaterEffectsPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _FireAndWaterEffectsPainter oldDelegate) => true;
+}
+
+// 💧 소방 호스 CustomPainter — 구불구불한 고무 호스 + 황동 노즐
+class _FireHosePainter extends CustomPainter {
+  final double nozzleAngle;
+  final bool isSpraying;
+  final double screenWidth;
+
+  _FireHosePainter({
+    required this.nozzleAngle,
+    required this.isSpraying,
+    required this.screenWidth,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 호스 실릴 시작점: 소방관 위치 (화면 하단 중앙)
+    final startX = size.width * 0.38;
+    final startY = size.height * 0.42;
+
+    // 노즐 끝 위치 (소방관 손 위)
+    final nozzleLength = 55.0;
+    final nozzleEndX = startX + cos(nozzleAngle) * nozzleLength;
+    final nozzleEndY = startY + sin(nozzleAngle) * nozzleLength;
+
+    // 호스 말림 점 (화면 오른쪽 하단에 말려 있는 호스 들)
+    final hoseEndX = size.width * 0.82;
+    final hoseEndY = size.height * 0.78;
+
+    // 1번 제어점 — 혼뢰는 켬임
+    final cp1x = startX + (hoseEndX - startX) * 0.3;
+    final cp1y = startY + 45.0;
+    // 2번 제어점
+    final cp2x = startX + (hoseEndX - startX) * 0.7;
+    final cp2y = startY - 30.0;
+
+    // 호스 본체 (3단 레이어 두께감)
+    // 세에어: 흐린 검은 거피 레이어
+    final hoseShadowPaint = Paint()
+      ..color = const Color(0xFF111827).withOpacity(0.35)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 20
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final hosePath = Path();
+    hosePath.moveTo(nozzleEndX, nozzleEndY);
+    hosePath.cubicTo(cp1x, cp1y, cp2x, cp2y, hoseEndX, hoseEndY);
+
+    canvas.drawPath(hosePath, hoseShadowPaint);
+
+    // 호스 메인 바디 — 진한 빨간색 소방 호스
+    final hoseBodyPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 15
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..shader = const LinearGradient(
+        colors: [
+          Color(0xFFDC2626), // 빨간 소방 호스
+          Color(0xFFB91C1C),
+          Color(0xFF991B1B),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    canvas.drawPath(hosePath, hoseBodyPaint);
+
+    // 호스 반사 하이라이트 (위식 반짝)
+    final hoseHighlightPaint = Paint()
+      ..color = Colors.white.withOpacity(0.25)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(hosePath, hoseHighlightPaint);
+
+    // 호스 마디 마디 라인 (주름 텍스쳐)
+    final ringlePaint = Paint()
+      ..color = const Color(0xFF7F1D1D).withOpacity(0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5;
+
+    // 호스를 따라 5개의 주름 마크 그리기
+    for (int i = 1; i <= 5; i++) {
+      final t = i / 6.0;
+      // 켬임 상의 점 근사
+      final bx = _cubicBezierPoint(nozzleEndX, cp1x, cp2x, hoseEndX, t);
+      final by = _cubicBezierPoint(nozzleEndY, cp1y, cp2y, hoseEndY, t);
+      canvas.drawCircle(Offset(bx, by), 7.5, ringlePaint);
+    }
+
+    // 황동 노즐 (Nozzle)
+    final nozzlePaint = Paint()..style = PaintingStyle.fill;
+
+    // 노즐 미디 위치
+    final nozzleMidX = (startX + nozzleEndX) / 2;
+    final nozzleMidY = (startY + nozzleEndY) / 2;
+
+    canvas.save();
+    canvas.translate(nozzleMidX, nozzleMidY);
+    canvas.rotate(nozzleAngle + pi / 2);
+
+    // 노즐 본체 (원통형 황동)
+    final nozzleRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset.zero, width: 16, height: 50),
+      const Radius.circular(7),
+    );
+    final nozzleGrad = const LinearGradient(
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+      colors: [
+        Color(0xFFB8860B),
+        Color(0xFFFFD700),
+        Color(0xFFDAA520),
+        Color(0xFF8B6914),
+      ],
+    ).createShader(Rect.fromCenter(center: Offset.zero, width: 16, height: 50));
+    nozzlePaint.shader = nozzleGrad;
+    canvas.drawRRect(nozzleRect, nozzlePaint);
+
+    // 노즐 팔 (water outlet)
+    nozzlePaint.shader = null;
+    nozzlePaint.color = const Color(0xFF1E293B);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: const Offset(0, -22), width: 10, height: 10),
+        const Radius.circular(3),
+      ),
+      nozzlePaint,
+    );
+
+    // 노즐 반짝이 (specular)
+    nozzlePaint.color = Colors.white.withOpacity(0.4);
+    canvas.drawRect(
+      const Rect.fromLTWH(-4, -20, 3, 36),
+      nozzlePaint,
+    );
+
+    canvas.restore();
+  }
+
+  // 켬설 베지어 상의 점 계산
+  double _cubicBezierPoint(double p0, double p1, double p2, double p3, double t) {
+    final mt = 1 - t;
+    return mt * mt * mt * p0 + 3 * mt * mt * t * p1 + 3 * mt * t * t * p2 + t * t * t * p3;
+  }
+
+  @override
+  bool shouldRepaint(covariant _FireHosePainter oldDelegate) =>
+      oldDelegate.nozzleAngle != nozzleAngle ||
+      oldDelegate.isSpraying != isSpraying;
 }

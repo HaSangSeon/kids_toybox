@@ -36,6 +36,7 @@ import '../games/car_wash/car_wash_game.dart';
 import '../games/tooth_brushing/tooth_brushing_game.dart';
 import '../games/pet_hospital/pet_hospital_game.dart';
 import '../games/firefighter/firefighter_game.dart';
+import '../games/car_builder/car_builder_game.dart';
 import '../core/widgets/skin_select_modal.dart';
 import '../core/widgets/pacman_icon.dart';
 
@@ -723,6 +724,31 @@ class _LobbyScreenState extends State<LobbyScreen>
         ),
         gradientColors: KidsTheme.gameGradients['teal']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CarWashGame())); },
+      ),
+      _GameData(
+        title: '자동차 조립소',
+        emoji: '🔧',
+        customIcon: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            const Text('🚙', style: TextStyle(fontSize: 40)),
+            Positioned(
+              top: -6, right: -6,
+              child: const Text('🔧', style: TextStyle(fontSize: 20)),
+            ),
+            Positioned(
+              bottom: -4, left: -4,
+              child: const Text('⚙️', style: TextStyle(fontSize: 16)),
+            ),
+          ],
+        ),
+        gradientColors: KidsTheme.gameGradients['orange'] ?? const [Color(0xFFFF9F1C), Color(0xFFFF6B35)],
+        isNew: true,
+        onTap: () {
+          AudioManager.instance.playClick();
+          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CarBuilderGame()));
+        },
       ),
       _GameData(
         title: '치카치카',
