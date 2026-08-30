@@ -294,8 +294,7 @@ class _FirefighterGameState extends State<FirefighterGame>
   late AnimationController _sirenLightCtrl;
   late AnimationController _truckBounceCtrl;
   double _dispatchProgress = 0.0;
-  final List<Offset> _roadItems = [];
-  DateTime _lastEngineSoundTime = DateTime.now(); // 소방차 주행 엔진음 타이머
+  final List<Offset> _roadItems = []; // 소방차 주행 엔진음 타이머
 
   // Extinguish Phase variables
   late AnimationController _gameLoopCtrl;
@@ -439,7 +438,7 @@ class _FirefighterGameState extends State<FirefighterGame>
   void _arriveAtScene() {
     if (_phase != FireGamePhase.dispatch) return;
     HapticFeedback.mediumImpact();
-    AudioManager.instance.playCrash();
+    AudioManager.instance.stopFireSiren();
     setState(() {
       _phase = FireGamePhase.extinguish;
     });
@@ -453,14 +452,7 @@ class _FirefighterGameState extends State<FirefighterGame>
     if (!mounted) return;
     final screenSize = MediaQuery.of(context).size;
 
-    // 🚒 소방차 주행 중 엔진음 재생 (dispatch 페이즈)
-    if (_phase == FireGamePhase.dispatch) {
-      final now = DateTime.now();
-      if (now.difference(_lastEngineSoundTime).inMilliseconds > 900) {
-        _lastEngineSoundTime = now;
-        AudioManager.instance.playEngine();
-      }
-    }
+    // Update Flame Phases, Embers & Smoke
 
     // Update Flame Phases, Embers & Smoke
     if (_phase == FireGamePhase.extinguish) {
@@ -1548,23 +1540,26 @@ class _FirefighterGameState extends State<FirefighterGame>
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    // 노즐 방향 계산
+    // 노즐 조준 각도 계산 (기본 위쪽 -90도, 터치 시 터치 지점을 향해 회전)
     double nozzleAngle = -pi / 2;
     if (_touchPos != null) {
-      final firemanCenterX = screenWidth * 0.5;
-      final firemanCenterY = screenHeight * 0.92;
-      final dx = _touchPos!.dx - firemanCenterX;
-      final dy = _touchPos!.dy - firemanCenterY;
-      nozzleAngle = atan2(dy, dx);
+      final nozzleBaseGlobalX = screenWidth * 0.5;
+      final nozzleBaseGlobalY = screenHeight - 65;
+      final dx = _touchPos!.dx - nozzleBaseGlobalX;
+      final dy = _touchPos!.dy - nozzleBaseGlobalY;
+      // 터치 각도 제한 (좌우 65도 범위 내로 자연스럽게 조준)
+      final rawAngle = atan2(dy, dx);
+      nozzleAngle = rawAngle.clamp(-pi * 0.85, -pi * 0.15);
     }
 
     return SizedBox(
       width: screenWidth,
-      height: 130,
+      height: 140,
       child: Stack(
         clipBehavior: Clip.none,
+        alignment: Alignment.bottomCenter,
         children: [
-          // 💧 구불구불한 실물 소방 호스 (CustomPainter)
+          // 💧 실감나는 중장비 소방 호스 & 황동 관창 노즐 & 소방관
           Positioned.fill(
             child: CustomPaint(
               painter: _FireHosePainter(
@@ -1575,29 +1570,46 @@ class _FirefighterGameState extends State<FirefighterGame>
             ),
           ),
 
-          // 🧑‍🚒 소방관 + 말풍선
+          // 💬 하단 진압 안내 및 상태 뱃지
           Positioned(
-            bottom: 0,
-            left: screenWidth * 0.22,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                const Text('🧑‍🚒', style: TextStyle(fontSize: 52)),
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B).withValues(alpha: 0.90),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFF38BDF8), width: 1.5),
-                  ),
-                  child: Text(
-                    _isSpraying ? '솨아아-! 💦' : '터치하여 물대포 발사!',
-                    style: GoogleFonts.jua(fontSize: 13, color: Colors.white),
-                  ),
+            bottom: 4,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+              decoration: BoxDecoration(
+                color: _isSpraying
+                    ? const Color(0xFF0284C7).withValues(alpha: 0.92)
+                    : const Color(0xFF0F172A).withValues(alpha: 0.85),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: _isSpraying ? const Color(0xFF38BDF8) : const Color(0xFF64748B),
+                  width: 1.5,
                 ),
-              ],
+                boxShadow: [
+                  BoxShadow(
+                    color: _isSpraying
+                        ? const Color(0xFF38BDF8).withValues(alpha: 0.4)
+                        : Colors.black.withValues(alpha: 0.25),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_isSpraying ? '💦' : '🎯', style: const TextStyle(fontSize: 14)),
+                  const SizedBox(width: 5),
+                  Text(
+                    _isSpraying ? '고압 물대포 발사 중!' : '불이 난 곳을 터치하여 진압하세요!',
+                    style: GoogleFonts.jua(
+                      fontSize: 12.5,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -1914,225 +1926,455 @@ class _BuildingScenePainter extends CustomPainter {
     }
   }
 
+  // 1. 도심 아파트 (Modern City Apartment with Balconies & Garden)
   void _drawApartment(Canvas canvas, Size size) {
-    final buildingPaint = Paint()..color = const Color(0xFFE2E8F0);
-    final brickLinePaint = Paint()
-      ..color = const Color(0xFFCBD5E1)
-      ..strokeWidth = 1.5;
-    final roofPaint = Paint()..color = const Color(0xFFEF4444);
-    final windowFramePaint = Paint()..color = const Color(0xFF3B82F6);
-    final glassPaint = Paint()..color = const Color(0xFFBFDBFE);
+    final w = size.width;
+    final h = size.height;
 
-    final left = size.width * 0.12;
-    final right = size.width * 0.88;
-    final top = size.height * 0.25; // Adjusted down for generous breathing room
-    final bottom = size.height * 0.76;
+    // 1-1. 배경 거리 환경 (Sidewalk & Streetlamps)
+    final sidewalkPaint = Paint()..color = const Color(0xFFCBD5E1);
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTRB(w * 0.04, h * 0.74, w * 0.96, h * 0.78), const Radius.circular(8)), sidewalkPaint);
 
-    // Red Roof
+    final left = w * 0.12;
+    final right = w * 0.88;
+    final top = h * 0.23;
+    final bottom = h * 0.74;
+
+    // 1-2. 아파트 본체 그림자
+    final shadowRect = RRect.fromRectAndRadius(Rect.fromLTRB(left + 6, top + 8, right + 6, bottom + 8), const Radius.circular(18));
+    canvas.drawRRect(shadowRect, Paint()..color = Colors.black.withValues(alpha: 0.12)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
+
+    // 1-3. 아파트 메인 벽체 (따뜻한 테라코타 & 크림 투톤)
+    final bodyRRect = RRect.fromRectAndRadius(Rect.fromLTRB(left, top, right, bottom), const Radius.circular(16));
+    final bodyGrad = const LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFFFFBEB), Color(0xFFFEF3C7), Color(0xFFFDE68A)],
+    ).createShader(Rect.fromLTRB(left, top, right, bottom));
+    canvas.drawRRect(bodyRRect, Paint()..shader = bodyGrad);
+
+    // 사이드 음영 필라 (Side Accent Pillars)
+    final pillarPaint = Paint()..color = const Color(0xFFF59E0B).withValues(alpha: 0.35);
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTRB(left, top, left + 14, bottom), const Radius.circular(6)), pillarPaint);
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTRB(right - 14, top, right, bottom), const Radius.circular(6)), pillarPaint);
+
+    // 1-4. 옥상 테라스 지붕 & 안테나
     final roofPath = Path()
-      ..moveTo(left - 12, top)
-      ..lineTo(right + 12, top)
-      ..lineTo(right - 10, top - 32)
-      ..lineTo(left + 10, top - 32)
+      ..moveTo(left - 16, top)
+      ..lineTo(right + 16, top)
+      ..lineTo(right + 4, top - 24)
+      ..lineTo(left - 4, top - 24)
       ..close();
-    canvas.drawPath(roofPath, roofPaint);
+    final roofGrad = const LinearGradient(
+      colors: [Color(0xFFEF4444), Color(0xFFDC2626), Color(0xFFB91C1C)],
+    ).createShader(Rect.fromLTWH(left - 16, top - 24, right - left + 32, 24));
+    canvas.drawPath(roofPath, Paint()..shader = roofGrad);
 
-    // Building Wall
-    final rrect = RRect.fromLTRBR(left, top, right, bottom, const Radius.circular(14));
-    canvas.drawRRect(rrect, buildingPaint);
+    // 옥상 안테나 & 태양광 패널
+    final metalPaint = Paint()..color = const Color(0xFF64748B)..strokeWidth = 2.5;
+    canvas.drawLine(Offset(left + 35, top - 24), Offset(left + 35, top - 46), metalPaint);
+    canvas.drawCircle(Offset(left + 35, top - 46), 4, Paint()..color = const Color(0xFFEF4444));
+    canvas.drawRect(Rect.fromLTWH(right - 55, top - 38, 36, 14), Paint()..color = const Color(0xFF1E3A8A));
 
-    // Brick Pattern Lines
-    for (double y = top + 20; y < bottom; y += 24) {
-      canvas.drawLine(Offset(left, y), Offset(right, y), brickLinePaint);
-    }
-
-    // Windows Grid (3 rows x 2 cols)
+    // 1-5. 3단 창문 & 베란다 발코니 그리드 (Windows & Flower Balconies)
     final winWidth = (right - left) * 0.32;
-    final winHeight = (bottom - top) * 0.22;
+    final winHeight = (bottom - top) * 0.20;
 
     for (int row = 0; row < 3; row++) {
       for (int col = 0; col < 2; col++) {
-        final wx = left + 22 + col * (winWidth + 24);
-        final wy = top + 18 + row * (winHeight + 16);
-        final winRRect = RRect.fromLTRBR(wx, wy, wx + winWidth, wy + winHeight, const Radius.circular(10));
-        canvas.drawRRect(winRRect, windowFramePaint);
-        final innerRRect = RRect.fromLTRBR(wx + 4, wy + 4, wx + winWidth - 4, wy + winHeight - 4, const Radius.circular(8));
-        canvas.drawRRect(innerRRect, glassPaint);
+        final wx = left + 24 + col * (winWidth + 26);
+        final wy = top + 18 + row * (winHeight + 22);
 
-        final barPaint = Paint()..color = Colors.white..strokeWidth = 2;
+        // 창틀 (Window Frame)
+        final frameRRect = RRect.fromRectAndRadius(Rect.fromLTRB(wx, wy, wx + winWidth, wy + winHeight), const Radius.circular(10));
+        canvas.drawRRect(frameRRect, Paint()..color = const Color(0xFF0284C7));
+
+        // 유리창 (Glass with Specular Shine)
+        final glassRRect = RRect.fromRectAndRadius(Rect.fromLTRB(wx + 3.5, wy + 3.5, wx + winWidth - 3.5, wy + winHeight - 3.5), const Radius.circular(8));
+        final glassGrad = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFE0F2FE), Color(0xFFBAE6FD), Color(0xFF7DD3FC)],
+        ).createShader(Rect.fromLTRB(wx, wy, wx + winWidth, wy + winHeight));
+        canvas.drawRRect(glassRRect, Paint()..shader = glassGrad);
+
+        // 창문 십자 프레임
+        final barPaint = Paint()..color = Colors.white.withValues(alpha: 0.9)..strokeWidth = 2;
         canvas.drawLine(Offset(wx + winWidth * 0.5, wy + 4), Offset(wx + winWidth * 0.5, wy + winHeight - 4), barPaint);
         canvas.drawLine(Offset(wx + 4, wy + winHeight * 0.5), Offset(wx + winWidth - 4, wy + winHeight * 0.5), barPaint);
+
+        // 발코니 화분 난간 (Balcony Railing & Flowers)
+        final balconyY = wy + winHeight - 2;
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(Rect.fromLTRB(wx - 2, balconyY, wx + winWidth + 2, balconyY + 10), const Radius.circular(4)),
+          Paint()..color = const Color(0xFF334155),
+        );
+        // 귀여운 화분 꽃들 (🌸 🌼 🌺)
+        canvas.drawCircle(Offset(wx + winWidth * 0.25, balconyY - 2), 4, Paint()..color = const Color(0xFFEC4899));
+        canvas.drawCircle(Offset(wx + winWidth * 0.50, balconyY - 3), 4.5, Paint()..color = const Color(0xFFFBBF24));
+        canvas.drawCircle(Offset(wx + winWidth * 0.75, balconyY - 2), 4, Paint()..color = const Color(0xFFF43F5E));
       }
     }
+
+    // 1-6. 1층 메인 도어 & 캔디 스트라이프 어닝 (Entrance Door & Awning)
+    final doorX = w * 0.5;
+    final doorRect = RRect.fromRectAndRadius(Rect.fromLTRB(doorX - 22, bottom - 36, doorX + 22, bottom), const Radius.circular(8));
+    canvas.drawRRect(doorRect, Paint()..color = const Color(0xFF9A3412));
+    canvas.drawCircle(Offset(doorX + 12, bottom - 18), 3, Paint()..color = const Color(0xFFFBBF24)); // 금색 손잡이
   }
 
+  // 2. 동화 속 숲속 오두막 (Cozy Forest Cabin with Giant Trees & Wildflowers)
   void _drawForest(Canvas canvas, Size size) {
-    final trunkPaint = Paint()..color = const Color(0xFF8B5A2B);
-    final leavesPaint1 = Paint()..color = const Color(0xFF22C55E);
-    final leavesPaint2 = Paint()..color = const Color(0xFF16A34A);
+    final w = size.width;
+    final h = size.height;
 
-    // Left Giant Oak Tree
-    canvas.drawRRect(RRect.fromLTRBR(size.width * 0.23, size.height * 0.38, size.width * 0.37, size.height * 0.76, const Radius.circular(8)), trunkPaint);
-    canvas.drawCircle(Offset(size.width * 0.30, size.height * 0.32), size.width * 0.24, leavesPaint1);
-    canvas.drawCircle(Offset(size.width * 0.24, size.height * 0.36), size.width * 0.16, leavesPaint2);
+    // 2-1. 숲속 맑은 언덕 잔디 (Rolling Green Hills)
+    final hillPath = Path()
+      ..moveTo(0, h * 0.70)
+      ..quadraticBezierTo(w * 0.35, h * 0.65, w * 0.65, h * 0.72)
+      ..quadraticBezierTo(w * 0.85, h * 0.76, w, h * 0.70)
+      ..lineTo(w, h * 0.80)
+      ..lineTo(0, h * 0.80)
+      ..close();
+    canvas.drawPath(hillPath, Paint()..color = const Color(0xFF15803D));
 
-    // Right Pine Tree
-    canvas.drawRRect(RRect.fromLTRBR(size.width * 0.63, size.height * 0.40, size.width * 0.77, size.height * 0.76, const Radius.circular(8)), trunkPaint);
-    canvas.drawCircle(Offset(size.width * 0.70, size.height * 0.34), size.width * 0.22, leavesPaint2);
+    // 2-2. 좌측 울창한 단풍 참나무 (Giant Oak Tree)
+    final trunkPaint = Paint()..color = const Color(0xFF78350F);
+    final trunkPath1 = Path()
+      ..moveTo(w * 0.18, h * 0.74)
+      ..lineTo(w * 0.24, h * 0.42)
+      ..lineTo(w * 0.34, h * 0.42)
+      ..lineTo(w * 0.38, h * 0.74)
+      ..close();
+    canvas.drawPath(trunkPath1, trunkPaint);
 
-    // Cozy Forest Cabin
-    final cabinPaint = Paint()..color = const Color(0xFFD97706);
-    canvas.drawRRect(
-      RRect.fromLTRBR(size.width * 0.36, size.height * 0.48, size.width * 0.64, size.height * 0.76, const Radius.circular(12)),
-      cabinPaint,
-    );
+    // 참나무 3중 풍성한 볼륨 잎사귀
+    canvas.drawCircle(Offset(w * 0.28, h * 0.38), w * 0.20, Paint()..color = const Color(0xFF166534));
+    canvas.drawCircle(Offset(w * 0.22, h * 0.34), w * 0.16, Paint()..color = const Color(0xFF15803D));
+    canvas.drawCircle(Offset(w * 0.32, h * 0.30), w * 0.15, Paint()..color = const Color(0xFF22C55E));
+    canvas.drawCircle(Offset(w * 0.28, h * 0.28), w * 0.12, Paint()..color = const Color(0xFF86EFAC).withValues(alpha: 0.6));
+
+    // 2-3. 우측 단풍나무 (Golden Orange Autumn Tree)
+    final trunkPath2 = Path()
+      ..moveTo(w * 0.64, h * 0.74)
+      ..lineTo(w * 0.68, h * 0.44)
+      ..lineTo(w * 0.76, h * 0.44)
+      ..lineTo(w * 0.80, h * 0.74)
+      ..close();
+    canvas.drawPath(trunkPath2, trunkPaint);
+
+    canvas.drawCircle(Offset(w * 0.72, h * 0.40), w * 0.18, Paint()..color = const Color(0xFFC2410C));
+    canvas.drawCircle(Offset(w * 0.76, h * 0.34), w * 0.15, Paint()..color = const Color(0xFFEA580C));
+    canvas.drawCircle(Offset(w * 0.68, h * 0.32), w * 0.14, Paint()..color = const Color(0xFFF97316));
+    canvas.drawCircle(Offset(w * 0.72, h * 0.28), w * 0.10, Paint()..color = const Color(0xFFFDE047).withValues(alpha: 0.7));
+
+    // 2-4. 중앙 아늑한 통나무 오두막 (Cozy Log Cabin)
+    final cabinLeft = w * 0.34;
+    final cabinRight = w * 0.66;
+    final cabinTop = h * 0.46;
+    final cabinBottom = h * 0.74;
+
+    // 통나무 벽체
+    final cabinRRect = RRect.fromRectAndRadius(Rect.fromLTRB(cabinLeft, cabinTop, cabinRight, cabinBottom), const Radius.circular(12));
+    canvas.drawRRect(cabinRRect, Paint()..color = const Color(0xFFB45309));
+
+    // 통나무 결 라인
+    for (double y = cabinTop + 10; y < cabinBottom; y += 12) {
+      canvas.drawLine(Offset(cabinLeft, y), Offset(cabinRight, y), Paint()..color = const Color(0xFF78350F)..strokeWidth = 2);
+    }
+
+    // 벽돌 굴뚝 & 모락모락 연기 (Chimney & Puffs)
+    canvas.drawRect(Rect.fromLTWH(cabinRight - 22, cabinTop - 28, 14, 28), Paint()..color = const Color(0xFF991B1B));
+    canvas.drawCircle(Offset(cabinRight - 15, cabinTop - 34), 6, Paint()..color = Colors.white70);
+    canvas.drawCircle(Offset(cabinRight - 10, cabinTop - 44), 9, Paint()..color = Colors.white54);
+
+    // 오두막 삼각형 삼나무 지붕 (Cedar Shingle Roof)
     final roofCabin = Path()
-      ..moveTo(size.width * 0.30, size.height * 0.48)
-      ..lineTo(size.width * 0.50, size.height * 0.36)
-      ..lineTo(size.width * 0.70, size.height * 0.48)
+      ..moveTo(cabinLeft - 14, cabinTop)
+      ..lineTo(w * 0.50, cabinTop - 36)
+      ..lineTo(cabinRight + 14, cabinTop)
       ..close();
-    canvas.drawPath(roofCabin, Paint()..color = const Color(0xFFB91C1C));
+    final cabinRoofGrad = const LinearGradient(
+      colors: [Color(0xFF991B1B), Color(0xFFB91C1C), Color(0xFF7F1D1D)],
+    ).createShader(Rect.fromLTRB(cabinLeft - 14, cabinTop - 36, cabinRight + 14, cabinTop));
+    canvas.drawPath(roofCabin, Paint()..shader = cabinRoofGrad);
+
+    // 따스한 창문 & 현관문
+    final winRect = RRect.fromRectAndRadius(Rect.fromLTRB(cabinLeft + 12, cabinTop + 14, cabinLeft + 36, cabinTop + 36), const Radius.circular(6));
+    canvas.drawRRect(winRect, Paint()..color = const Color(0xFFFEF08A));
+    canvas.drawRRect(winRect, Paint()..color = const Color(0xFF78350F)..style = PaintingStyle.stroke..strokeWidth = 2);
+
+    final doorRRect = RRect.fromRectAndRadius(Rect.fromLTRB(cabinRight - 36, cabinBottom - 36, cabinRight - 12, cabinBottom), const Radius.circular(6));
+    canvas.drawRRect(doorRRect, Paint()..color = const Color(0xFF78350F));
+    canvas.drawCircle(Offset(cabinRight - 30, cabinBottom - 18), 2.5, Paint()..color = const Color(0xFFFBBF24));
+
+    // 2-5. 숲속 꽃 & 버섯 디테일 (🍄 🌸)
+    canvas.drawCircle(Offset(w * 0.20, h * 0.72), 6, Paint()..color = const Color(0xFFEF4444));
+    canvas.drawCircle(Offset(w * 0.20, h * 0.70), 2, Paint()..color = Colors.white);
+    canvas.drawCircle(Offset(w * 0.82, h * 0.73), 5, Paint()..color = const Color(0xFFF43F5E));
   }
 
+  // 3. 판타지 마법 성 (Grand Magic Castle with Spire Turrets & Royal Banners)
   void _drawCastle(Canvas canvas, Size size) {
-    final stonePaint = Paint()..color = const Color(0xFFDDD6FE);
-    final turretPaint = Paint()..color = const Color(0xFFC084FC);
-    final roofPaint = Paint()..color = const Color(0xFFF43F5E);
+    final w = size.width;
+    final h = size.height;
 
-    // Center Grand Tower
-    canvas.drawRRect(RRect.fromLTRBR(size.width * 0.35, size.height * 0.28, size.width * 0.65, size.height * 0.76, const Radius.circular(12)), stonePaint);
+    // 3-1. 성채 돌벽 베이스
+    final stoneGrad = const LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFEDE9FE), Color(0xFFDDD6FE), Color(0xFFC4B5FD)],
+    );
+
+    final turretGrad = const LinearGradient(
+      colors: [Color(0xFFC084FC), Color(0xFFA855F7), Color(0xFF9333EA)],
+    );
+
+    final roofGrad = const LinearGradient(
+      colors: [Color(0xFFFB7185), Color(0xFFF43F5E), Color(0xFFE11D48)],
+    );
+
+    // 3-2. 중앙 거대 마법 본탑 (Grand Keep)
+    final keepLeft = w * 0.32;
+    final keepRight = w * 0.68;
+    final keepTop = h * 0.24;
+    final keepBottom = h * 0.75;
+
+    final keepRect = RRect.fromRectAndRadius(Rect.fromLTRB(keepLeft, keepTop, keepRight, keepBottom), const Radius.circular(14));
+    canvas.drawRRect(keepRect, Paint()..shader = stoneGrad.createShader(Rect.fromLTRB(keepLeft, keepTop, keepRight, keepBottom)));
+
+    // 중앙 크레넬레이션 성벽 배틀먼트 (Crenellations)
+    for (double x = keepLeft; x < keepRight - 10; x += 16) {
+      canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTRB(x, keepTop - 8, x + 10, keepTop), const Radius.circular(3)), Paint()..color = const Color(0xFFDDD6FE));
+    }
+
+    // 중앙 원뿔 고딕 첨탑 (Gothic Spire Roof)
     final centerRoof = Path()
-      ..moveTo(size.width * 0.32, size.height * 0.28)
-      ..lineTo(size.width * 0.50, size.height * 0.14)
-      ..lineTo(size.width * 0.68, size.height * 0.28)
+      ..moveTo(keepLeft - 8, keepTop - 8)
+      ..lineTo(w * 0.50, h * 0.10) // 뾰족한 첨탑
+      ..lineTo(keepRight + 8, keepTop - 8)
       ..close();
-    canvas.drawPath(centerRoof, roofPaint);
+    canvas.drawPath(centerRoof, Paint()..shader = roofGrad.createShader(Rect.fromLTRB(keepLeft - 8, h * 0.10, keepRight + 8, keepTop)));
 
-    // Left Castle Turret
-    canvas.drawRRect(RRect.fromLTRBR(size.width * 0.12, size.height * 0.38, size.width * 0.32, size.height * 0.76, const Radius.circular(10)), turretPaint);
+    // 첨탑 꼭대기 황금 마법 구슬 & 펄럭이는 깃발 (Golden Orb & Royal Banner)
+    canvas.drawCircle(Offset(w * 0.50, h * 0.10), 6, Paint()..color = const Color(0xFFFFD700));
+    final bannerPath = Path()
+      ..moveTo(w * 0.50, h * 0.10)
+      ..lineTo(w * 0.50 + 22, h * 0.10 + 6)
+      ..lineTo(w * 0.50, h * 0.10 + 14)
+      ..close();
+    canvas.drawPath(bannerPath, Paint()..color = const Color(0xFFFBBF24));
+
+    // 3-3. 좌우 사이드 마법 타워 (Left & Right Turrets)
+    final leftTurretRect = RRect.fromRectAndRadius(Rect.fromLTRB(w * 0.10, h * 0.36, w * 0.30, keepBottom), const Radius.circular(12));
+    canvas.drawRRect(leftTurretRect, Paint()..shader = turretGrad.createShader(Rect.fromLTRB(w * 0.10, h * 0.36, w * 0.30, keepBottom)));
+
     final leftRoof = Path()
-      ..moveTo(size.width * 0.10, size.height * 0.38)
-      ..lineTo(size.width * 0.22, size.height * 0.24)
-      ..lineTo(size.width * 0.34, size.height * 0.38)
+      ..moveTo(w * 0.08, h * 0.36)
+      ..lineTo(w * 0.20, h * 0.22)
+      ..lineTo(w * 0.32, h * 0.36)
       ..close();
-    canvas.drawPath(leftRoof, roofPaint);
+    canvas.drawPath(leftRoof, Paint()..shader = roofGrad.createShader(Rect.fromLTRB(w * 0.08, h * 0.22, w * 0.32, h * 0.36)));
 
-    // Right Castle Turret
-    canvas.drawRRect(RRect.fromLTRBR(size.width * 0.68, size.height * 0.38, size.width * 0.88, size.height * 0.76, const Radius.circular(10)), turretPaint);
+    final rightTurretRect = RRect.fromRectAndRadius(Rect.fromLTRB(w * 0.70, h * 0.36, w * 0.90, keepBottom), const Radius.circular(12));
+    canvas.drawRRect(rightTurretRect, Paint()..shader = turretGrad.createShader(Rect.fromLTRB(w * 0.70, h * 0.36, w * 0.90, keepBottom)));
+
     final rightRoof = Path()
-      ..moveTo(size.width * 0.66, size.height * 0.38)
-      ..lineTo(size.width * 0.78, size.height * 0.24)
-      ..lineTo(size.width * 0.90, size.height * 0.38)
+      ..moveTo(w * 0.68, h * 0.36)
+      ..lineTo(w * 0.80, h * 0.22)
+      ..lineTo(w * 0.92, h * 0.36)
       ..close();
-    canvas.drawPath(rightRoof, roofPaint);
+    canvas.drawPath(rightRoof, Paint()..shader = roofGrad.createShader(Rect.fromLTRB(w * 0.68, h * 0.22, w * 0.92, h * 0.36)));
+
+    // 3-4. 아치형 골드 스테인드글라스 창문들 (Arched Windows)
+    _drawArchedWindow(canvas, Offset(w * 0.50, h * 0.32), 28, 44);
+    _drawArchedWindow(canvas, Offset(w * 0.20, h * 0.44), 20, 32);
+    _drawArchedWindow(canvas, Offset(w * 0.80, h * 0.44), 20, 32);
+
+    // 3-5. 성문 거대 도개교 (Royal Castle Gate & Portcullis)
+    final gatePath = Path()
+      ..moveTo(w * 0.42, keepBottom)
+      ..lineTo(w * 0.42, keepBottom - 38)
+      ..quadraticBezierTo(w * 0.50, keepBottom - 50, w * 0.58, keepBottom - 38)
+      ..lineTo(w * 0.58, keepBottom)
+      ..close();
+    canvas.drawPath(gatePath, Paint()..color = const Color(0xFF475569));
+    canvas.drawPath(gatePath, Paint()..color = const Color(0xFFFBBF24)..style = PaintingStyle.stroke..strokeWidth = 2.5);
   }
 
+  void _drawArchedWindow(Canvas canvas, Offset center, double width, double height) {
+    final rect = Rect.fromCenter(center: center, width: width, height: height);
+    final path = Path()
+      ..moveTo(rect.left, rect.bottom)
+      ..lineTo(rect.left, rect.top + width * 0.5)
+      ..arcToPoint(Offset(rect.right, rect.top + width * 0.5), radius: Radius.circular(width * 0.5))
+      ..lineTo(rect.right, rect.bottom)
+      ..close();
+    canvas.drawPath(path, Paint()..color = const Color(0xFF38BDF8));
+    canvas.drawPath(path, Paint()..color = const Color(0xFFFFD700)..style = PaintingStyle.stroke..strokeWidth = 2.5);
+  }
+
+  // 4. 달콤한 디저트 베이커리 (Sweet Strawberry Bakery with Cupcake Rooftop & Awning)
   void _drawBakery(Canvas canvas, Size size) {
-    final bakeryWallPaint = Paint()..color = const Color(0xFFFFF0F5);
-    final creamTrimPaint = Paint()..color = const Color(0xFFFFB6C1);
-    final left = size.width * 0.14;
-    final right = size.width * 0.86;
-    final top = size.height * 0.28;
-    final bottom = size.height * 0.76;
+    final w = size.width;
+    final h = size.height;
+    final left = w * 0.12;
+    final right = w * 0.88;
+    final top = h * 0.26;
+    final bottom = h * 0.75;
 
-    // Main Bakery Wall
-    canvas.drawRRect(RRect.fromLTRBR(left, top, right, bottom, const Radius.circular(16)), bakeryWallPaint);
-    canvas.drawRRect(RRect.fromLTRBR(left, top, right, bottom, const Radius.circular(16)), Paint()..color = creamTrimPaint.color..style = PaintingStyle.stroke..strokeWidth = 4);
+    // 4-1. 생크림 핑크 벽체
+    final wallRRect = RRect.fromRectAndRadius(Rect.fromLTRB(left, top, right, bottom), const Radius.circular(20));
+    final wallGrad = const LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFFFF1F2), Color(0xFFFFE4E6), Color(0xFFFECDD3)],
+    ).createShader(Rect.fromLTRB(left, top, right, bottom));
+    canvas.drawRRect(wallRRect, Paint()..shader = wallGrad);
+    canvas.drawRRect(wallRRect, Paint()..color = const Color(0xFFFB7185)..style = PaintingStyle.stroke..strokeWidth = 3);
 
-    // Giant Strawberry Cupcake on Roof
-    final cupcakePaint = Paint()..color = const Color(0xFFFF69B4);
-    canvas.drawCircle(Offset(size.width * 0.5, top - 18), 32, cupcakePaint);
-    canvas.drawCircle(Offset(size.width * 0.5, top - 38), 12, Paint()..color = const Color(0xFFFF1744)); // Cherry
+    // 4-2. 옥상 초대형 딸기 컵케이크 조형물 (Giant Strawberry Cupcake Signboard)
+    final cupcakeX = w * 0.5;
+    final cupcakeY = top - 20;
 
-    // Red & White Striped Awning
-    final awningWidth = (right - left) / 6;
-    for (int i = 0; i < 6; i++) {
+    // 컵케이크 컵 베이스
+    final cupPath = Path()
+      ..moveTo(cupcakeX - 32, cupcakeY + 16)
+      ..lineTo(cupcakeX - 24, cupcakeY + 36)
+      ..lineTo(cupcakeX + 24, cupcakeY + 36)
+      ..lineTo(cupcakeX + 32, cupcakeY + 16)
+      ..close();
+    canvas.drawPath(cupPath, Paint()..color = const Color(0xFFF59E0B));
+
+    // 폭신한 핑크 크림 돔
+    canvas.drawCircle(Offset(cupcakeX - 18, cupcakeY + 8), 20, Paint()..color = const Color(0xFFFF69B4));
+    canvas.drawCircle(Offset(cupcakeX + 18, cupcakeY + 8), 20, Paint()..color = const Color(0xFFFF69B4));
+    canvas.drawCircle(Offset(cupcakeX, cupcakeY - 4), 26, Paint()..color = const Color(0xFFFF1493));
+
+    // 꼭대기 빨간 체리 (Glossy Red Cherry)
+    canvas.drawCircle(Offset(cupcakeX, cupcakeY - 26), 11, Paint()..color = const Color(0xFFEF4444));
+    canvas.drawCircle(Offset(cupcakeX - 3, cupcakeY - 29), 3, Paint()..color = Colors.white70);
+
+    // 4-3. 캔디 스트라이프 어닝 (Pink & White Ruffled Awning)
+    final awningWidth = (right - left) / 7;
+    for (int i = 0; i < 7; i++) {
       final awLeft = left + (i * awningWidth);
-      final awColor = i.isEven ? const Color(0xFFFF477E) : Colors.white;
+      final awColor = i.isEven ? const Color(0xFFF43F5E) : Colors.white;
       canvas.drawRRect(
-        RRect.fromLTRBR(awLeft, top + 14, awLeft + awningWidth, top + 42, const Radius.circular(6)),
+        RRect.fromRectAndRadius(Rect.fromLTRB(awLeft, top + 14, awLeft + awningWidth, top + 42), const Radius.circular(8)),
         Paint()..color = awColor,
       );
     }
 
-    // Pastry Windows & Display
-    final winPaint = Paint()..color = const Color(0xFFFFE4E1);
-    canvas.drawRRect(RRect.fromLTRBR(left + 16, top + 56, size.width * 0.46, bottom - 24, const Radius.circular(12)), winPaint);
-    canvas.drawRRect(RRect.fromLTRBR(size.width * 0.54, top + 56, right - 16, bottom - 24, const Radius.circular(12)), winPaint);
+    // 4-4. 디저트 진열 파노라마 쇼케이스 창문
+    final winRRect1 = RRect.fromRectAndRadius(Rect.fromLTRB(left + 16, top + 52, w * 0.46, bottom - 18), const Radius.circular(12));
+    final winRRect2 = RRect.fromRectAndRadius(Rect.fromLTRB(w * 0.54, top + 52, right - 16, bottom - 18), const Radius.circular(12));
+    final showcasePaint = Paint()..color = const Color(0xFFBAE6FD).withValues(alpha: 0.85);
+
+    canvas.drawRRect(winRRect1, showcasePaint);
+    canvas.drawRRect(winRRect2, showcasePaint);
+    canvas.drawRRect(winRRect1, Paint()..color = const Color(0xFFFB7185)..style = PaintingStyle.stroke..strokeWidth = 2);
+    canvas.drawRRect(winRRect2, Paint()..color = const Color(0xFFFB7185)..style = PaintingStyle.stroke..strokeWidth = 2);
   }
 
+  // 5. 미래형 우주 런치패드 기지 (Cybernetic Space Launch Station)
   void _drawSpaceStation(Canvas canvas, Size size) {
-    final gantryPaint = Paint()..color = const Color(0xFF475569);
-    final rocketBodyPaint = Paint()..color = const Color(0xFFF8FAFC);
-    final rocketCyanPaint = Paint()..color = const Color(0xFF00F2FE);
+    final w = size.width;
+    final h = size.height;
+    final centerX = w * 0.5;
 
-    final centerX = size.width * 0.5;
+    // 5-1. 발사대 트러스 타워 구조물 (Launch Gantry Towers)
+    final gantryPaint = Paint()..color = const Color(0xFF334155)..strokeWidth = 3..style = PaintingStyle.stroke;
+    canvas.drawRect(Rect.fromLTWH(centerX - 100, h * 0.28, 28, h * 0.48), gantryPaint);
+    canvas.drawRect(Rect.fromLTWH(centerX + 72, h * 0.28, 28, h * 0.48), gantryPaint);
 
-    // Launch Gantry Towers
-    canvas.drawRect(Rect.fromLTWH(centerX - 90, size.height * 0.32, 24, size.height * 0.44), gantryPaint);
-    canvas.drawRect(Rect.fromLTWH(centerX + 66, size.height * 0.32, 24, size.height * 0.44), gantryPaint);
+    // 트러스 X 크로스 브레이스
+    for (double y = h * 0.28; y < h * 0.74; y += 24) {
+      canvas.drawLine(Offset(centerX - 100, y), Offset(centerX - 72, y + 24), gantryPaint);
+      canvas.drawLine(Offset(centerX + 72, y), Offset(centerX + 100, y + 24), gantryPaint);
+    }
 
-    // Solar Wings
+    // 5-2. 푸른 태양광 솔라 윙 (Solar Panel Wings)
     final solarPaint = Paint()..color = const Color(0xFF1E3A8A);
-    canvas.drawRRect(RRect.fromLTRBR(centerX - 120, size.height * 0.46, centerX - 50, size.height * 0.56, const Radius.circular(8)), solarPaint);
-    canvas.drawRRect(RRect.fromLTRBR(centerX + 50, size.height * 0.46, centerX + 120, size.height * 0.56, const Radius.circular(8)), solarPaint);
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTRB(centerX - 135, h * 0.44, centerX - 50, h * 0.56), const Radius.circular(8)), solarPaint);
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTRB(centerX + 50, h * 0.44, centerX + 135, h * 0.56), const Radius.circular(8)), solarPaint);
 
-    // Main Rocket Body
+    // 5-3. 메인 우주선 동체 (Aerospace Shuttle Body)
     final rocketPath = Path()
-      ..moveTo(centerX, size.height * 0.20) // Nose cone tip
-      ..lineTo(centerX + 36, size.height * 0.32)
-      ..lineTo(centerX + 36, size.height * 0.72)
-      ..lineTo(centerX - 36, size.height * 0.72)
-      ..lineTo(centerX - 36, size.height * 0.32)
+      ..moveTo(centerX, h * 0.16) // Sharp Nose Cone
+      ..lineTo(centerX + 40, h * 0.30)
+      ..lineTo(centerX + 40, h * 0.72)
+      ..lineTo(centerX - 40, h * 0.72)
+      ..lineTo(centerX - 40, h * 0.30)
       ..close();
-    canvas.drawPath(rocketPath, rocketBodyPaint);
-    canvas.drawPath(rocketPath, Paint()..color = rocketCyanPaint.color..style = PaintingStyle.stroke..strokeWidth = 3);
+    final rocketGrad = const LinearGradient(
+      colors: [Color(0xFFF8FAFC), Color(0xFFE2E8F0), Color(0xFFCBD5E1)],
+    ).createShader(Rect.fromLTWH(centerX - 40, h * 0.16, 80, h * 0.56));
+    canvas.drawPath(rocketPath, Paint()..shader = rocketGrad);
+    canvas.drawPath(rocketPath, Paint()..color = const Color(0xFF00F2FE)..style = PaintingStyle.stroke..strokeWidth = 3);
 
-    // Cockpit Window (Circular glass)
-    canvas.drawCircle(Offset(centerX, size.height * 0.40), 16, Paint()..color = const Color(0xFF0EA5E9));
-    canvas.drawCircle(Offset(centerX, size.height * 0.40), 16, Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 2);
-
-    // Booster Fire Exhausts
-    canvas.drawRRect(RRect.fromLTRBR(centerX - 28, size.height * 0.72, centerX - 8, size.height * 0.76, const Radius.circular(4)), Paint()..color = const Color(0xFFFF9F1C));
-    canvas.drawRRect(RRect.fromLTRBR(centerX + 8, size.height * 0.72, centerX + 28, size.height * 0.76, const Radius.circular(4)), Paint()..color = const Color(0xFFFF9F1C));
+    // 미래형 원형 돔 콕핏 윈도우 (Neon Cockpit Window)
+    canvas.drawCircle(Offset(centerX, h * 0.36), 18, Paint()..color = const Color(0xFF0284C7));
+    canvas.drawCircle(Offset(centerX, h * 0.36), 18, Paint()..color = const Color(0xFF38BDF8)..style = PaintingStyle.stroke..strokeWidth = 2.5);
   }
 
+  // 6. 모험의 해적 범선 (Legendary Pirate Galleon Ship)
   void _drawPirateShip(Canvas canvas, Size size) {
-    final woodPaint = Paint()..color = const Color(0xFF8B4513);
-    final darkWoodPaint = Paint()..color = const Color(0xFF5C2C16);
-    final sailPaint = Paint()..color = const Color(0xFFFFFDD0);
+    final w = size.width;
+    final h = size.height;
+    final centerX = w * 0.5;
 
-    final centerX = size.width * 0.5;
+    // 6-1. 넘실거리는 바다 파도 (Ocean Waves with Foam)
+    final wavePath = Path()
+      ..moveTo(0, h * 0.70)
+      ..quadraticBezierTo(w * 0.25, h * 0.66, w * 0.50, h * 0.72)
+      ..quadraticBezierTo(w * 0.75, h * 0.66, w, h * 0.70)
+      ..lineTo(w, h * 0.80)
+      ..lineTo(0, h * 0.80)
+      ..close();
+    canvas.drawPath(wavePath, Paint()..color = const Color(0xFF0284C7));
 
-    // Ocean Waves at Base
-    final wavePaint = Paint()..color = const Color(0xFF0284C7);
-    canvas.drawRRect(RRect.fromLTRBR(size.width * 0.05, size.height * 0.70, size.width * 0.95, size.height * 0.78, const Radius.circular(16)), wavePaint);
-
-    // Wooden Ship Hull
+    // 6-2. 묵직한 목조 선체 (Heavy Wooden Ship Hull)
     final hullPath = Path()
-      ..moveTo(size.width * 0.14, size.height * 0.54)
-      ..lineTo(size.width * 0.86, size.height * 0.54)
-      ..lineTo(size.width * 0.76, size.height * 0.72)
-      ..lineTo(size.width * 0.24, size.height * 0.72)
+      ..moveTo(w * 0.12, h * 0.50) // 높은 선수 (Bow)
+      ..lineTo(w * 0.88, h * 0.48) // 높은 선미 (Stern)
+      ..lineTo(w * 0.78, h * 0.72)
+      ..lineTo(w * 0.22, h * 0.72)
       ..close();
-    canvas.drawPath(hullPath, woodPaint);
-    canvas.drawPath(hullPath, Paint()..color = darkWoodPaint.color..style = PaintingStyle.stroke..strokeWidth = 4);
+    final woodGrad = const LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFF9A3412), Color(0xFF78350F), Color(0xFF451A03)],
+    ).createShader(Rect.fromLTRB(w * 0.12, h * 0.48, w * 0.88, h * 0.72));
+    canvas.drawPath(hullPath, Paint()..shader = woodGrad);
 
-    // Tall Ship Mast
-    canvas.drawRect(Rect.fromLTWH(centerX - 6, size.height * 0.24, 12, size.height * 0.36), darkWoodPaint);
+    // 황금 포문 라인 (Gold Cannon Ports)
+    for (double x = w * 0.28; x <= w * 0.72; x += 32) {
+      canvas.drawCircle(Offset(x, h * 0.58), 6, Paint()..color = const Color(0xFF1E293B));
+      canvas.drawCircle(Offset(x, h * 0.58), 6, Paint()..color = const Color(0xFFFFD700)..style = PaintingStyle.stroke..strokeWidth = 2);
+    }
 
-    // Billowing Pirate Sail
+    // 6-3. 웅장한 중앙 돛대 & 펄럭이는 메인 돛 (Grand Ship Mast & Billowing Sail)
+    canvas.drawRect(Rect.fromLTWH(centerX - 7, h * 0.18, 14, h * 0.38), Paint()..color = const Color(0xFF451A03));
+
+    // 메인 돛 (Billowing Canvas Sail)
     final sailPath = Path()
-      ..moveTo(centerX - 55, size.height * 0.30)
-      ..quadraticBezierTo(centerX, size.height * 0.34, centerX + 55, size.height * 0.30)
-      ..lineTo(centerX + 65, size.height * 0.48)
-      ..quadraticBezierTo(centerX, size.height * 0.52, centerX - 65, size.height * 0.48)
+      ..moveTo(centerX - 65, h * 0.24)
+      ..quadraticBezierTo(centerX, h * 0.28, centerX + 65, h * 0.24)
+      ..lineTo(centerX + 75, h * 0.44)
+      ..quadraticBezierTo(centerX, h * 0.49, centerX - 75, h * 0.44)
       ..close();
-    canvas.drawPath(sailPath, sailPaint);
-    canvas.drawPath(sailPath, Paint()..color = const Color(0xFFD4C5A9)..style = PaintingStyle.stroke..strokeWidth = 2);
+    final sailGrad = const LinearGradient(
+      colors: [Color(0xFFFFFBEB), Color(0xFFFEF3C7), Color(0xFFFDE68A)],
+    ).createShader(Rect.fromLTRB(centerX - 75, h * 0.24, centerX + 75, h * 0.49));
+    canvas.drawPath(sailPath, Paint()..shader = sailGrad);
 
-    // Crow's Nest at Top
-    canvas.drawRRect(RRect.fromLTRBR(centerX - 18, size.height * 0.24, centerX + 18, size.height * 0.28, const Radius.circular(4)), darkWoodPaint);
+    // 돛 위 해적 엠블럼 (Skull Decal)
+    canvas.drawCircle(Offset(centerX, h * 0.34), 9, Paint()..color = const Color(0xFF1E293B));
+    canvas.drawCircle(Offset(centerX, h * 0.34), 6, Paint()..color = Colors.white);
+
+    // 꼭대기 망루 (Crow's Nest & Pirate Flag)
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTRB(centerX - 18, h * 0.18, centerX + 18, h * 0.23), const Radius.circular(4)), Paint()..color = const Color(0xFF78350F));
   }
 
   @override
@@ -2198,8 +2440,13 @@ class _FireAndWaterEffectsPainter extends CustomPainter {
 
     // 4. REALISTIC CONTINUOUS HIGH-PRESSURE WATER JET STREAM
     if (isSpraying && touchPos != null) {
-      final nozzleOrigin = Offset(size.width * 0.5, size.height * 0.88);
-      _drawWaterJetStream(canvas, nozzleOrigin, touchPos!);
+      final nozzleBaseX = size.width * 0.5;
+      final nozzleBaseY = size.height - 65;
+      final dx = touchPos!.dx - nozzleBaseX;
+      final dy = touchPos!.dy - nozzleBaseY;
+      final angle = atan2(dy, dx).clamp(-pi * 0.85, -pi * 0.15);
+      final nozzleTip = Offset(nozzleBaseX + cos(angle) * 54, nozzleBaseY + sin(angle) * 54);
+      _drawWaterJetStream(canvas, nozzleTip, touchPos!);
     }
 
     // 5. Water Splashes at Impact Point
@@ -2337,7 +2584,7 @@ class _FireAndWaterEffectsPainter extends CustomPainter {
   bool shouldRepaint(covariant _FireAndWaterEffectsPainter oldDelegate) => true;
 }
 
-// 💧 소방 호스 CustomPainter — 구불구불한 고무 호스 + 황동 노즐
+// 💧 실감나는 중장비 소방 호스 & 황동/크롬 관창 노즐 & 소방관 캐릭터
 class _FireHosePainter extends CustomPainter {
   final double nozzleAngle;
   final bool isSpraying;
@@ -2351,138 +2598,203 @@ class _FireHosePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 호스 실릴 시작점: 소방관 위치 (화면 하단 중앙)
-    final startX = size.width * 0.38;
-    final startY = size.height * 0.42;
+    final centerX = size.width * 0.5;
+    final baseY = size.height - 40.0;
 
-    // 노즐 끝 위치 (소방관 손 위)
-    final nozzleLength = 55.0;
-    final nozzleEndX = startX + cos(nozzleAngle) * nozzleLength;
-    final nozzleEndY = startY + sin(nozzleAngle) * nozzleLength;
+    // 분사 중일 때의 사실적인 수압 반동 진동 (High-Pressure Recoil Shake)
+    final recoilJitterX = isSpraying ? (sin(DateTime.now().millisecondsSinceEpoch * 0.08) * 2.0) : 0.0;
+    final recoilJitterY = isSpraying ? (cos(DateTime.now().millisecondsSinceEpoch * 0.09) * 1.5) : 0.0;
 
-    // 호스 말림 점 (화면 오른쪽 하단에 말려 있는 호스 들)
-    final hoseEndX = size.width * 0.82;
-    final hoseEndY = size.height * 0.78;
+    final nozzlePivotX = centerX + recoilJitterX;
+    final nozzlePivotY = baseY - 25.0 + recoilJitterY;
 
-    // 1번 제어점 — 혼뢰는 켬임
-    final cp1x = startX + (hoseEndX - startX) * 0.3;
-    final cp1y = startY + 45.0;
-    // 2번 제어점
-    final cp2x = startX + (hoseEndX - startX) * 0.7;
-    final cp2y = startY - 30.0;
+    // ─────────────────────────────────────────────────────────────────────────
+    // 1. 묵직한 고압 소방 호스 (Heavy Fabric/Rubber Fire Hose from Bottom)
+    // ─────────────────────────────────────────────────────────────────────────
+    // 호스 시작점: 노즐 뒷단 커플러
+    final hoseStartOffset = Offset(
+      nozzlePivotX - cos(nozzleAngle) * 22,
+      nozzlePivotY - sin(nozzleAngle) * 22,
+    );
 
-    // 호스 본체 (3단 레이어 두께감)
-    // 세에어: 흐린 검은 거피 레이어
-    final hoseShadowPaint = Paint()
-      ..color = const Color(0xFF111827).withOpacity(0.35)
+    // 호스 끝점: 화면 아래쪽 바닥 (소방차 펌프 연결부)
+    final hoseEndOffset = Offset(centerX + 35, size.height + 25);
+
+    final cp1 = Offset(hoseStartOffset.dx - cos(nozzleAngle) * 45, hoseStartOffset.dy - sin(nozzleAngle) * 45 + 30);
+    final cp2 = Offset(centerX + 15, size.height - 5);
+
+    final hosePath = Path()
+      ..moveTo(hoseStartOffset.dx, hoseStartOffset.dy)
+      ..cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, hoseEndOffset.dx, hoseEndOffset.dy);
+
+    // 1-1. 호스 바닥 깊은 그림자 (Ground Drop Shadow)
+    final shadowPaint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.35)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 20
+      ..strokeWidth = 32
       ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+    canvas.drawPath(hosePath, shadowPaint);
 
-    final hosePath = Path();
-    hosePath.moveTo(nozzleEndX, nozzleEndY);
-    hosePath.cubicTo(cp1x, cp1y, cp2x, cp2y, hoseEndX, hoseEndY);
-
-    canvas.drawPath(hosePath, hoseShadowPaint);
-
-    // 호스 메인 바디 — 진한 빨간색 소방 호스
+    // 1-2. 호스 외피 바디 (진한 소방 레드 캔버스 패브릭 질감)
     final hoseBodyPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 15
+      ..strokeWidth = 26
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..shader = const LinearGradient(
         colors: [
-          Color(0xFFDC2626), // 빨간 소방 호스
+          Color(0xFFEF4444), // Fire Red
           Color(0xFFB91C1C),
-          Color(0xFF991B1B),
+          Color(0xFF7F1D1D),
         ],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-
     canvas.drawPath(hosePath, hoseBodyPaint);
 
-    // 호스 반사 하이라이트 (위식 반짝)
-    final hoseHighlightPaint = Paint()
-      ..color = Colors.white.withOpacity(0.25)
+    // 1-3. 호스 안전 반사 스트라이프 라인 (High-Vis Safety Yellow Stripe)
+    final stripePaint = Paint()
+      ..color = const Color(0xFFFBBF24).withValues(alpha: 0.85)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 5
       ..strokeCap = StrokeCap.round;
-    canvas.drawPath(hosePath, hoseHighlightPaint);
+    canvas.drawPath(hosePath, stripePaint);
 
-    // 호스 마디 마디 라인 (주름 텍스쳐)
-    final ringlePaint = Paint()
-      ..color = const Color(0xFF7F1D1D).withOpacity(0.7)
+    // 1-4. 호스 상단 빛 반사 하이라이트 (Glossy Specular)
+    final highlightPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.45)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5;
+      ..strokeWidth = 3.5
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(hosePath, highlightPaint);
 
-    // 호스를 따라 5개의 주름 마크 그리기
-    for (int i = 1; i <= 5; i++) {
-      final t = i / 6.0;
-      // 켬임 상의 점 근사
-      final bx = _cubicBezierPoint(nozzleEndX, cp1x, cp2x, hoseEndX, t);
-      final by = _cubicBezierPoint(nozzleEndY, cp1y, cp2y, hoseEndY, t);
-      canvas.drawCircle(Offset(bx, by), 7.5, ringlePaint);
-    }
-
-    // 황동 노즐 (Nozzle)
-    final nozzlePaint = Paint()..style = PaintingStyle.fill;
-
-    // 노즐 미디 위치
-    final nozzleMidX = (startX + nozzleEndX) / 2;
-    final nozzleMidY = (startY + nozzleEndY) / 2;
-
-    canvas.save();
-    canvas.translate(nozzleMidX, nozzleMidY);
-    canvas.rotate(nozzleAngle + pi / 2);
-
-    // 노즐 본체 (원통형 황동)
-    final nozzleRect = RRect.fromRectAndRadius(
-      Rect.fromCenter(center: Offset.zero, width: 16, height: 50),
-      const Radius.circular(7),
+    // ─────────────────────────────────────────────────────────────────────────
+    // 2. 든든한 소방관 캐릭터 상체 (Firefighter Body & Helmet)
+    // ─────────────────────────────────────────────────────────────────────────
+    // 소방관 방화복 상체 (Yellow/Black Turnout Gear)
+    final coatRect = Rect.fromCenter(center: Offset(centerX, baseY + 15), width: 84, height: 50);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(coatRect, const Radius.circular(16)),
+      Paint()..color = const Color(0xFF1E293B),
     );
-    final nozzleGrad = const LinearGradient(
+    // 방화복 반사 띠 (Neon Reflective Band)
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(centerX, baseY + 8), width: 80, height: 10), const Radius.circular(4)),
+      Paint()..color = const Color(0xFFFACC15),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(centerX, baseY + 8), width: 78, height: 4), const Radius.circular(2)),
+      Paint()..color = const Color(0xFFE2E8F0),
+    );
+
+    // 소방관 헬멧 (Fire Helmet)
+    canvas.drawCircle(Offset(centerX, baseY - 12), 22, Paint()..color = const Color(0xFFDC2626));
+    // 헬멧 챙 (Brim)
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(centerX, baseY - 2), width: 56, height: 8), const Radius.circular(4)),
+      Paint()..color = const Color(0xFF991B1B),
+    );
+    // 헬멧 골드 뱃지 (Shield Emblem)
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(centerX, baseY - 16), width: 14, height: 16), const Radius.circular(3)),
+      Paint()..color = const Color(0xFFFFD700),
+    );
+    canvas.drawCircle(Offset(centerX, baseY - 16), 3.5, Paint()..color = const Color(0xFF78350F));
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 3. 정밀 회전 조준 황동/크롬 고압 관창 노즐 (Rotational Brass Pistol Nozzle)
+    // ─────────────────────────────────────────────────────────────────────────
+    canvas.save();
+    canvas.translate(nozzlePivotX, nozzlePivotY);
+    canvas.rotate(nozzleAngle + pi / 2); // 노즐 진행 방향 정렬
+
+    // 3-1. 황동 호스 결합 커플러 (Brass Coupler Collar)
+    final couplerRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: const Offset(0, 22), width: 28, height: 16),
+      const Radius.circular(4),
+    );
+    canvas.drawRRect(couplerRect, Paint()..color = const Color(0xFFD97706));
+    canvas.drawRRect(couplerRect, Paint()..color = Colors.black.withValues(alpha: 0.2)..style = PaintingStyle.stroke..strokeWidth = 2);
+
+    // 3-2. 노즐 본체 메인 배럴 (Chrome & Solid Brass Heavy Barrel)
+    final barrelRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: const Offset(0, 0), width: 22, height: 38),
+      const Radius.circular(5),
+    );
+    final barrelGradient = const LinearGradient(
       begin: Alignment.centerLeft,
       end: Alignment.centerRight,
       colors: [
-        Color(0xFFB8860B),
-        Color(0xFFFFD700),
-        Color(0xFFDAA520),
-        Color(0xFF8B6914),
+        Color(0xFF92400E),
+        Color(0xFFFBBF24),
+        Color(0xFFFDE68A),
+        Color(0xFFB45309),
       ],
-    ).createShader(Rect.fromCenter(center: Offset.zero, width: 16, height: 50));
-    nozzlePaint.shader = nozzleGrad;
-    canvas.drawRRect(nozzleRect, nozzlePaint);
+    ).createShader(Rect.fromCenter(center: Offset.zero, width: 22, height: 38));
+    canvas.drawRRect(barrelRect, Paint()..shader = barrelGradient);
 
-    // 노즐 팔 (water outlet)
-    nozzlePaint.shader = null;
-    nozzlePaint.color = const Color(0xFF1E293B);
+    // 3-3. 듀얼 인체공학 피스톨 손잡이 (Pistol Grip Handle)
+    final handlePaint = Paint()..color = const Color(0xFF0F172A);
     canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(center: const Offset(0, -22), width: 10, height: 10),
-        const Radius.circular(3),
-      ),
-      nozzlePaint,
+      RRect.fromRectAndRadius(Rect.fromCenter(center: const Offset(0, 8), width: 14, height: 26), const Radius.circular(5)),
+      handlePaint,
+    );
+    // 손잡이 미끄럼 방지 홈 (Grip Grooves)
+    final gripLine = Paint()..color = const Color(0xFF475569)..strokeWidth = 2;
+    canvas.drawLine(const Offset(-6, 0), const Offset(6, 0), gripLine);
+    canvas.drawLine(const Offset(-6, 6), const Offset(6, 6), gripLine);
+    canvas.drawLine(const Offset(-6, 12), const Offset(6, 12), gripLine);
+
+    // 3-4. 수압 조절 밸브 레버 (Shut-off Ball Valve Lever)
+    final leverPaint = Paint()..color = const Color(0xFFEF4444);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromCenter(center: const Offset(14, 2), width: 8, height: 22), const Radius.circular(3)),
+      leverPaint,
+    );
+    canvas.drawCircle(const Offset(14, -8), 4.5, Paint()..color = const Color(0xFFB91C1C));
+
+    // 3-5. 노즐 헤드 팁 & 분사 조절 고무 링 (Rubber Bumper Nozzle Tip)
+    final tipRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: const Offset(0, -22), width: 26, height: 14),
+      const Radius.circular(4),
+    );
+    canvas.drawRRect(tipRect, Paint()..color = const Color(0xFF1E293B));
+
+    // 황동 방수구 구멍 (Water Orifice Nozzle Hole)
+    canvas.drawOval(
+      Rect.fromCenter(center: const Offset(0, -28), width: 16, height: 6),
+      Paint()..color = const Color(0xFF0284C7),
+    );
+    canvas.drawOval(
+      Rect.fromCenter(center: const Offset(0, -28), width: 10, height: 4),
+      Paint()..color = const Color(0xFFE0F2FE),
     );
 
-    // 노즐 반짝이 (specular)
-    nozzlePaint.color = Colors.white.withOpacity(0.4);
-    canvas.drawRect(
-      const Rect.fromLTWH(-4, -20, 3, 36),
-      nozzlePaint,
-    );
+    // 3-6. 분사 시 노즐 끝 고압 수압 아우라 글로우 (Water Jet Muzzle Glow)
+    if (isSpraying) {
+      canvas.drawCircle(
+        const Offset(0, -32),
+        16,
+        Paint()
+          ..color = const Color(0xFF38BDF8).withValues(alpha: 0.6)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+      );
+      canvas.drawCircle(
+        const Offset(0, -32),
+        8,
+        Paint()..color = Colors.white.withValues(alpha: 0.9),
+      );
+    }
+
+    // 3-7. 소방관 방수 장갑 손 (Gloves Holding the Nozzle firmly)
+    final glovePaint = Paint()..color = const Color(0xFFF97316);
+    canvas.drawCircle(const Offset(-13, 6), 9, glovePaint);
+    canvas.drawCircle(const Offset(13, 6), 9, glovePaint);
+    canvas.drawCircle(const Offset(-13, 6), 7, Paint()..color = const Color(0xFFC2410C));
+    canvas.drawCircle(const Offset(13, 6), 7, Paint()..color = const Color(0xFFC2410C));
 
     canvas.restore();
   }
 
-  // 켬설 베지어 상의 점 계산
-  double _cubicBezierPoint(double p0, double p1, double p2, double p3, double t) {
-    final mt = 1 - t;
-    return mt * mt * mt * p0 + 3 * mt * mt * t * p1 + 3 * mt * t * t * p2 + t * t * t * p3;
-  }
-
   @override
-  bool shouldRepaint(covariant _FireHosePainter oldDelegate) =>
-      oldDelegate.nozzleAngle != nozzleAngle ||
-      oldDelegate.isSpraying != isSpraying;
+  bool shouldRepaint(covariant _FireHosePainter oldDelegate) => true;
 }

@@ -86,6 +86,20 @@ const List<_ChassisPreset> _kChassisList = [
   _ChassisPreset(id: 'rocket', name: '로켓차', emoji: '🚀', defaultColor: Color(0xFF8338EC)),
 ];
 
+/// 차종 ID → 배경 씬 테마 매핑
+const Map<String, _SceneTheme> _kChassisScene = {
+  'sedan':     _SceneTheme.coastal,   // 해안가 드라이브
+  'truck':     _SceneTheme.mountain,  // 산속 도로
+  'sports':    _SceneTheme.city,      // 고속 도심
+  'police':    _SceneTheme.night,     // 야간 도시
+  'ambulance': _SceneTheme.suburb,    // 주택가 도로
+  'monster':   _SceneTheme.offroad,   // 오프로드 황야
+  'bus':       _SceneTheme.park,      // 공원 가로수길
+  'rocket':    _SceneTheme.space,     // 우주 런치패드
+};
+
+enum _SceneTheme { coastal, mountain, city, night, suburb, offroad, park, space }
+
 const List<Color> _kBodyColorPalette = [
   Color(0xFFFF5964), // 빨강
   Color(0xFFFF9F1C), // 주황
@@ -189,6 +203,8 @@ class _CarBuilderGameState extends State<CarBuilderGame>
   late AnimationController _sparkleCtrl;
   late AnimationController _confettiCtrl;
   late AnimationController _cloudCtrl;
+  late AnimationController _sceneAnimCtrl; // 배경 동적 애니메이션 (파도, 별, 갈매기 등)
+  late AnimationController _carBounceCtrl; // 차체 서스펜션 젤리 바운스 물리 효과
 
   // 파티클
   final List<_SparkleParticle> _sparkles = [];
@@ -205,6 +221,11 @@ class _CarBuilderGameState extends State<CarBuilderGame>
   void initState() {
     super.initState();
     _cloudCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 20))..repeat();
+    _sceneAnimCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
+    _carBounceCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 450),
+    );
     _driveAnimCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 8));
     _sparkleCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat();
     _confettiCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat();
@@ -214,6 +235,11 @@ class _CarBuilderGameState extends State<CarBuilderGame>
     _confettiCtrl.addListener(_updateConfetti);
 
     _addDefaultStartingParts();
+  }
+
+  void _triggerCarBounce() {
+    _carBounceCtrl.reset();
+    _carBounceCtrl.forward();
   }
 
   void _addDefaultStartingParts() {
@@ -235,7 +261,7 @@ class _CarBuilderGameState extends State<CarBuilderGame>
     _placedParts.add(_PlacedPart(
       id: 'win_${DateTime.now().millisecondsSinceEpoch + 2}',
       template: basicWin,
-      relativePos: const Offset(0.48, 0.32),
+      relativePos: const Offset(0.56, 0.32), // 운전석(앞좌석) 위치
       scale: 1.0,
     ));
   }
@@ -243,6 +269,8 @@ class _CarBuilderGameState extends State<CarBuilderGame>
   @override
   void dispose() {
     _cloudCtrl.dispose();
+    _sceneAnimCtrl.dispose();
+    _carBounceCtrl.dispose();
     _driveAnimCtrl.dispose();
     _sparkleCtrl.dispose();
     _confettiCtrl.dispose();
@@ -308,6 +336,7 @@ class _CarBuilderGameState extends State<CarBuilderGame>
     AudioManager.instance.playSnap();
     HapticFeedback.heavyImpact();
     _spawnSparklesAt(dropGlobalPos);
+    _triggerCarBounce();
 
     setState(() {
       final newPart = _PlacedPart(
@@ -325,6 +354,7 @@ class _CarBuilderGameState extends State<CarBuilderGame>
   void _removePlacedPart(String id) {
     AudioManager.instance.playPop();
     HapticFeedback.mediumImpact();
+    _triggerCarBounce();
     setState(() {
       _placedParts.removeWhere((p) => p.id == id);
       if (_selectedPlacedPartId == id) _selectedPlacedPartId = null;
@@ -333,6 +363,7 @@ class _CarBuilderGameState extends State<CarBuilderGame>
 
   void _clearAllParts() {
     AudioManager.instance.playPop();
+    _triggerCarBounce();
     setState(() {
       _placedParts.clear();
       _selectedPlacedPartId = null;
@@ -342,8 +373,10 @@ class _CarBuilderGameState extends State<CarBuilderGame>
   // ─── TEST DRIVE ────────────────────────────────────────────────────────────
 
   void _startTestDrive() {
-    AudioManager.instance.playChime();
+    // 1단계: 시동 키 돌리는 소리 (치키키킥- 부릉!)
+    AudioManager.instance.playEffect('audio/car_ignition_start.wav');
     HapticFeedback.heavyImpact();
+
     setState(() {
       _phase = _BuildPhase.testDrive;
       _selectedPlacedPartId = null;
@@ -351,9 +384,25 @@ class _CarBuilderGameState extends State<CarBuilderGame>
       _showCelebration = false;
       _confetti.clear();
     });
+
     _driveAnimCtrl.reset();
     _driveAnimCtrl.forward();
-    AudioManager.instance.playEngine();
+
+    // 2단계 (400ms 후): 힘찬 가속 질주 사운드 + 햅틱 피드백
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (!mounted || _phase != _BuildPhase.testDrive) return;
+      final vehicleSound = switch (_selectedChassis.id) {
+        'police' => 'police',
+        'monster' => 'monster',
+        'sports' => 'racing',
+        'bus' => 'bus',
+        'ambulance' => 'ambulance',
+        _ => 'car',
+      };
+      AudioManager.instance.playVehicleSound(vehicleSound);
+      AudioManager.instance.playEngine();
+      HapticFeedback.mediumImpact();
+    });
   }
 
   void _onDriveUpdate() {
@@ -590,6 +639,7 @@ class _CarBuilderGameState extends State<CarBuilderGame>
               onTap: () {
                 AudioManager.instance.playSnap();
                 HapticFeedback.lightImpact();
+                _triggerCarBounce();
                 setState(() {
                   _selectedChassis = chassis;
                   _bodyColor = chassis.defaultColor;
@@ -632,6 +682,7 @@ class _CarBuilderGameState extends State<CarBuilderGame>
               onTap: () {
                 AudioManager.instance.playClick();
                 HapticFeedback.lightImpact();
+                _triggerCarBounce();
                 setState(() => _bodyColor = color);
               },
               child: Container(
@@ -673,22 +724,22 @@ class _CarBuilderGameState extends State<CarBuilderGame>
         _handlePartDropped(details.data, details.offset);
       },
       builder: (context, candidateData, rejectedData) {
+        final sceneTheme = _kChassisScene[_selectedChassis.id] ?? _SceneTheme.coastal;
         return Container(
           key: _canvasKey,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.90),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: _isCarCanvasHovered ? const Color(0xFF06D6A0) : const Color(0xFFCBD5E1),
-              width: _isCarCanvasHovered ? 3.5 : 2,
+              color: _isCarCanvasHovered ? const Color(0xFF06D6A0) : Colors.transparent,
+              width: _isCarCanvasHovered ? 3.5 : 0,
             ),
             boxShadow: [
               BoxShadow(
                 color: _isCarCanvasHovered
                     ? const Color(0xFF06D6A0).withValues(alpha: 0.3)
-                    : Colors.black.withValues(alpha: 0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+                    : Colors.black.withValues(alpha: 0.12),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
@@ -697,89 +748,137 @@ class _CarBuilderGameState extends State<CarBuilderGame>
             child: Stack(
               fit: StackFit.expand,
               children: [
-                // 1. Grid background & Floor shadow
-                CustomPaint(
-                  painter: _WorkbenchBackgroundPainter(isHovered: _isCarCanvasHovered),
+                // 1. Live Animated Scene background (Wave, Seagulls, Stars, etc.)
+                AnimatedBuilder(
+                  animation: _sceneAnimCtrl,
+                  builder: (context, _) {
+                    return CustomPaint(
+                      painter: _SceneBackgroundPainter(
+                        theme: sceneTheme,
+                        animValue: _sceneAnimCtrl.value,
+                        isHovered: _isCarCanvasHovered,
+                      ),
+                    );
+                  },
                 ),
 
-                // 2. Base Chassis Illustration (Custom per model!)
+                // 2. Base Chassis Illustration with Suspension Spring Bounce
                 Center(
-                  child: SizedBox(
-                    width: 290,
-                    height: 190,
-                    child: CustomPaint(
-                      painter: _ChassisPainter(
-                        chassisId: _selectedChassis.id,
-                        color: _bodyColor,
+                  child: AnimatedBuilder(
+                    animation: _carBounceCtrl,
+                    builder: (context, child) {
+                      // 젤리 탄성 바운스 커브 (0.94 -> 1.06 -> 1.0)
+                      final val = _carBounceCtrl.value;
+                      final scale = 1.0 + sin(val * pi * 2) * (1.0 - val) * 0.08;
+                      final bounceY = -sin(val * pi * 2) * (1.0 - val) * 10;
+                      return Transform.translate(
+                        offset: Offset(0, bounceY),
+                        child: Transform.scale(
+                          scale: scale,
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: GestureDetector(
+                      onTap: () {
+                        // 차체 터치 시 빵빵 사운드 + 통통 바운스
+                        _triggerCarBounce();
+                        HapticFeedback.mediumImpact();
+                        AudioManager.instance.playSnap();
+                      },
+                      child: SizedBox(
+                        width: 290,
+                        height: 190,
+                        child: CustomPaint(
+                          painter: _ChassisPainter(
+                            chassisId: _selectedChassis.id,
+                            color: _bodyColor,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
 
-                // 3. User-Placed Interactive Drag-and-Drop Parts
+                // 3. User-Placed Interactive Drag-and-Drop Parts with Spring Bounce
                 Positioned.fill(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final canvasW = constraints.maxWidth;
                       final canvasH = constraints.maxHeight;
 
-                      return Stack(
-                        children: _placedParts.map((placed) {
-                          final isSelected = placed.id == _selectedPlacedPartId;
-                          final partW = placed.template.defaultWidth * placed.scale;
-                          final partH = placed.template.defaultHeight * placed.scale;
-                          final partPxX = placed.relativePos.dx * canvasW;
-                          final partPxY = placed.relativePos.dy * canvasH;
+                      return AnimatedBuilder(
+                        animation: _carBounceCtrl,
+                        builder: (context, child) {
+                          final val = _carBounceCtrl.value;
+                          final scale = 1.0 + sin(val * pi * 2) * (1.0 - val) * 0.08;
+                          final bounceY = -sin(val * pi * 2) * (1.0 - val) * 10;
+                          return Transform.translate(
+                            offset: Offset(0, bounceY),
+                            child: Transform.scale(
+                              scale: scale,
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Stack(
+                          children: _placedParts.map((placed) {
+                            final isSelected = placed.id == _selectedPlacedPartId;
+                            final partW = placed.template.defaultWidth * placed.scale;
+                            final partH = placed.template.defaultHeight * placed.scale;
+                            final partPxX = placed.relativePos.dx * canvasW;
+                            final partPxY = placed.relativePos.dy * canvasH;
 
-                          return Positioned(
-                            left: partPxX - partW / 2,
-                            top: partPxY - partH / 2,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                AudioManager.instance.playSnap();
-                                HapticFeedback.lightImpact();
-                                setState(() {
-                                  _selectedPlacedPartId = isSelected ? null : placed.id;
-                                });
-                              },
-                              onPanUpdate: (details) {
-                                setState(() {
-                                  _selectedPlacedPartId = placed.id;
-                                  final newX = ((partPxX + details.delta.dx) / canvasW).clamp(0.05, 0.95);
-                                  final newY = ((partPxY + details.delta.dy) / canvasH).clamp(0.05, 0.95);
-                                  placed.relativePos = Offset(newX, newY);
-                                });
-                              },
-                              child: Container(
-                                width: partW,
-                                height: partH,
-                                decoration: isSelected
-                                    ? BoxDecoration(
-                                        borderRadius: BorderRadius.circular(14),
-                                        border: Border.all(color: const Color(0xFF06D6A0), width: 2.5),
-                                        color: const Color(0xFF06D6A0).withValues(alpha: 0.18),
-                                      )
-                                    : null,
-                                child: Transform.rotate(
-                                  angle: placed.rotation,
-                                  child: Transform.scale(
-                                    scale: placed.scale,
-                                    child: Transform.flip(
-                                      flipX: placed.isFlipped,
-                                      child: Center(
-                                        child: Text(
-                                          placed.template.emoji,
-                                          style: TextStyle(fontSize: placed.template.defaultWidth * 0.72),
+                            return Positioned(
+                              left: partPxX - partW / 2,
+                              top: partPxY - partH / 2,
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  AudioManager.instance.playSnap();
+                                  HapticFeedback.lightImpact();
+                                  setState(() {
+                                    _selectedPlacedPartId = isSelected ? null : placed.id;
+                                  });
+                                },
+                                onPanUpdate: (details) {
+                                  setState(() {
+                                    _selectedPlacedPartId = placed.id;
+                                    final newX = ((partPxX + details.delta.dx) / canvasW).clamp(0.05, 0.95);
+                                    final newY = ((partPxY + details.delta.dy) / canvasH).clamp(0.05, 0.95);
+                                    placed.relativePos = Offset(newX, newY);
+                                  });
+                                },
+                                child: Container(
+                                  width: partW,
+                                  height: partH,
+                                  decoration: isSelected
+                                      ? BoxDecoration(
+                                          borderRadius: BorderRadius.circular(14),
+                                          border: Border.all(color: const Color(0xFF06D6A0), width: 2.5),
+                                          color: const Color(0xFF06D6A0).withValues(alpha: 0.18),
+                                        )
+                                      : null,
+                                  child: Transform.rotate(
+                                    angle: placed.rotation,
+                                    child: Transform.scale(
+                                      scale: placed.scale,
+                                      child: Transform.flip(
+                                        flipX: placed.isFlipped,
+                                        child: Center(
+                                          child: Text(
+                                            placed.template.emoji,
+                                            style: TextStyle(fontSize: placed.template.defaultWidth * 0.72),
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                          );
-                        }).toList(),
+                            );
+                          }).toList(),
+                        ),
                       );
                     },
                   ),
@@ -1008,51 +1107,73 @@ class _CarBuilderGameState extends State<CarBuilderGame>
     final filteredParts = _kAllParts.where((p) => p.category == _selectedCategory).toList();
 
     return Container(
-      height: 145,
-      padding: const EdgeInsets.only(top: 4, bottom: 6),
+      height: 155,
+      padding: const EdgeInsets.only(top: 6, bottom: 6),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, -3)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.10),
+            blurRadius: 14,
+            offset: const Offset(0, -4),
+          ),
         ],
       ),
       child: Column(
         children: [
-          // Category tabs
+          // Category selector tabs with vibrant kid-friendly pills
           SizedBox(
-            height: 38,
+            height: 42,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               children: _PartCategory.values.map((cat) {
                 final isSelected = cat == _selectedCategory;
                 final catInfo = _getCategoryInfo(cat);
+                final themeColor = _getCategoryColor(cat);
+
                 return Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: GestureDetector(
                     onTap: () {
                       AudioManager.instance.playClick();
+                      HapticFeedback.selectionClick();
                       setState(() => _selectedCategory = cat);
                     },
-                    child: Container(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFFFF9F1C) : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(16),
+                        color: isSelected ? themeColor : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isSelected ? const Color(0xFFFF9F1C) : const Color(0xFFE2E8F0),
-                          width: 1.5,
+                          color: isSelected ? themeColor : const Color(0xFFE2E8F0),
+                          width: isSelected ? 2.5 : 1.5,
                         ),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: themeColor.withValues(alpha: 0.35),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
                       ),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(catInfo.$1, style: const TextStyle(fontSize: 14)),
+                          Text(catInfo.$1, style: const TextStyle(fontSize: 16)),
                           const SizedBox(width: 4),
-                          Text(catInfo.$2, style: GoogleFonts.jua(
-                            fontSize: 12,
-                            color: isSelected ? Colors.white : const Color(0xFF475569),
-                          )),
+                          Text(
+                            catInfo.$2,
+                            style: GoogleFonts.jua(
+                              fontSize: isSelected ? 13 : 12,
+                              color: isSelected ? Colors.white : const Color(0xFF475569),
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1064,17 +1185,30 @@ class _CarBuilderGameState extends State<CarBuilderGame>
 
           const SizedBox(height: 6),
 
-          // Draggable Parts Tray
+          // Animated Item Tray (Shows items belonging to the selected category!)
           Expanded(
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: filteredParts.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 10),
-              itemBuilder: (context, index) {
-                final part = filteredParts[index];
-                return _buildDraggablePartTile(part);
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              transitionBuilder: (child, anim) {
+                return FadeTransition(
+                  opacity: anim,
+                  child: SlideTransition(
+                    position: Tween<Offset>(begin: const Offset(0.08, 0), end: Offset.zero).animate(anim),
+                    child: child,
+                  ),
+                );
               },
+              child: ListView.separated(
+                key: ValueKey<String>('tray_${_selectedCategory.name}'),
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                itemCount: filteredParts.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 10),
+                itemBuilder: (context, index) {
+                  final part = filteredParts[index];
+                  return _buildDraggablePartTile(part);
+                },
+              ),
             ),
           ),
         ],
@@ -1088,21 +1222,21 @@ class _CarBuilderGameState extends State<CarBuilderGame>
       feedback: Material(
         color: Colors.transparent,
         child: Transform.scale(
-          scale: 1.3,
+          scale: 1.35,
           child: Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF06D6A0).withValues(alpha: 0.6),
-                  blurRadius: 16,
-                  spreadRadius: 4,
+                  color: const Color(0xFF06D6A0).withValues(alpha: 0.65),
+                  blurRadius: 20,
+                  spreadRadius: 6,
                 ),
               ],
             ),
-            child: Text(part.emoji, style: const TextStyle(fontSize: 44)),
+            child: Text(part.emoji, style: const TextStyle(fontSize: 48)),
           ),
         ),
       ),
@@ -1110,30 +1244,81 @@ class _CarBuilderGameState extends State<CarBuilderGame>
         opacity: 0.35,
         child: _buildPartTrayCard(part),
       ),
-      child: _buildPartTrayCard(part),
+      child: GestureDetector(
+        // 원터치 탭으로도 차체에 바로 장착 가능!
+        onTap: () => _autoAttachPart(part),
+        child: _buildPartTrayCard(part),
+      ),
     );
   }
 
+  void _autoAttachPart(_PartTemplate part) {
+    // 카테고리별 스마트 기본 위치 선정
+    final autoPos = switch (part.category) {
+      _PartCategory.wheels => const Offset(0.50, 0.72),
+      _PartCategory.booster => const Offset(0.12, 0.54),
+      _PartCategory.lights => const Offset(0.86, 0.52),
+      _PartCategory.bumper => const Offset(0.90, 0.60),
+      _PartCategory.roof => const Offset(0.46, 0.16),
+      _PartCategory.window => const Offset(0.52, 0.30),
+      _PartCategory.stickers => const Offset(0.48, 0.54),
+    };
+
+    AudioManager.instance.playSnap();
+    HapticFeedback.mediumImpact();
+    _triggerCarBounce();
+
+    final RenderBox? canvasBox = _canvasKey.currentContext?.findRenderObject() as RenderBox?;
+    if (canvasBox != null) {
+      final center = canvasBox.localToGlobal(Offset(canvasBox.size.width * autoPos.dx, canvasBox.size.height * autoPos.dy));
+      _spawnSparklesAt(center);
+    }
+
+    setState(() {
+      final newPart = _PlacedPart(
+        id: 'part_${DateTime.now().millisecondsSinceEpoch}_${_rng.nextInt(999)}',
+        template: part,
+        relativePos: autoPos,
+        scale: 1.0,
+      );
+      _placedParts.add(newPart);
+      _selectedPlacedPartId = newPart.id;
+    });
+  }
+
   Widget _buildPartTrayCard(_PartTemplate part) {
+    final themeColor = _getCategoryColor(part.category);
+
     return Container(
-      width: 72,
-      padding: const EdgeInsets.all(4),
+      width: 78,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4, offset: const Offset(0, 2)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(part.emoji, style: const TextStyle(fontSize: 32)),
-          const SizedBox(height: 2),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: themeColor.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Text(part.emoji, style: const TextStyle(fontSize: 34)),
+          ),
+          const SizedBox(height: 3),
           Text(
             part.name,
-            style: GoogleFonts.jua(fontSize: 10, color: const Color(0xFF334155)),
+            style: GoogleFonts.jua(fontSize: 10.5, color: const Color(0xFF334155)),
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -1143,16 +1328,28 @@ class _CarBuilderGameState extends State<CarBuilderGame>
     );
   }
 
+  Color _getCategoryColor(_PartCategory cat) {
+    return switch (cat) {
+      _PartCategory.wheels => const Color(0xFF3B82F6),   // 파랑
+      _PartCategory.booster => const Color(0xFFF97316),  // 오렌지
+      _PartCategory.lights => const Color(0xFFEAB308),   // 노랑
+      _PartCategory.bumper => const Color(0xFF10B981),   // 그린
+      _PartCategory.roof => const Color(0xFF8B5CF6),     // 보라
+      _PartCategory.window => const Color(0xFFEC4899),   // 핑크
+      _PartCategory.stickers => const Color(0xFFEF4444), // 레드
+    };
+  }
+
   (String, String) _getCategoryInfo(_PartCategory cat) {
-    switch (cat) {
-      case _PartCategory.wheels: return ('🛞', '바퀴');
-      case _PartCategory.booster: return ('🚀', '부스터/날개');
-      case _PartCategory.lights: return ('💡', '라이트/사이렌');
-      case _PartCategory.bumper: return ('🛡️', '범퍼/도구');
-      case _PartCategory.roof: return ('👑', '루프/장식');
-      case _PartCategory.window: return ('🪟', '창문/조종사');
-      case _PartCategory.stickers: return ('🎨', '스티커');
-    }
+    return switch (cat) {
+      _PartCategory.wheels => ('🛞', '바퀴'),
+      _PartCategory.booster => ('🚀', '부스터/날개'),
+      _PartCategory.lights => ('💡', '라이트/사이렌'),
+      _PartCategory.bumper => ('🛡️', '범퍼/도구'),
+      _PartCategory.roof => ('👑', '루프/장식'),
+      _PartCategory.window => ('🪟', '창문/조종사'),
+      _PartCategory.stickers => ('🎨', '스티커'),
+    };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1207,15 +1404,18 @@ class _CarBuilderGameState extends State<CarBuilderGame>
                       ),
                     ),
 
-                    // Rear Exhaust & Speed Dust Puffs
+                    // Rear Exhaust & Speed Dust Puffs (차 뒤쪽으로 연기/불꽃이 뿜어지도록 flipX 적용)
                     Positioned(
-                      left: -20,
-                      bottom: 24,
+                      left: -28,
+                      bottom: 22,
                       child: IgnorePointer(
-                        child: Text(
-                          hasBooster ? '💨🔥' : '💨',
-                          style: TextStyle(
-                            fontSize: 16 + sin(_driveProgress * 28).abs() * 8,
+                        child: Transform.flip(
+                          flipX: true, // 이모지 좌우 반전하여 연기 꼬리가 차 뒤(왼쪽 바깥)로 뿜어지게 함!
+                          child: Text(
+                            hasBooster ? '💨🔥' : '💨',
+                            style: TextStyle(
+                              fontSize: 18 + sin(_driveProgress * 28).abs() * 8,
+                            ),
                           ),
                         ),
                       ),
@@ -1253,11 +1453,14 @@ class _CarBuilderGameState extends State<CarBuilderGame>
                           clipBehavior: Clip.none,
                           alignment: Alignment.center,
                           children: [
-                            // 부스터 파이어 이펙트
+                            // 부스터 파이어 이펙트 (차 뒤쪽으로 뿜어지도록 flipX)
                             if (placed.template.isBooster)
                               Positioned(
-                                left: -22,
-                                child: Text('🔥', style: TextStyle(fontSize: 18 + sin(_driveProgress * 30).abs() * 8)),
+                                left: -24,
+                                child: Transform.flip(
+                                  flipX: true,
+                                  child: Text('🔥', style: TextStyle(fontSize: 18 + sin(_driveProgress * 30).abs() * 8)),
+                                ),
                               ),
 
                             // 사이렌 글로우
@@ -1426,32 +1629,564 @@ class _CarBuilderGameState extends State<CarBuilderGame>
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /// 작업대 배경 격자 & 바닥 그림자
-class _WorkbenchBackgroundPainter extends CustomPainter {
+// ── Scene Background Painter (Living Dynamic Environment) ────────────────────
+class _SceneBackgroundPainter extends CustomPainter {
+  final _SceneTheme theme;
+  final double animValue;
   final bool isHovered;
-  _WorkbenchBackgroundPainter({required this.isHovered});
+
+  _SceneBackgroundPainter({
+    required this.theme,
+    this.animValue = 0.0,
+    required this.isHovered,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
+    switch (theme) {
+      case _SceneTheme.coastal:
+        _paintCoastal(canvas, size);
+      case _SceneTheme.mountain:
+        _paintMountain(canvas, size);
+      case _SceneTheme.city:
+        _paintCity(canvas, size);
+      case _SceneTheme.night:
+        _paintNight(canvas, size);
+      case _SceneTheme.suburb:
+        _paintSuburb(canvas, size);
+      case _SceneTheme.offroad:
+        _paintOffroad(canvas, size);
+      case _SceneTheme.park:
+        _paintPark(canvas, size);
+      case _SceneTheme.space:
+        _paintSpace(canvas, size);
+    }
+    // Car ground shadow with breathing pulse
+    final shadowPulse = 1.0 + sin(animValue * 2 * pi) * 0.04;
+    final shadowRect = Rect.fromCenter(
+      center: Offset(size.width * 0.5, size.height * 0.77),
+      width: size.width * 0.76 * shadowPulse,
+      height: 15,
+    );
+    canvas.drawOval(
+      shadowRect,
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.22)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+    );
+  }
 
-    final gridPaint = Paint()
-      ..color = (isHovered ? const Color(0xFF06D6A0) : const Color(0xFFCBD5E1)).withValues(alpha: 0.35)
-      ..strokeWidth = 1;
+  // ── 1. 해안가 도로 (넘실거리는 파도 + 활공하는 갈매기 + 반짝이는 태양) ─────────
+  void _paintCoastal(Canvas canvas, Size size) {
+    final w = size.width; final h = size.height;
+    // Sky gradient
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h),
+      Paint()..shader = const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF0288D1), Color(0xFF4FC3F7), Color(0xFFB3E5FC)],
+        stops: [0.0, 0.45, 1.0],
+      ).createShader(Rect.fromLTWH(0, 0, w, h)));
 
+    // Pulsing Sun with rays
+    final sunGlow = 1.0 + sin(animValue * 2 * pi) * 0.08;
+    canvas.drawCircle(Offset(w * 0.82, h * 0.18), 34 * sunGlow,
+      Paint()..color = const Color(0xFFFFF59D).withValues(alpha: 0.35)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10));
+    canvas.drawCircle(Offset(w * 0.82, h * 0.18), 24,
+      Paint()..color = const Color(0xFFFFEB3B));
+
+    // Distant Living Ocean with Moving Waves
+    final seaPath = Path()
+      ..moveTo(0, h * 0.50);
+    for (double x = 0; x <= w; x += 15) {
+      final waveY = h * 0.50 + sin((x / w * 4 * pi) + (animValue * 2 * pi)) * 3;
+      seaPath.lineTo(x, waveY);
+    }
+    seaPath.lineTo(w, h * 0.68);
+    seaPath.lineTo(0, h * 0.68);
+    seaPath.close();
+
+    canvas.drawPath(seaPath, Paint()..shader = const LinearGradient(
+      begin: Alignment.topCenter, end: Alignment.bottomCenter,
+      colors: [Color(0xFF0288D1), Color(0xFF01579B)],
+    ).createShader(Rect.fromLTWH(0, h * 0.50, w, h * 0.18)));
+
+    // Animated Frothy Wave Crests
+    final wavePaint = Paint()..color = Colors.white.withValues(alpha: 0.65)..strokeWidth = 2.5..style = PaintingStyle.stroke;
+    for (int i = 0; i < 2; i++) {
+      final baseY = h * (0.54 + i * 0.06);
+      final waveCrest = Path()..moveTo(0, baseY);
+      for (double x = 0; x <= w; x += 16) {
+        final wy = baseY + sin((x / w * 5 * pi) + (animValue * 2 * pi) + (i * pi)) * 2.5;
+        waveCrest.lineTo(x, wy);
+      }
+      canvas.drawPath(waveCrest, wavePaint);
+    }
+
+    // Sandy Beach
+    canvas.drawRect(Rect.fromLTWH(0, h * 0.68, w, h * 0.10),
+      Paint()..color = const Color(0xFFFFE082));
+
+    // Road
+    canvas.drawRect(Rect.fromLTWH(0, h * 0.78, w, h * 0.22),
+      Paint()..color = const Color(0xFF455A64));
+    _drawRoadMarkings(canvas, size, h * 0.88);
+
+    // Flying Animated Seagulls (Flapping Wings across the sky)
+    final birdPaint = Paint()..color = Colors.white..strokeWidth = 2.0..style = PaintingStyle.stroke..strokeCap = StrokeCap.round;
+    final flapAngle = sin(animValue * 4 * pi) * 4.0;
+    for (int i = 0; i < 3; i++) {
+      final birdProgress = (animValue + i * 0.33) % 1.0;
+      final bx = -20 + birdProgress * (w + 40);
+      final by = h * (0.12 + i * 0.07) + sin(birdProgress * 2 * pi) * 6;
+      final bCenter = Offset(bx, by);
+
+      // Left wing & Right wing
+      final wing = Path()
+        ..moveTo(bCenter.dx - 12, bCenter.dy + flapAngle)
+        ..quadraticBezierTo(bCenter.dx - 6, bCenter.dy - 6, bCenter.dx, bCenter.dy)
+        ..quadraticBezierTo(bCenter.dx + 6, bCenter.dy - 6, bCenter.dx + 12, bCenter.dy + flapAngle);
+      canvas.drawPath(wing, birdPaint);
+    }
+
+    // Swaying Palm Trees (Slight wind sway)
+    final sway = sin(animValue * 2 * pi) * 3;
+    _drawPalmTree(canvas, Offset(w * 0.08 + sway, h * 0.70), 0.95);
+    _drawPalmTree(canvas, Offset(w * 0.90 - sway * 0.7, h * 0.72), 0.80);
+  }
+
+  // ── 2. 산속 도로 (흘러가는 구름 + 맑은 솔바람) ─────────────────────────────
+  void _paintMountain(Canvas canvas, Size size) {
+    final w = size.width; final h = size.height;
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h),
+      Paint()..shader = const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF38BDF8), Color(0xFFBAE6FD), Color(0xFFA7F3D0)],
+        stops: [0.0, 0.45, 1.0],
+      ).createShader(Rect.fromLTWH(0, 0, w, h)));
+
+    // Far mountains with snow caps
+    _drawMountain(canvas, Offset(w * -0.05, h * 0.55), w * 0.45, h * 0.38, const Color(0xFF64748B));
+    _drawMountain(canvas, Offset(w * 0.35, h * 0.48), w * 0.50, h * 0.45, const Color(0xFF475569));
+    _drawSnowCap(canvas, Offset(w * 0.60, h * 0.48), w * 0.12);
+    _drawMountain(canvas, Offset(w * 0.65, h * 0.52), w * 0.42, h * 0.40, const Color(0xFF64748B));
+
+    // Near Lush Green Hills
+    _drawMountain(canvas, Offset(w * -0.10, h * 0.72), w * 0.55, h * 0.38, const Color(0xFF16A34A));
+    _drawMountain(canvas, Offset(w * 0.55, h * 0.72), w * 0.60, h * 0.38, const Color(0xFF15803D));
+
+    // Ground & Asphalt Mountain Road
+    canvas.drawRect(Rect.fromLTWH(0, h * 0.80, w, h * 0.20),
+      Paint()..color = const Color(0xFF22C55E));
+    canvas.drawRect(Rect.fromLTWH(0, h * 0.78, w, h * 0.22),
+      Paint()..color = const Color(0xFF334155));
+    _drawRoadMarkings(canvas, size, h * 0.88, color: const Color(0xFFFBBF24));
+
+    // Animated drifting clouds in the mountains
+    final cloudX1 = ((animValue * w * 0.8) % (w + 100)) - 50;
+    _drawCloud(canvas, Offset(cloudX1, h * 0.12), 0.9);
+    final cloudX2 = (((animValue + 0.5) * w * 0.6) % (w + 100)) - 50;
+    _drawCloud(canvas, Offset(cloudX2, h * 0.22), 0.7);
+
+    // Pine Trees
+    for (final x in [0.04, 0.12, 0.85, 0.93]) {
+      _drawPineTree(canvas, Offset(w * x, h * 0.79), 0.85);
+    }
+  }
+
+  // ── 3. 도시 고속도로 (깜빡이는 창문 불빛 + 가로등) ─────────────────────────
+  void _paintCity(Canvas canvas, Size size) {
+    final w = size.width; final h = size.height;
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h),
+      Paint()..shader = const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF60A5FA), Color(0xFF93C5FD), Color(0xFFE0F2FE)],
+      ).createShader(Rect.fromLTWH(0, 0, w, h)));
+
+    // Buildings
+    final buildingData = [
+      [0.0, 0.55, 0.15, 0.45, 0xFF334155],
+      [0.12, 0.40, 0.12, 0.60, 0xFF1E293B],
+      [0.22, 0.50, 0.10, 0.50, 0xFF475569],
+      [0.72, 0.42, 0.13, 0.58, 0xFF1E293B],
+      [0.83, 0.50, 0.10, 0.50, 0xFF334155],
+      [0.91, 0.44, 0.12, 0.56, 0xFF475569],
+    ];
+    for (final b in buildingData) {
+      final bx = w * b[0]; final by = h * b[1]; final bw = w * b[2]; final bh = h * b[3];
+      canvas.drawRect(Rect.fromLTWH(bx, by, bw, bh), Paint()..color = Color(b[4].toInt()));
+
+      // Animated glowing windows
+      final winPaint = Paint()..color = const Color(0xFFFEF08A);
+      for (double wy = by + 8; wy < by + bh - 10; wy += 14) {
+        for (double wx = bx + 5; wx < bx + bw - 5; wx += 12) {
+          final isBlinking = ((wx + wy + animValue * 10).toInt() % 5 == 0);
+          if (!isBlinking) {
+            canvas.drawRect(Rect.fromLTWH(wx, wy, 6, 8), winPaint);
+          }
+        }
+      }
+    }
+
+    // Sidewalk & Express Road
+    canvas.drawRect(Rect.fromLTWH(0, h * 0.78, w, h * 0.04), Paint()..color = const Color(0xFF94A3B8));
+    canvas.drawRect(Rect.fromLTWH(0, h * 0.78, w, h * 0.22), Paint()..color = const Color(0xFF1E293B));
+    _drawRoadMarkings(canvas, size, h * 0.88);
+
+    // Street lamps with glowing aura
+    _drawStreetLamp(canvas, Offset(w * 0.06, h * 0.78));
+    _drawStreetLamp(canvas, Offset(w * 0.92, h * 0.78));
+  }
+
+  // ── 4. 야간 도시 (반짝이는 별빛 + 사이렌 빛 반사) ────────────────────────
+  void _paintNight(Canvas canvas, Size size) {
+    final w = size.width; final h = size.height;
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h),
+      Paint()..shader = const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF030712), Color(0xFF0F172A), Color(0xFF1E1B4B)],
+      ).createShader(Rect.fromLTWH(0, 0, w, h)));
+
+    // Twinkling Stars
+    final starPaint = Paint()..color = Colors.white;
+    final rng = Random(42);
+    for (int i = 0; i < 35; i++) {
+      final sx = rng.nextDouble() * w;
+      final sy = rng.nextDouble() * h * 0.50;
+      final twinkle = (sin((animValue * 2 * pi) + (i * 0.8)) + 1.0) / 2.0;
+      canvas.drawCircle(Offset(sx, sy), 0.5 + twinkle * 1.5, starPaint..color = Colors.white.withValues(alpha: 0.3 + twinkle * 0.7));
+    }
+
+    // Glowing Moon
+    final moonGlow = 1.0 + sin(animValue * 2 * pi) * 0.05;
+    canvas.drawCircle(Offset(w * 0.82, h * 0.16), 26 * moonGlow,
+      Paint()..color = const Color(0xFFFEF08A).withValues(alpha: 0.25)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12));
+    canvas.drawCircle(Offset(w * 0.82, h * 0.16), 18, Paint()..color = const Color(0xFFFEF08A));
+    canvas.drawCircle(Offset(w * 0.87, h * 0.14), 15, Paint()..color = const Color(0xFF0F172A));
+
+    // Dark Silhouette Buildings
+    final buildingData = [
+      [0.0, 0.45, 0.15, 0.55], [0.13, 0.30, 0.12, 0.70],
+      [0.24, 0.40, 0.10, 0.60], [0.72, 0.35, 0.13, 0.65],
+      [0.84, 0.42, 0.10, 0.58], [0.92, 0.30, 0.10, 0.70],
+    ];
+    for (final b in buildingData) {
+      final bx = w * b[0]; final by = h * b[1]; final bw = w * b[2]; final bh = h * b[3];
+      canvas.drawRect(Rect.fromLTWH(bx, by, bw, bh), Paint()..color = const Color(0xFF0B0F19));
+      final winPaint = Paint()..color = const Color(0xFFFDE047).withValues(alpha: 0.65);
+      for (double wy = by + 6; wy < by + bh - 8; wy += 14) {
+        for (double wx = bx + 4; wx < bx + bw - 4; wx += 11) {
+          if (Random(wx.toInt() + wy.toInt()).nextBool()) {
+            canvas.drawRect(Rect.fromLTWH(wx, wy, 5, 7), winPaint);
+          }
+        }
+      }
+    }
+
+    // Asphalt Road
+    canvas.drawRect(Rect.fromLTWH(0, h * 0.78, w, h * 0.22), Paint()..color = const Color(0xFF111827));
+    _drawRoadMarkings(canvas, size, h * 0.88, color: const Color(0x99FFFFFF));
+
+    // Alternating Police Siren Glow Effect on City Scene
+    final isRedTurn = ((animValue * 6).toInt() % 2 == 0);
+    final sirenColor = isRedTurn ? const Color(0xFFEF4444) : const Color(0xFF3B82F6);
+    canvas.drawCircle(
+      Offset(w * 0.50, h * 0.60),
+      60,
+      Paint()
+        ..color = sirenColor.withValues(alpha: 0.16)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 30),
+    );
+  }
+
+  // ── 5. 주택가 도로 (아기자기한 집 + 가로수길) ────────────────────────────
+  void _paintSuburb(Canvas canvas, Size size) {
+    final w = size.width; final h = size.height;
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h),
+      Paint()..shader = const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF38BDF8), Color(0xFFBAE6FD), Color(0xFF86EFAC)],
+        stops: [0.0, 0.6, 1.0],
+      ).createShader(Rect.fromLTWH(0, 0, w, h)));
+
+    // Cute houses
+    _drawHouse(canvas, Offset(w * 0.02, h * 0.70), const Color(0xFFFCA5A5), const Color(0xFFDC2626));
+    _drawHouse(canvas, Offset(w * 0.76, h * 0.70), const Color(0xFFFDBA74), const Color(0xFFEA580C));
+
+    // Green Grass & Suburban Street
+    canvas.drawRect(Rect.fromLTWH(0, h * 0.78, w, h * 0.04), Paint()..color = const Color(0xFF22C55E));
+    canvas.drawRect(Rect.fromLTWH(0, h * 0.78, w, h * 0.22), Paint()..color = const Color(0xFF475569));
+    _drawRoadMarkings(canvas, size, h * 0.88);
+
+    // Drifting clouds
+    final cX = ((animValue * w) % (w + 80)) - 40;
+    _drawCloud(canvas, Offset(cX, h * 0.10), 0.85);
+
+    // Round Trees
+    _drawRoundTree(canvas, Offset(w * 0.38, h * 0.72), const Color(0xFF16A34A));
+    _drawRoundTree(canvas, Offset(w * 0.62, h * 0.74), const Color(0xFF15803D));
+  }
+
+  // ── 6. 오프로드 황야 (석양 열기 + 부유하는 흙먼지) ─────────────────────────
+  void _paintOffroad(Canvas canvas, Size size) {
+    final w = size.width; final h = size.height;
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h),
+      Paint()..shader = const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFFEA580C), Color(0xFFF59E0B), Color(0xFFDC2626)],
+        stops: [0.0, 0.45, 1.0],
+      ).createShader(Rect.fromLTWH(0, 0, w, h)));
+
+    // Giant Glowing Sunset
+    final sunPulse = 1.0 + sin(animValue * 2 * pi) * 0.06;
+    canvas.drawCircle(Offset(w * 0.50, h * 0.52), 48 * sunPulse,
+      Paint()..color = const Color(0xFFFEF08A).withValues(alpha: 0.5)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16));
+    canvas.drawCircle(Offset(w * 0.50, h * 0.52), 34,
+      Paint()..color = const Color(0xFFFEF08A));
+
+    // Cacti
+    _drawCactus(canvas, Offset(w * 0.10, h * 0.65));
+    _drawCactus(canvas, Offset(w * 0.88, h * 0.68));
+
+    // Rocks & Dirt Road
+    final rockPaint = Paint()..color = const Color(0xFF78350F);
+    for (final rx in [0.12, 0.35, 0.55, 0.78, 0.92]) {
+      canvas.drawOval(Rect.fromCenter(center: Offset(w * rx, h * 0.77), width: w * 0.12, height: h * 0.05), rockPaint);
+    }
+    canvas.drawRect(Rect.fromLTWH(0, h * 0.78, w, h * 0.22), Paint()..color = const Color(0xFF92400E));
+
+    // Tire Tracks
+    final trackPaint = Paint()..color = const Color(0xFF451A03)..strokeWidth = 3;
+    canvas.drawLine(Offset(0, h * 0.85), Offset(w, h * 0.85), trackPaint);
+    canvas.drawLine(Offset(0, h * 0.91), Offset(w, h * 0.91), trackPaint);
+
+    // Floating Dust Clouds
+    final dustOffset = sin(animValue * 2 * pi) * 8;
+    final dustPaint = Paint()..color = const Color(0xFFFDE68A).withValues(alpha: 0.45)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+    canvas.drawCircle(Offset(w * 0.18 + dustOffset, h * 0.80), 24, dustPaint);
+    canvas.drawCircle(Offset(w * 0.82 - dustOffset, h * 0.82), 20, dustPaint);
+  }
+
+  // ── 7. 공원 가로수길 (봄바람 꽃잎 + 푸른 나무) ───────────────────────────
+  void _paintPark(Canvas canvas, Size size) {
+    final w = size.width; final h = size.height;
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h),
+      Paint()..shader = const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF60A5FA), Color(0xFFBAE6FD), Color(0xFF86EFAC)],
+        stops: [0.0, 0.5, 1.0],
+      ).createShader(Rect.fromLTWH(0, 0, w, h)));
+
+    // Clouds
+    _drawCloud(canvas, Offset(w * 0.12, h * 0.10), 1.0);
+    _drawCloud(canvas, Offset(w * 0.65, h * 0.08), 0.8);
+
+    // Park Road & Grass
+    canvas.drawRect(Rect.fromLTWH(0, h * 0.72, w, h * 0.08), Paint()..color = const Color(0xFF22C55E));
+    canvas.drawRect(Rect.fromLTWH(0, h * 0.78, w, h * 0.22), Paint()..color = const Color(0xFF475569));
+    _drawRoadMarkings(canvas, size, h * 0.88);
+
+    // Rows of Trees
+    for (final x in [0.05, 0.20, 0.78, 0.94]) {
+      _drawRoundTree(canvas, Offset(w * x, h * 0.74), const Color(0xFF15803D));
+    }
+
+    // Floating colorful flower petals in the spring breeze
+    final flowerColors = [const Color(0xFFF472B6), const Color(0xFFFBBF24), const Color(0xFFFB7185)];
+    for (int i = 0; i < 8; i++) {
+      final pX = ((animValue + i * 0.125) * w) % w;
+      final pY = h * 0.70 + sin((animValue * 2 * pi) + i) * 12;
+      canvas.drawCircle(Offset(pX, pY), 3.5, Paint()..color = flowerColors[i % flowerColors.length]);
+    }
+  }
+
+  // ── 8. 우주 런치패드 (빛나는 은하 + 혜성 활공) ───────────────────────────
+  void _paintSpace(Canvas canvas, Size size) {
+    final w = size.width; final h = size.height;
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h),
+      Paint()..shader = const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF030712), Color(0xFF1E1B4B), Color(0xFF4C1D95)],
+      ).createShader(Rect.fromLTWH(0, 0, w, h)));
+
+    // Stars
+    final starPaint = Paint()..color = Colors.white;
+    final rng = Random(99);
+    for (int i = 0; i < 45; i++) {
+      final sx = rng.nextDouble() * w;
+      final sy = rng.nextDouble() * h * 0.65;
+      final pulse = (sin((animValue * 3 * pi) + (i * 0.7)) + 1.0) / 2.0;
+      canvas.drawCircle(Offset(sx, sy), 0.8 + pulse * 1.6, starPaint..color = Colors.white.withValues(alpha: 0.3 + pulse * 0.7));
+    }
+
+    // Shooting Star (Comet) crossing space
+    final cometProgress = (animValue * 1.5) % 1.0;
+    if (cometProgress < 0.6) {
+      final cometStart = Offset(w * 0.10 + cometProgress * w * 1.2, h * 0.05 + cometProgress * h * 0.4);
+      final cometEnd = cometStart + const Offset(-35, -18);
+      canvas.drawLine(
+        cometStart, cometEnd,
+        Paint()..shader = LinearGradient(colors: [Colors.white, Colors.white.withValues(alpha: 0.0)]).createShader(Rect.fromPoints(cometStart, cometEnd))..strokeWidth = 2.5,
+      );
+    }
+
+    // Giant Glowing Planet with Ring
+    canvas.drawCircle(Offset(w * 0.80, h * 0.18), 24, Paint()..color = const Color(0xFF8B5CF6));
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(w * 0.80, h * 0.18), width: 56, height: 14),
+      Paint()
+        ..color = const Color(0xFFC084FC).withValues(alpha: 0.75)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4.5,
+    );
+
+    // Launch Pad Surface
+    canvas.drawRect(Rect.fromLTWH(0, h * 0.78, w, h * 0.22), Paint()..color = const Color(0xFF1E1B4B));
+    final padPaint = Paint()..color = const Color(0xFF8B5CF6).withValues(alpha: 0.6)..strokeWidth = 2;
     for (double x = 0; x < w; x += 28) {
-      canvas.drawLine(Offset(x, 0), Offset(x, h), gridPaint);
-    }
-    for (double y = 0; y < h; y += 28) {
-      canvas.drawLine(Offset(0, y), Offset(w, y), gridPaint);
+      canvas.drawLine(Offset(x, h * 0.78), Offset(x + 14, h * 1.0), padPaint);
     }
 
-    final shadowRect = Rect.fromLTWH(w * 0.12, h * 0.78, w * 0.76, 18);
-    canvas.drawOval(shadowRect, Paint()..color = Colors.black.withValues(alpha: 0.12)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
+    // Rocket Engine Plasma Glow on Ground
+    final plasmaPulse = 1.0 + sin(animValue * 6 * pi) * 0.15;
+    canvas.drawCircle(
+      Offset(w * 0.50, h * 0.78),
+      34 * plasmaPulse,
+      Paint()
+        ..color = const Color(0xFFF97316).withValues(alpha: 0.35)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16),
+    );
+  }
+
+  // ── 공통 도우미 메서드 ────────────────────────────────────────────────────
+
+  void _drawRoadMarkings(Canvas canvas, Size size, double y, {Color? color}) {
+    final paint = Paint()
+      ..color = (color ?? const Color(0xFFFFFFFF)).withValues(alpha: 0.75)
+      ..strokeWidth = 3;
+    final w = size.width;
+    const dashW = 28.0; const gapW = 20.0;
+    for (double x = 0; x < w; x += dashW + gapW) {
+      canvas.drawLine(Offset(x, y), Offset(x + dashW, y), paint);
+    }
+  }
+
+  void _drawCloud(Canvas canvas, Offset center, double scale) {
+    final paint = Paint()..color = Colors.white.withValues(alpha: 0.88);
+    for (final d in [
+      Offset(0, 0), Offset(14 * scale, -6 * scale),
+      Offset(28 * scale, 0), Offset(14 * scale, 4 * scale),
+    ]) {
+      canvas.drawCircle(center + d, 14 * scale, paint);
+    }
+  }
+
+  void _drawMountain(Canvas canvas, Offset base, double width, double height, Color color) {
+    final path = Path()
+      ..moveTo(base.dx, base.dy)
+      ..lineTo(base.dx + width / 2, base.dy - height)
+      ..lineTo(base.dx + width, base.dy)..close();
+    canvas.drawPath(path, Paint()..color = color);
+  }
+
+  void _drawSnowCap(Canvas canvas, Offset tip, double width) {
+    final path = Path()
+      ..moveTo(tip.dx, tip.dy)
+      ..lineTo(tip.dx - width, tip.dy + width * 1.2)
+      ..lineTo(tip.dx + width, tip.dy + width * 1.2)..close();
+    canvas.drawPath(path, Paint()..color = Colors.white.withValues(alpha: 0.85));
+  }
+
+  void _drawPineTree(Canvas canvas, Offset base, double scale) {
+    final paint = Paint()..color = const Color(0xFF166534);
+    // trunk
+    canvas.drawRect(Rect.fromLTWH(base.dx - 3 * scale, base.dy - 6 * scale, 6 * scale, 10 * scale),
+      Paint()..color = const Color(0xFF78350F));
+    // three triangle layers
+    for (int i = 0; i < 3; i++) {
+      final ty = base.dy - 12 * scale - i * 18 * scale;
+      final tw = (36 - i * 8) * scale;
+      final path = Path()
+        ..moveTo(base.dx, ty - 20 * scale)
+        ..lineTo(base.dx - tw / 2, ty)
+        ..lineTo(base.dx + tw / 2, ty)..close();
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  void _drawRoundTree(Canvas canvas, Offset base, Color color) {
+    canvas.drawRect(Rect.fromLTWH(base.dx - 3, base.dy - 14, 6, 18), Paint()..color = const Color(0xFF78350F));
+    canvas.drawCircle(base + const Offset(0, -20), 18, Paint()..color = color);
+    canvas.drawCircle(base + const Offset(-10, -14), 13, Paint()..color = color);
+    canvas.drawCircle(base + const Offset(10, -14), 13, Paint()..color = color);
+  }
+
+  void _drawPalmTree(Canvas canvas, Offset base, double scale) {
+    // trunk (curved)
+    final trunkPaint = Paint()..color = const Color(0xFF9A3412)..strokeWidth = 5 * scale..style = PaintingStyle.stroke;
+    final trunk = Path()
+      ..moveTo(base.dx, base.dy)
+      ..quadraticBezierTo(base.dx + 8 * scale, base.dy - 22 * scale, base.dx + 2 * scale, base.dy - 48 * scale);
+    canvas.drawPath(trunk, trunkPaint);
+    // leaves
+    for (int i = 0; i < 5; i++) {
+      final angle = -1.2 + i * 0.6;
+      final leafPath = Path()
+        ..moveTo(base.dx + 2 * scale, base.dy - 48 * scale)
+        ..quadraticBezierTo(
+          base.dx + 2 * scale + cos(angle) * 20 * scale,
+          base.dy - 48 * scale + sin(angle) * 20 * scale,
+          base.dx + 2 * scale + cos(angle) * 36 * scale,
+          base.dy - 48 * scale + sin(angle - 0.4) * 10 * scale,
+        );
+      canvas.drawPath(leafPath, Paint()..color = const Color(0xFF15803D)..strokeWidth = 5 * scale..style = PaintingStyle.stroke);
+    }
+  }
+
+  void _drawCactus(Canvas canvas, Offset base) {
+    final paint = Paint()..color = const Color(0xFF15803D);
+    // Main trunk
+    canvas.drawRRect(RRect.fromRectAndRadius(
+      Rect.fromLTWH(base.dx - 6, base.dy - 44, 12, 44), const Radius.circular(6)), paint);
+    // Left arm
+    canvas.drawRRect(RRect.fromRectAndRadius(
+      Rect.fromLTWH(base.dx - 20, base.dy - 32, 14, 8), const Radius.circular(4)), paint);
+    canvas.drawRRect(RRect.fromRectAndRadius(
+      Rect.fromLTWH(base.dx - 22, base.dy - 44, 8, 16), const Radius.circular(4)), paint);
+    // Right arm
+    canvas.drawRRect(RRect.fromRectAndRadius(
+      Rect.fromLTWH(base.dx + 6, base.dy - 28, 14, 8), const Radius.circular(4)), paint);
+    canvas.drawRRect(RRect.fromRectAndRadius(
+      Rect.fromLTWH(base.dx + 14, base.dy - 40, 8, 16), const Radius.circular(4)), paint);
+  }
+
+  void _drawHouse(Canvas canvas, Offset base, Color wallColor, Color roofColor) {
+    // Wall
+    canvas.drawRect(Rect.fromLTWH(base.dx, base.dy - 30, 58, 30), Paint()..color = wallColor);
+    // Roof
+    final roof = Path()
+      ..moveTo(base.dx - 4, base.dy - 30)
+      ..lineTo(base.dx + 29, base.dy - 56)
+      ..lineTo(base.dx + 62, base.dy - 30)..close();
+    canvas.drawPath(roof, Paint()..color = roofColor);
+    // Door
+    canvas.drawRect(Rect.fromLTWH(base.dx + 22, base.dy - 18, 14, 18), Paint()..color = const Color(0xFF78350F));
+    // Window
+    canvas.drawRect(Rect.fromLTWH(base.dx + 6, base.dy - 24, 12, 10), Paint()..color = const Color(0xFF38BDF8));
+  }
+
+  void _drawStreetLamp(Canvas canvas, Offset base) {
+    final paint = Paint()..color = const Color(0xFF94A3B8)..strokeWidth = 3..style = PaintingStyle.stroke;
+    canvas.drawLine(base, base + const Offset(0, -36), paint);
+    canvas.drawLine(base + const Offset(0, -36), base + const Offset(12, -44), paint);
+    canvas.drawCircle(base + const Offset(12, -44), 5, Paint()..color = const Color(0xFFFEF08A));
+    canvas.drawCircle(base + const Offset(12, -44), 12,
+      Paint()..color = const Color(0xFFFEF08A).withValues(alpha: 0.35)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
   }
 
   @override
-  bool shouldRepaint(covariant _WorkbenchBackgroundPainter old) => old.isHovered != isHovered;
+  bool shouldRepaint(covariant _SceneBackgroundPainter old) =>
+      old.theme != theme || old.animValue != animValue || old.isHovered != isHovered;
 }
 
 /// 차종별 고유하고 디테일한 차체 렌더링
@@ -1486,31 +2221,30 @@ class _ChassisPainter extends CustomPainter {
     }
   }
 
-  // 1. 승용차 (Sedan)
+  // 1. 승용차 (Sedan) — 오른쪽이 앞(본넷 & 윈드실드), 왼쪽이 뒤(트렁크)
   void _drawSedan(Canvas canvas, double w, double h) {
     final bodyPaint = Paint()..color = color;
-    final bodyRect = Rect.fromLTWH(w * 0.10, h * 0.44, w * 0.80, h * 0.32);
+    final bodyRect = Rect.fromLTWH(w * 0.08, h * 0.44, w * 0.84, h * 0.32);
 
     // Shadow & Body
     _drawShadow(canvas, bodyRect);
     canvas.drawRRect(RRect.fromRectAndRadius(bodyRect, const Radius.circular(16)), bodyPaint);
 
-    // Cabin
+    // Cabin (왼쪽 트렁크에서 올라가서, 전면 윈드실드는 완만하게 오른쪽 본넷으로 연결)
     final cabinPath = Path()
-      ..moveTo(w * 0.28, h * 0.44)
-      ..lineTo(w * 0.38, h * 0.22)
-      ..quadraticBezierTo(w * 0.42, h * 0.20, w * 0.50, h * 0.20)
-      ..lineTo(w * 0.70, h * 0.20)
-      ..quadraticBezierTo(w * 0.76, h * 0.22, w * 0.80, h * 0.44)
+      ..moveTo(w * 0.20, h * 0.44) // 트렁크 시작점
+      ..lineTo(w * 0.28, h * 0.22) // 뒷유리 (가파른 각도)
+      ..lineTo(w * 0.58, h * 0.22) // 루프
+      ..quadraticBezierTo(w * 0.68, h * 0.24, w * 0.78, h * 0.44) // 완만하게 뻗는 전면 윈드실드
       ..close();
     canvas.drawPath(cabinPath, bodyPaint);
 
-    // Windows
-    _drawWindow(canvas, Rect.fromLTWH(w * 0.38, h * 0.23, w * 0.18, h * 0.20));
-    _drawWindow(canvas, Rect.fromLTWH(w * 0.58, h * 0.23, w * 0.18, h * 0.20));
+    // 뒷좌석 창문 & 앞좌석 운전석 창문
+    _drawWindow(canvas, Rect.fromLTWH(w * 0.28, h * 0.24, w * 0.18, h * 0.19));
+    _drawWindow(canvas, Rect.fromLTWH(w * 0.50, h * 0.24, w * 0.22, h * 0.19));
 
-    // Door line & Handle
-    canvas.drawLine(Offset(w * 0.57, h * 0.23), Offset(w * 0.57, h * 0.72), Paint()..color = Colors.black26..strokeWidth = 2);
+    // B-Pillar Door line & Chrome Handle
+    canvas.drawLine(Offset(w * 0.48, h * 0.24), Offset(w * 0.48, h * 0.72), Paint()..color = Colors.black26..strokeWidth = 2.5);
     canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(w * 0.52, h * 0.50, 10, 4), const Radius.circular(2)), Paint()..color = Colors.white70);
 
     _drawLightsAndCutouts(canvas, w, h, bodyRect);

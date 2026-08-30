@@ -339,6 +339,11 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
   bool _driveComplete = false;
   bool _stepComplete = false;
 
+  // Real-time Interactive Tool Overlay (Hose, Sponge, Shower, Towel)
+  Offset? _toolPos;
+  bool _isToolActive = false;
+  double _idleToolPhase = 0.0;
+
   // Step banner text
   String _bannerText = '';
   Color  _bannerColor = KidsTheme.orange;
@@ -384,6 +389,8 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
     if (!mounted) return;
     final dt = 1 / 60;
     setState(() {
+      _idleToolPhase += dt * 3.0;
+
       // Spawn exhaust smoke during drive-in
       if (_step == _WashStep.driveIn && _driveInCtrl.isAnimating) {
         _smokes.add(_Smoke(
@@ -1001,7 +1008,7 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
             ),
           ),
 
-        // Car interactive container (Emoji + Mud + Soap + Sparks)
+        // Car interactive container (Emoji + Mud + Soap + Sparks + Real-time Tool)
         Positioned(
           left: carL + totalOffsetX,
           top: carT,
@@ -1009,9 +1016,39 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
           height: carH,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onPanStart:  (d) => _onDrag(d.localPosition, Size(carW, carH)),
-            onPanUpdate: (d) => _onDrag(d.localPosition, Size(carW, carH)),
-            onTapDown:   (d) => _onDrag(d.localPosition, Size(carW, carH)),
+            onPanStart: (d) {
+              setState(() {
+                _isToolActive = true;
+                _toolPos = d.localPosition;
+              });
+              _onDrag(d.localPosition, Size(carW, carH));
+            },
+            onPanUpdate: (d) {
+              setState(() {
+                _isToolActive = true;
+                _toolPos = d.localPosition;
+              });
+              _onDrag(d.localPosition, Size(carW, carH));
+            },
+            onPanEnd: (_) {
+              setState(() => _isToolActive = false);
+            },
+            onPanCancel: () {
+              setState(() => _isToolActive = false);
+            },
+            onTapDown: (d) {
+              setState(() {
+                _isToolActive = true;
+                _toolPos = d.localPosition;
+              });
+              _onDrag(d.localPosition, Size(carW, carH));
+            },
+            onTapUp: (_) {
+              setState(() => _isToolActive = false);
+            },
+            onTapCancel: () {
+              setState(() => _isToolActive = false);
+            },
             child: _CarCanvas(
               vehicle: _car,
               step: _step,
@@ -1023,6 +1060,9 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
               sparks: _sparks,
               stickers: _stickers,
               gridN: _gridN,
+              toolPos: _toolPos,
+              isToolActive: _isToolActive,
+              idlePhase: _idleToolPhase,
             ),
           ),
         ),
@@ -1348,6 +1388,9 @@ class _CarCanvas extends StatelessWidget {
   final List<_Spark> sparks;
   final List<_Sticker> stickers;
   final int gridN;
+  final Offset? toolPos;
+  final bool isToolActive;
+  final double idlePhase;
 
   const _CarCanvas({
     required this.vehicle,
@@ -1360,6 +1403,9 @@ class _CarCanvas extends StatelessWidget {
     required this.sparks,
     required this.stickers,
     required this.gridN,
+    required this.toolPos,
+    required this.isToolActive,
+    required this.idlePhase,
   });
 
   @override
@@ -1398,6 +1444,21 @@ class _CarCanvas extends StatelessWidget {
                 heightFactor: 0.3,
                 child: FittedBox(
                   child: Text(s.emoji, style: const TextStyle(fontSize: 100)),
+                ),
+              ),
+            ),
+          ),
+
+        // Real-time Dynamic Interactive Wash Tool (Hose Gun / Foam Brush / Shower / Microfiber Towel)
+        if (step == _WashStep.water || step == _WashStep.soap || step == _WashStep.rinse || step == _WashStep.dry)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: _WashToolPainter(
+                  step: step,
+                  toolPos: toolPos,
+                  isActive: isToolActive,
+                  idlePhase: idlePhase,
                 ),
               ),
             ),
@@ -1661,3 +1722,708 @@ class _BigButton extends StatelessWidget {
     );
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🔥 PREMIUM PHOTOREALISTIC WASH TOOL PAINTER (Full metallic, gradient, shadow)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _WashToolPainter extends CustomPainter {
+  final _WashStep step;
+  final Offset? toolPos;
+  final bool isActive;
+  final double idlePhase;
+
+  _WashToolPainter({
+    required this.step,
+    required this.toolPos,
+    required this.isActive,
+    required this.idlePhase,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Offset center;
+    if (toolPos != null) {
+      center = toolPos!;
+    } else {
+      final ox = size.width * 0.5 + sin(idlePhase) * (size.width * 0.25);
+      final oy = size.height * 0.45 + cos(idlePhase * 1.3) * 16;
+      center = Offset(ox, oy);
+    }
+
+    switch (step) {
+      case _WashStep.water:
+        _drawPremiumHoseGun(canvas, size, center);
+        break;
+      case _WashStep.soap:
+        _drawPremiumScrubBrush(canvas, size, center);
+        break;
+      case _WashStep.rinse:
+        _drawPremiumShowerHead(canvas, size, center);
+        break;
+      case _WashStep.dry:
+        _drawPremiumMicrofiberMitt(canvas, size, center);
+        break;
+      default:
+        break;
+    }
+
+    if (!isActive && toolPos == null) {
+      _drawGuidePrompt(canvas, center);
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 🔧 HELPER: Draw metallic gradient rounded rect (3D raised panel look)
+  // ──────────────────────────────────────────────────────────────────────────
+  void _drawMetalPanel(Canvas canvas, Rect rect, double radius, Color base) {
+    final rr = RRect.fromRectAndRadius(rect, Radius.circular(radius));
+    // Shadow
+    canvas.drawRRect(
+      rr.shift(const Offset(0, 3)),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.28)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+    );
+    // Base gradient (top-light metallic)
+    canvas.drawRRect(
+      rr,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.lerp(base, Colors.white, 0.55)!,
+            base,
+            Color.lerp(base, Colors.black, 0.32)!,
+          ],
+          stops: const [0.0, 0.4, 1.0],
+        ).createShader(rect),
+    );
+    // Specular shine streak
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromLTWH(rect.left + 4, rect.top + 3, rect.width * 0.45, rect.height * 0.35), Radius.circular(radius * 0.7)),
+      Paint()..color = Colors.white.withValues(alpha: 0.35),
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 🌊 1. HIGH-PRESSURE WATER GUN + BRAIDED RUBBER HOSE
+  // ──────────────────────────────────────────────────────────────────────────
+  void _drawPremiumHoseGun(Canvas canvas, Size size, Offset target) {
+    final gunOrigin = target;
+    final hoseAttach = target + const Offset(48, -28);
+    final hoseEnd = Offset(size.width + 20, -20);
+
+    // ── Braided rubber hose (3 layered strokes = thick + mid + highlight) ──
+    final hosePath = Path()
+      ..moveTo(hoseAttach.dx, hoseAttach.dy)
+      ..cubicTo(
+        hoseAttach.dx + 55, hoseAttach.dy - 38,
+        hoseEnd.dx - 60, hoseEnd.dy + 65,
+        hoseEnd.dx, hoseEnd.dy,
+      );
+
+    // Hose shadow
+    canvas.drawPath(hosePath, Paint()
+      ..color = Colors.black.withValues(alpha: 0.22)
+      ..strokeWidth = 14
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
+
+    // Hose body (dark rubber core)
+    canvas.drawPath(hosePath, Paint()
+      ..color = const Color(0xFF1565C0)
+      ..strokeWidth = 12
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round);
+
+    // Hose mid highlight
+    canvas.drawPath(hosePath, Paint()
+      ..color = const Color(0xFF42A5F5)
+      ..strokeWidth = 6
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round);
+
+    // Hose glint streak (top shine)
+    canvas.drawPath(hosePath, Paint()
+      ..color = Colors.white.withValues(alpha: 0.55)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round);
+
+    // Hose coil rings (braid texture dots)
+    for (int i = 0; i <= 8; i++) {
+      final t = i / 8.0;
+      final cx2 = hoseAttach.dx + t * (hoseEnd.dx - hoseAttach.dx);
+      final cy2 = hoseAttach.dy + t * (hoseEnd.dy - hoseAttach.dy) - sin(t * pi) * 38;
+      canvas.drawCircle(Offset(cx2, cy2), 2.5, Paint()..color = const Color(0xFF0D47A1).withValues(alpha: 0.65));
+    }
+
+    // ── Water jet spray (active) ──
+    if (isActive) {
+      final sprayOrigin = target + const Offset(-2, 4);
+      final sprayDir = const Offset(-0.65, 0.75);
+      for (int j = 0; j < 5; j++) {
+        final spread = (j - 2) * 0.12;
+        final dir = Offset(sprayDir.dx + spread, sprayDir.dy - spread.abs() * 0.3).normalize();
+        final tipEnd = sprayOrigin + dir * (40.0 + j * 8);
+
+        canvas.drawLine(
+          sprayOrigin,
+          tipEnd,
+          Paint()
+            ..color = Color.lerp(const Color(0xEE00B0FF), const Color(0x3380D8FF), j / 4.0)!
+            ..strokeWidth = (3.5 - j * 0.4).clamp(1.0, 4.0)
+            ..strokeCap = StrokeCap.round
+            ..style = PaintingStyle.stroke
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, j * 0.6),
+        );
+      }
+
+      // Mist splash at spray end
+      for (int k = 0; k < 4; k++) {
+        final ang = k * pi / 2 + idlePhase * 3;
+        final sx = sprayOrigin.dx - 22 + cos(ang) * 14;
+        final sy = sprayOrigin.dy + 38 + sin(ang) * 8;
+        canvas.drawCircle(Offset(sx, sy), 5.0 - k * 0.5, Paint()
+          ..color = const Color(0x8040C4FF)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3));
+      }
+    }
+
+    // ── Gun body (metallic dark grey) ──
+    canvas.save();
+    canvas.translate(gunOrigin.dx, gunOrigin.dy);
+    canvas.rotate(0.62);
+
+    // Main body
+    _drawMetalPanel(canvas, const Rect.fromLTWH(24, -11, 38, 26), 5, const Color(0xFF37474F));
+
+    // Nozzle tube
+    _drawMetalPanel(canvas, const Rect.fromLTWH(-4, -7, 30, 14), 4, const Color(0xFF78909C));
+
+    // Nozzle tip ring (brass)
+    canvas.drawCircle(Offset.zero, 7, Paint()
+      ..shader = const RadialGradient(
+        colors: [Color(0xFFFFD54F), Color(0xFFFF8F00), Color(0xFFBF360C)],
+      ).createShader(const Rect.fromLTWH(-7, -7, 14, 14)));
+    canvas.drawCircle(Offset.zero, 4, Paint()..color = const Color(0xFF212121));
+
+    // Trigger guard
+    final triggerPath = Path()
+      ..moveTo(36, 0)
+      ..lineTo(36, 18)
+      ..quadraticBezierTo(44, 22, 50, 15)
+      ..lineTo(50, 10)
+      ..close();
+    canvas.drawPath(triggerPath, Paint()..color = const Color(0xFF263238));
+
+    // Trigger lever (red)
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(const Rect.fromLTWH(34, 4, 6, 14), const Radius.circular(2)),
+      Paint()..color = const Color(0xFFEF5350),
+    );
+
+    // Grip handle ergonomic wrap
+    final gripPath = Path()
+      ..moveTo(48, 15)
+      ..lineTo(44, 40)
+      ..quadraticBezierTo(38, 46, 34, 42)
+      ..lineTo(38, 18);
+    canvas.drawPath(gripPath, Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [const Color(0xFF455A64), const Color(0xFF1C313A)],
+      ).createShader(const Rect.fromLTWH(34, 15, 14, 31)));
+
+    // Grip texture knurling lines
+    final knurlPaint = Paint()..color = Colors.black.withValues(alpha: 0.3)..strokeWidth = 1.0..style = PaintingStyle.stroke;
+    for (int i = 0; i < 4; i++) {
+      canvas.drawLine(Offset(36 + i * 2.0, 22.0), Offset(36 + i * 2.0, 38.0), knurlPaint);
+    }
+
+    // Water connector elbow (back of gun)
+    canvas.drawCircle(const Offset(58, 5), 6, Paint()
+      ..color = const Color(0xFF78909C)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1));
+
+    canvas.restore();
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 🧽 2. PREMIUM CAR WASH BRUSH (Long-handle ergonomic + Dense bristles + Foam)
+  // ──────────────────────────────────────────────────────────────────────────
+  void _drawPremiumScrubBrush(Canvas canvas, Size size, Offset target) {
+    final jiggle = isActive ? sin(idlePhase * 14) * 0.10 : sin(idlePhase * 1.8) * 0.04;
+
+    canvas.save();
+    canvas.translate(target.dx, target.dy);
+    canvas.rotate(jiggle - 0.5);
+
+    // ── Shadow of entire brush ──
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(const Rect.fromLTWH(-28, -78, 56, 110), const Radius.circular(12)),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.18)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+    );
+
+    // ── BRUSH BRISTLE HEAD (dense rows, yellow + white foam) ──
+    // Bristle backing plate
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(const Rect.fromLTWH(-28, 18, 56, 26), const Radius.circular(6)),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [const Color(0xFFFFCA28), const Color(0xFFF57F17)],
+        ).createShader(const Rect.fromLTWH(-28, 18, 56, 26)),
+    );
+
+    // Bristle rows (white/cream tight rows)
+    final bristlePaint = Paint()..strokeWidth = 1.8..strokeCap = StrokeCap.round..style = PaintingStyle.stroke;
+    for (int col = -10; col <= 10; col += 2) {
+      for (int row = 0; row < 3; row++) {
+        final bx = col * 2.5;
+        final byTop = 44.0 + row * 2.5;
+        final byBot = byTop + 14.0;
+        final wobble = sin(idlePhase * 12 + col * 0.4) * (isActive ? 2.5 : 0.5);
+        bristlePaint.color = row == 0 ? Colors.white : const Color(0xFFFFF9C4);
+        canvas.drawLine(Offset(bx, byTop), Offset(bx + wobble, byBot), bristlePaint);
+      }
+    }
+
+    // Foam froth at bristle base (3D puffy look)
+    final foamPaints = [
+      Paint()..color = Colors.white.withValues(alpha: 0.98),
+      Paint()..color = const Color(0xFFE3F2FD).withValues(alpha: 0.9),
+    ];
+    final foamBubbles = [
+      [-22.0, 44.0, 8.0], [-8.0, 42.0, 10.0], [6.0, 43.0, 9.0], [20.0, 44.0, 7.5],
+      [-15.0, 52.0, 7.0], [-2.0, 53.0, 9.0], [12.0, 51.0, 7.0],
+    ];
+    for (int f = 0; f < foamBubbles.length; f++) {
+      final b = foamBubbles[f];
+      final shimmer = isActive ? sin(idlePhase * 8 + f) * 1.5 : 0.0;
+      canvas.drawCircle(Offset(b[0], b[1] + shimmer), b[2], foamPaints[f % 2]);
+      // Glint on each bubble
+      canvas.drawCircle(Offset(b[0] - b[2] * 0.35, b[1] - b[2] * 0.3 + shimmer), b[2] * 0.25, Paint()..color = Colors.white.withValues(alpha: 0.9));
+    }
+
+    // Flying bubbles when active
+    if (isActive) {
+      for (int i = 0; i < 7; i++) {
+        final ang = i * (pi * 2 / 7) + idlePhase * 5;
+        final d = 38.0 + sin(idlePhase * 4 + i * 1.1) * 10;
+        final bx = cos(ang) * d;
+        final by = sin(ang) * d + 10;
+        final r = 5.0 + (i % 3) * 2.5;
+        canvas.drawCircle(Offset(bx, by), r, Paint()
+          ..color = const Color(0xCCB3E5FC)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1));
+        canvas.drawCircle(Offset(bx - r * 0.3, by - r * 0.3), r * 0.3, Paint()..color = Colors.white.withValues(alpha: 0.85));
+      }
+    }
+
+    // ── CONNECTOR COLLAR (chrome ring) ──
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(const Rect.fromLTWH(-22, 12, 44, 10), const Radius.circular(4)),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [const Color(0xFFECEFF1), const Color(0xFF90A4AE), const Color(0xFF37474F)],
+        ).createShader(const Rect.fromLTWH(-22, 12, 44, 10)),
+    );
+
+    // ── HANDLE (ergonomic rubberized with grip texture) ──
+    // Handle shadow
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(const Rect.fromLTWH(-11, -78, 22, 96), const Radius.circular(10)),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.15)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3)
+        ..style = PaintingStyle.fill,
+    );
+
+    // Handle body gradient
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(const Rect.fromLTWH(-10, -76, 20, 92), const Radius.circular(9)),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [const Color(0xFF00838F), const Color(0xFF00BCD4), const Color(0xFF006064)],
+          stops: const [0.0, 0.45, 1.0],
+        ).createShader(const Rect.fromLTWH(-10, -76, 20, 92)),
+    );
+
+    // Handle specular
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(const Rect.fromLTWH(-6, -70, 6, 70), const Radius.circular(3)),
+      Paint()..color = Colors.white.withValues(alpha: 0.3),
+    );
+
+    // Grip knurling indents
+    for (int g = 0; g < 8; g++) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(Rect.fromLTWH(-9, -56 + g * 9.0, 18, 5), const Radius.circular(2)),
+        Paint()..color = const Color(0xFF00BFA5).withValues(alpha: 0.55),
+      );
+    }
+
+    // Handle top cap
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(const Rect.fromLTWH(-12, -80, 24, 10), const Radius.circular(8)),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [const Color(0xFFECEFF1), const Color(0xFF78909C)],
+        ).createShader(const Rect.fromLTWH(-12, -80, 24, 10)),
+    );
+
+    canvas.restore();
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 🚿 3. PREMIUM CHROME SHOWER RINSE HEAD + STAINLESS HOSE
+  // ──────────────────────────────────────────────────────────────────────────
+  void _drawPremiumShowerHead(Canvas canvas, Size size, Offset target) {
+    final hoseEnd = Offset(size.width + 20, -25);
+
+    // ── STAINLESS STEEL HOSE (twisted metallic) ──
+    final hp1 = target + const Offset(32, -22);
+    final hosePath = Path()
+      ..moveTo(hp1.dx, hp1.dy)
+      ..cubicTo(
+        hp1.dx + 60, hp1.dy - 42,
+        hoseEnd.dx - 55, hoseEnd.dy + 72,
+        hoseEnd.dx, hoseEnd.dy,
+      );
+
+    canvas.drawPath(hosePath, Paint()
+      ..color = Colors.black.withValues(alpha: 0.22)
+      ..strokeWidth = 15
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
+
+    canvas.drawPath(hosePath, Paint()
+      ..color = const Color(0xFF546E7A)
+      ..strokeWidth = 12
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round);
+
+    canvas.drawPath(hosePath, Paint()
+      ..color = const Color(0xFF90A4AE)
+      ..strokeWidth = 7
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round);
+
+    canvas.drawPath(hosePath, Paint()
+      ..color = Colors.white.withValues(alpha: 0.5)
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round);
+
+    // Stainless coil rings
+    for (int i = 0; i <= 10; i++) {
+      final t = i / 10.0;
+      final cx2 = hp1.dx + t * (hoseEnd.dx - hp1.dx);
+      final cy2 = hp1.dy + t * (hoseEnd.dy - hp1.dy) - sin(t * pi) * 42;
+      canvas.drawCircle(Offset(cx2, cy2), 2.0, Paint()
+        ..color = const Color(0xFF37474F).withValues(alpha: 0.7)
+        ..style = PaintingStyle.fill);
+    }
+
+    // ── Water streams (active) ──
+    if (isActive) {
+      final nozzleBase = target + const Offset(0, 12);
+      for (int i = -4; i <= 4; i++) {
+        final sx = nozzleBase.dx + i * 7.5;
+        final curveFactor = sin(idlePhase * 8 + i * 0.5) * 6;
+        final streamPath = Path()
+          ..moveTo(sx, nozzleBase.dy)
+          ..quadraticBezierTo(sx + curveFactor - 10, nozzleBase.dy + 28, sx - 12 + i * 4.0, nozzleBase.dy + 58);
+
+        canvas.drawPath(streamPath, Paint()
+          ..color = Color.lerp(const Color(0xDD29B6F6), const Color(0x6681D4FA), i.abs() / 4.0)!
+          ..strokeWidth = (2.5 - i.abs() * 0.18).clamp(1.0, 2.8)
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round);
+      }
+      // Splash pool at ground
+      canvas.drawOval(
+        Rect.fromCenter(center: target + const Offset(-12, 65), width: 55, height: 14),
+        Paint()
+          ..color = const Color(0x5529B6F6)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+      );
+    }
+
+    // ── CHROME SHOWER HEAD BODY ──
+    canvas.save();
+    canvas.translate(target.dx, target.dy);
+    canvas.rotate(0.45);
+
+    // Head shadow
+    canvas.drawOval(
+      const Rect.fromLTWH(-28, -10, 56, 20),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.25)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+    );
+
+    // Disc face (chrome gradient)
+    canvas.drawOval(
+      const Rect.fromLTWH(-26, -9, 52, 18),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFFECEFF1),
+            const Color(0xFFB0BEC5),
+            const Color(0xFF546E7A),
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ).createShader(const Rect.fromLTWH(-26, -9, 52, 18)),
+    );
+
+    // Spray holes grid
+    final holePaint = Paint()..color = const Color(0xFF263238);
+    for (int hx = -3; hx <= 3; hx++) {
+      canvas.drawCircle(Offset(hx * 6.5, 0), 1.8, holePaint);
+    }
+    for (int hx = -2; hx <= 2; hx++) {
+      canvas.drawCircle(Offset(hx * 6.5, 6.0), 1.8, holePaint);
+      canvas.drawCircle(Offset(hx * 6.5, -6.0), 1.8, holePaint);
+    }
+
+    // Chrome rim ring
+    canvas.drawOval(
+      const Rect.fromLTWH(-26, -9, 52, 18),
+      Paint()
+        ..color = const Color(0xFF90A4AE)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0,
+    );
+
+    // Specular glint
+    canvas.drawOval(
+      const Rect.fromLTWH(-18, -6, 18, 6),
+      Paint()..color = Colors.white.withValues(alpha: 0.6),
+    );
+
+    // Handle neck (connector stem)
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(const Rect.fromLTWH(-9, -30, 18, 22), const Radius.circular(5)),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [const Color(0xFFB0BEC5), const Color(0xFF78909C), const Color(0xFF37474F)],
+        ).createShader(const Rect.fromLTWH(-9, -30, 18, 22)),
+    );
+    // Neck ring accent
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(const Rect.fromLTWH(-10, -18, 20, 5), const Radius.circular(2)),
+      Paint()
+        ..shader = LinearGradient(
+          colors: [const Color(0xFFECEFF1), const Color(0xFF78909C)],
+        ).createShader(const Rect.fromLTWH(-10, -18, 20, 5)),
+    );
+
+    canvas.restore();
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 🧤 4. PREMIUM MICROFIBER WASH MITT (3D plush, stitching, gradient)
+  // ──────────────────────────────────────────────────────────────────────────
+  void _drawPremiumMicrofiberMitt(Canvas canvas, Size size, Offset target) {
+    final tilt = isActive ? sin(idlePhase * 11) * 0.13 : sin(idlePhase * 1.7) * 0.05;
+
+    canvas.save();
+    canvas.translate(target.dx, target.dy);
+    canvas.rotate(tilt - 0.15);
+
+    // ── Shadow ──
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(const Rect.fromLTWH(-38, -32, 72, 66), const Radius.circular(25)),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.22)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+    );
+
+    // ── MITT THUMB (left side) ──
+    final thumbPath = Path()
+      ..moveTo(-38, -10)
+      ..quadraticBezierTo(-55, -18, -52, -4)
+      ..quadraticBezierTo(-50, 8, -38, 14);
+    thumbPath.close();
+    canvas.drawPath(thumbPath, Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [const Color(0xFF40C4FF), const Color(0xFF0288D1)],
+      ).createShader(const Rect.fromLTWH(-56, -20, 22, 38)));
+
+    // ── MAIN MITT BODY ──
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(const Rect.fromLTWH(-36, -30, 72, 62), const Radius.circular(22)),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF81D4FA),
+            const Color(0xFF29B6F6),
+            const Color(0xFF0288D1),
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ).createShader(const Rect.fromLTWH(-36, -30, 72, 62)),
+    );
+
+    // ── MICROFIBER SURFACE TEXTURE (plush waffle grid) ──
+    final meshPaint = Paint()
+      ..color = const Color(0xFF0277BD).withValues(alpha: 0.35)
+      ..strokeWidth = 0.9
+      ..style = PaintingStyle.stroke;
+    // Horizontal mesh lines
+    for (int row = -3; row <= 3; row++) {
+      canvas.drawLine(Offset(-32, row * 8.0), Offset(32, row * 8.0), meshPaint);
+    }
+    // Vertical mesh lines
+    for (int col = -3; col <= 3; col++) {
+      canvas.drawLine(Offset(col * 10.0, -26), Offset(col * 10.0, 26), meshPaint);
+    }
+    // Diagonal stitch lines
+    final stitchPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.22)
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(const Offset(-30, -24), const Offset(28, 26), stitchPaint);
+    canvas.drawLine(const Offset(-30, 0), const Offset(28, -26), stitchPaint);
+    canvas.drawLine(const Offset(-14, -28), const Offset(28, 14), stitchPaint);
+
+    // ── Specular highlight band ──
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(const Rect.fromLTWH(-24, -24, 28, 36), const Radius.circular(14)),
+      Paint()..color = Colors.white.withValues(alpha: 0.28),
+    );
+
+    // ── PLUSH LOOPS texture (tiny raised fiber dots) ──
+    final loopPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.4)
+      ..style = PaintingStyle.fill;
+    final loopPositions = [
+      const Offset(-20, -14), const Offset(8, -18), const Offset(-4, 4),
+      const Offset(18, 8), const Offset(-16, 16), const Offset(10, -4),
+      const Offset(24, -10), const Offset(-26, 2), const Offset(4, 20),
+    ];
+    for (final lp in loopPositions) {
+      canvas.drawCircle(lp, 2.5, loopPaint);
+    }
+
+    // ── WRIST CUFF (elastic terry cloth band) ──
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(const Rect.fromLTWH(-30, 26, 60, 16), const Radius.circular(8)),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.white, const Color(0xFFE1F5FE), const Color(0xFF81D4FA)],
+        ).createShader(const Rect.fromLTWH(-30, 26, 60, 16)),
+    );
+
+    // Elastic rib lines on cuff
+    final ribPaint = Paint()
+      ..color = const Color(0xFFB3E5FC).withValues(alpha: 0.7)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+    for (int r = 0; r < 5; r++) {
+      canvas.drawLine(Offset(-28, 28 + r * 2.8), Offset(28, 28 + r * 2.8), ribPaint);
+    }
+
+    // Cuff logo dot
+    canvas.drawCircle(const Offset(18, 34), 4, Paint()..color = const Color(0xFF0288D1));
+    canvas.drawCircle(const Offset(18, 34), 2.5, Paint()..color = Colors.white);
+
+    // ── SPARKLE STARS when actively drying ──
+    if (isActive) {
+      final starPositions = [
+        [const Offset(-48, -22), 10.0, const Color(0xFFFFD700)],
+        [const Offset(44, -16), 12.0, const Color(0xFFE0F7FA)],
+        [const Offset(-30, 40), 9.0, Colors.white],
+        [const Offset(36, 36), 11.0, const Color(0xFFFF4081)],
+        [const Offset(0, -40), 8.0, const Color(0xFFFFFF00)],
+      ];
+      for (final s in starPositions) {
+        _drawSparkleStar(canvas, s[0] as Offset, (s[1] as double) * (0.8 + 0.2 * sin(idlePhase * 6)), s[2] as Color);
+      }
+    }
+
+    canvas.restore();
+  }
+
+  // ── Helper: Premium 4-Point Sparkle Star ──
+  void _drawSparkleStar(Canvas canvas, Offset center, double radius, Color color) {
+    // Outer glow
+    canvas.drawCircle(center, radius * 1.2, Paint()
+      ..color = color.withValues(alpha: 0.35)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5));
+
+    final path = Path();
+    final shortR = radius * 0.38;
+    for (int i = 0; i < 8; i++) {
+      final ang = i * pi / 4;
+      final r = (i % 2 == 0) ? radius : shortR;
+      final p = center + Offset(cos(ang) * r, sin(ang) * r);
+      if (i == 0) {
+        path.moveTo(p.dx, p.dy);
+      } else {
+        path.lineTo(p.dx, p.dy);
+      }
+    }
+    path.close();
+    canvas.drawPath(path, Paint()..color = color);
+    canvas.drawCircle(center, radius * 0.22, Paint()..color = Colors.white.withValues(alpha: 0.9));
+  }
+
+  // ── Helper: Guide Prompt ──
+  void _drawGuidePrompt(Canvas canvas, Offset center) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: '👆 쓱싹 문질러요!',
+        style: GoogleFonts.jua(
+          fontSize: 13,
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          shadows: [
+            const Shadow(color: Colors.black54, blurRadius: 4, offset: Offset(0, 1)),
+          ],
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    tp.layout();
+    tp.paint(canvas, center + Offset(-tp.width / 2, 42));
+  }
+
+  @override
+  bool shouldRepaint(_WashToolPainter oldDelegate) => true;
+}
+
+// ── Offset normalize helper ──
+extension _OffsetNormalize on Offset {
+  Offset normalize() {
+    final len = distance;
+    return len > 0 ? this / len : const Offset(0, 1);
+  }
+}
+
+

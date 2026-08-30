@@ -168,34 +168,202 @@ class _LobbyScreenState extends State<LobbyScreen>
     AudioManager.instance.playClick();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('🛡️ 개인정보 처리방침'),
-        content: const SingleChildScrollView(
-          child: Text(
-            '본 앱은 유아동을 위해 안전하게 설계되었습니다.\n\n'
-            '1. 사용자 데이터를 외부 서버로 일절 전송하지 않으며, 모든 그림 및 스티커 데이터는 오직 현재 기기(로컬)에만 안전하게 저장됩니다.\n'
-            '2. 외부 광고 네트워크를 포함하지 않습니다. (단, 일부 신규 게임 콘텐츠는 부모 확인 절차를 거쳐야만 접근할 수 있는 안전한 인앱 결제로 제공될 수 있습니다.)\n'
-            '3. 구글 플레이 가족 정책(Designed for Families) 가이드라인을 철저히 준수합니다.\n\n'
-            '안심하고 아이와 함께 즐거운 놀이를 경험하세요!',
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: KidsTheme.blue.withValues(alpha: 0.25),
+                  blurRadius: 40,
+                  offset: const Offset(0, 12),
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // ── Gradient Header ────────────────────────────────────
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF4FC3F7), Color(0xFF118AB2)],
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              width: 2,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.shield_rounded,
+                            color: Colors.white,
+                            size: 36,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          '개인정보 처리방침',
+                          style: GoogleFonts.jua(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '아이들을 위한 안전한 앱을 약속해요',
+                          style: GoogleFonts.outfit(
+                            fontSize: 13,
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // ── Content ────────────────────────────────────────────
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _PrivacyPolicyItem(
+                            icon: Icons.lock_rounded,
+                            iconColor: KidsTheme.green,
+                            bgColor: const Color(0xFFE8FBF4),
+                            title: '데이터 비전송',
+                            body: '사용자 데이터를 외부 서버로 일절 전송하지 않습니다. 모든 그림 및 스티커 데이터는 오직 현재 기기(로컬)에만 안전하게 저장됩니다.',
+                          ),
+                          const SizedBox(height: 10),
+                          _PrivacyPolicyItem(
+                            icon: Icons.block_rounded,
+                            iconColor: KidsTheme.orange,
+                            bgColor: const Color(0xFFFFF3E0),
+                            title: '광고 없음',
+                            body: '외부 광고 네트워크를 포함하지 않습니다. 일부 신규 콘텐츠는 부모 확인 절차를 거친 안전한 인앱 결제로만 제공됩니다.',
+                          ),
+                          const SizedBox(height: 10),
+                          _PrivacyPolicyItem(
+                            icon: Icons.family_restroom_rounded,
+                            iconColor: KidsTheme.purple,
+                            bgColor: const Color(0xFFF5EEFF),
+                            title: '가족 정책 준수',
+                            body: '구글 플레이 가족 정책(Designed for Families) 가이드라인을 철저히 준수합니다.',
+                          ),
+                          const SizedBox(height: 20),
+                          // 안심 메시지
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFFFF5F8), Color(0xFFEEF6FF)],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: KidsTheme.blue.withValues(alpha: 0.2),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Text('✨', style: TextStyle(fontSize: 20)),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    '안심하고 아이와 함께 즐거운 놀이를 경험하세요!',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 13,
+                                      color: KidsTheme.textDark,
+                                      fontWeight: FontWeight.w600,
+                                      height: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // ── Close Button ───────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                    child: GestureDetector(
+                      onTap: () {
+                        AudioManager.instance.playClick();
+                        Navigator.of(context).pop();
+                      },
+                      child: Container(
+                        height: 52,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF4FC3F7), Color(0xFF118AB2)],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: KidsTheme.blue.withValues(alpha: 0.35),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '확인했어요 ✓',
+                          style: GoogleFonts.jua(
+                            fontSize: 17,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-        actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)),
-            onPressed: () {
-              AudioManager.instance.playClick();
-              Navigator.of(context).pop();
-            },
-            child: const Text('확인', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
   }
 
+// ── Privacy Policy Item Widget is defined at bottom of file ────────────────
+
   void _showHighScoresDialog(BuildContext context) {
     showDialog(
       context: context,
+
       builder: (context) {
         return Dialog(
           backgroundColor: Colors.transparent,
@@ -744,7 +912,7 @@ class _LobbyScreenState extends State<LobbyScreen>
           ],
         ),
         gradientColors: KidsTheme.gameGradients['orange'] ?? const [Color(0xFFFF9F1C), Color(0xFFFF6B35)],
-        isNew: true,
+        isNew: false,
         onTap: () {
           AudioManager.instance.playClick();
           Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CarBuilderGame()));
@@ -1055,4 +1223,72 @@ class _GameData {
     this.isNew = false,
     this.isPremium = false,
   });
+}
+
+// ── Privacy Policy Item Widget ──────────────────────────────────────────────
+class _PrivacyPolicyItem extends StatelessWidget {
+  const _PrivacyPolicyItem({
+    required this.icon,
+    required this.iconColor,
+    required this.bgColor,
+    required this.title,
+    required this.body,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final Color bgColor;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: iconColor, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.outfit(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: KidsTheme.textDark,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  body,
+                  style: GoogleFonts.outfit(
+                    fontSize: 12.5,
+                    color: KidsTheme.textLight,
+                    height: 1.6,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

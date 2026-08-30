@@ -170,8 +170,8 @@ List<_PatientData> _buildPatientList() {
       title: '나뭇가지에 긁혔어요!',
       symptom: '당근 밭에서 신나게 뛰다가 나뭇가지에 긁히고 열이 나요! 🐰',
       bodyColor: const Color(0xFFB2EBF2), // Refreshing soft pastel mint-sky
-      darkColor: const Color(0xFF4DD0E1),
-      faceColor: const Color(0xFFB2EBF2),
+      darkColor: const Color(0xFF0097A7), // Deep vibrant teal border
+      faceColor: const Color(0xFFE0F7FA),
       bellyColor: const Color(0xFFFFFFFF),
       earColor: const Color(0xFFFFFFFF),
       eyeColor: const Color(0xFF212121),
@@ -194,8 +194,8 @@ List<_PatientData> _buildPatientList() {
       title: '대나무 숲에서 쿵 굴렀어요!',
       symptom: '대나무 숲에서 데굴데굴 구르다 가시가 박히고 열이 나요! 🐼🎋',
       bodyColor: const Color(0xFFFAFAFA), // Crisp pure white
-      darkColor: const Color(0xFF263238), // Dark charcoal black
-      faceColor: const Color(0xFFB0BEC5),
+      darkColor: const Color(0xFF263238), // Bold dark charcoal black
+      faceColor: const Color(0xFFECEFF1),
       bellyColor: const Color(0xFFFFFFFF),
       earColor: const Color(0xFF263238),
       eyeColor: const Color(0xFF212121),
@@ -234,6 +234,100 @@ List<_PatientData> _buildPatientList() {
         _WoundItem(id: 1, label: '오른쪽 볼', pos: const Offset(205, 140), width: 44, height: 28),
       ],
       thankMessage: '풍성한 꼬리를 살랑살랑 흔들며 인사해요! 루루 행복해요! 🦊🍁',
+    ),
+    _PatientData(
+      id: 'tiger',
+      name: '아기 호랑이 호치',
+      emoji: '🐯',
+      title: '정글 덤불에 발이 콕콕!',
+      symptom: '정글에서 신나게 뛰놀다 가시가 콕콕 박히고 열이 나요! 어흥~ 🐯',
+      bodyColor: const Color(0xFFFF9800), // Vibrant tiger orange
+      darkColor: const Color(0xFFE65100), // Deep orange border
+      faceColor: const Color(0xFFFFE0B2),
+      bellyColor: const Color(0xFFFFF8E1),
+      earColor: const Color(0xFFE65100),
+      eyeColor: const Color(0xFF212121),
+      initialTemp: 38.6,
+      thorns: [
+        _ThornItem(id: 0, label: '오른쪽 귀', pos: const Offset(228, 88), angle: 0.3),
+        _ThornItem(id: 1, label: '왼쪽 앞발', pos: const Offset(115, 260), angle: -0.2),
+        _ThornItem(id: 2, label: '용맹한 꼬리', pos: const Offset(260, 190), angle: 0.35),
+      ],
+      wounds: [
+        _WoundItem(id: 0, label: '통통한 배', pos: const Offset(160, 205), width: 54, height: 32),
+        _WoundItem(id: 1, label: '왼쪽 볼', pos: const Offset(105, 140), width: 44, height: 28),
+      ],
+      thankMessage: '호치 발이 하나도 안 아파요! 씩씩하게 어흥~ 고마워요! 🐯🧡',
+    ),
+    _PatientData(
+      id: 'penguin',
+      name: '아기 펭귄 핑구',
+      emoji: '🐧',
+      title: '얼음 미끄럼틀 타다 쿵!',
+      symptom: '얼음 미끄럼틀을 타다 쿵 넘어져서 날개가 긁혔어요! 뒤뚱뒤뚱~ 🐧',
+      bodyColor: const Color(0xFF263238), // Dark tuxedo blue-charcoal
+      darkColor: const Color(0xFF000A12), // Jet black border
+      faceColor: const Color(0xFFECEFF1),
+      bellyColor: const Color(0xFFFFFFFF),
+      earColor: const Color(0xFFFFB300),
+      eyeColor: const Color(0xFF212121),
+      initialTemp: 38.8,
+      thorns: [
+        _ThornItem(id: 0, label: '오른쪽 날개', pos: const Offset(255, 170), angle: 0.3),
+        _ThornItem(id: 1, label: '왼쪽 발', pos: const Offset(125, 275), angle: -0.2),
+      ],
+      wounds: [
+        _WoundItem(id: 0, label: '둥근 배', pos: const Offset(160, 200), width: 54, height: 32),
+        _WoundItem(id: 1, label: '부리 옆', pos: const Offset(195, 135), width: 44, height: 28),
+      ],
+      thankMessage: '얼음처럼 시원하고 날개가 가벼워요! 뒤뚱뒤뚱 춤출게요~ 🐧❄️',
+    ),
+    _PatientData(
+      id: 'lion',
+      name: '아기 사자 레오',
+      emoji: '🦁',
+      title: '가시덤불에 걸렸어요!',
+      symptom: '사바나 초원에서 달리기하다 가시덤불에 걸려 열이 나요! 크앙~ 🦁',
+      bodyColor: const Color(0xFFFFB74D), // Golden lion fur
+      darkColor: const Color(0xFFBF360C), // Deep terracotta brown
+      faceColor: const Color(0xFFFFF3E0),
+      bellyColor: const Color(0xFFFFE082),
+      earColor: const Color(0xFFD84315),
+      eyeColor: const Color(0xFF212121),
+      initialTemp: 38.5,
+      thorns: [
+        _ThornItem(id: 0, label: '풍성한 갈기', pos: const Offset(245, 95), angle: 0.3),
+        _ThornItem(id: 1, label: '꼬리 술', pos: const Offset(65, 200), angle: -0.35),
+        _ThornItem(id: 2, label: '오른발', pos: const Offset(195, 265), angle: 0.2),
+      ],
+      wounds: [
+        _WoundItem(id: 0, label: '가슴', pos: const Offset(155, 195), width: 54, height: 32),
+        _WoundItem(id: 1, label: '오른쪽 볼', pos: const Offset(205, 140), width: 44, height: 28),
+      ],
+      thankMessage: '갈기도 찰랑찰랑! 용감한 백수의 왕 레오 출동해요! 🦁👑',
+    ),
+    _PatientData(
+      id: 'koala',
+      name: '아기 코알라 코코',
+      emoji: '🐨',
+      title: '나무에서 졸다가 쿵!',
+      symptom: '유칼립투스 나무에서 졸다가 쿵 떨어져서 상처가 났어요! 쿨쿨~ 🐨',
+      bodyColor: const Color(0xFF90A4AE), // Soft eucalyptus gray
+      darkColor: const Color(0xFF37474F), // Slate gray border
+      faceColor: const Color(0xFFECEFF1),
+      bellyColor: const Color(0xFFCFD8DC),
+      earColor: const Color(0xFF455A64),
+      eyeColor: const Color(0xFF212121),
+      initialTemp: 38.4,
+      thorns: [
+        _ThornItem(id: 0, label: '복슬복슬 귀', pos: const Offset(105, 75), angle: -0.3),
+        _ThornItem(id: 1, label: '오른손', pos: const Offset(245, 175), angle: 0.25),
+      ],
+      wounds: [
+        _WoundItem(id: 0, label: '둥근 배', pos: const Offset(160, 205), width: 54, height: 32),
+        _WoundItem(id: 1, label: '왼쪽 뺨', pos: const Offset(115, 140), width: 44, height: 28),
+      ],
+      thankMessage: '초록 잎사귀처럼 상쾌해요! 꼬옥 안아줄게요 고마워요! 🐨🌿',
     ),
   ];
 }
@@ -470,20 +564,20 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
     if (wound.healProgress >= 1.0) return;
 
     AudioManager.instance.playEffect('audio/car_soap_foam.wav', rate: 1.4);
-    HapticFeedback.lightImpact();
+    HapticFeedback.mediumImpact();
 
     setState(() {
-      wound.healProgress = (wound.healProgress + 0.5).clamp(0.0, 1.0);
-      if (wound.healProgress >= 1.0) {
-        _customDialogue = '${wound.label} 상처가 깨끗하게 소독되었어요! 🧴✨';
-      }
+      // 🧴 단 1회 터치로 즉시 100% 소독 완료!
+      wound.healProgress = 1.0;
+      _customDialogue = '${wound.label} 상처가 깨끗하게 소독되었어요! 🧴✨';
     });
 
-    _spawnSparkles(wound.pos, color: const Color(0xFF81D4FA), count: 8, text: '🫧');
+    _spawnSparkles(wound.pos, color: const Color(0xFF81D4FA), count: 12, text: '🫧');
+    _spawnSparkles(wound.pos, color: const Color(0xFFFFD54F), count: 8, text: '✨');
 
     // Check all wounds disinfected
     if (_liveWounds.every((w) => w.healProgress >= 1.0)) {
-      Future.delayed(const Duration(milliseconds: 600), () {
+      Future.delayed(const Duration(milliseconds: 500), () {
         if (!mounted) return;
         _playSoftChime();
         setState(() {
@@ -935,10 +1029,10 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: patient.bodyColor.withValues(alpha: 0.6), width: 3),
+          border: Border.all(color: patient.darkColor, width: 3.2),
           boxShadow: [
             BoxShadow(
-              color: patient.bodyColor.withValues(alpha: 0.2),
+              color: patient.darkColor.withValues(alpha: 0.18),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -950,9 +1044,9 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
               width: 68,
               height: 68,
               decoration: BoxDecoration(
-                color: patient.faceColor.withValues(alpha: 0.7),
+                color: patient.faceColor.withValues(alpha: 0.8),
                 shape: BoxShape.circle,
-                border: Border.all(color: patient.bodyColor, width: 2.5),
+                border: Border.all(color: patient.darkColor, width: 2.5),
               ),
               alignment: Alignment.center,
               child: Text(patient.emoji, style: const TextStyle(fontSize: 38)),
@@ -979,7 +1073,7 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: patient.bodyColor,
+                color: patient.darkColor,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -1058,8 +1152,8 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
   // ── Patient Interactive Body Canvas (Clean Nordic Clinic Scene) ───────────
 
   Widget _buildPatientInteractiveCanvas() {
-    const canvasW = 340.0;
-    const canvasH = 360.0;
+    const canvasW = 350.0;
+    const canvasH = 440.0;
 
     return AnimatedBuilder(
       animation: _jumpCtrl,
@@ -1080,24 +1174,24 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
             // 1. Warm & Clean Minimalist Clinic Examination Mat
             _buildLargeHospitalRoomScene(),
 
-            // 2. Master Nordic Vector Animal Patient
+            // 2. Master Nordic Vector Animal Patient (Scaled up 1.25x for big, adorable presence)
             _buildLargeAliveAnimalPatient(),
 
-            // 3. Elegant Stethoscope Target (On Chest / Tummy)
+            // 3. Elegant Stethoscope Target (On Chest / Tummy - Natural placement)
             if (_step == HospitalStep.diagnose)
               Positioned(
-                left: 115,
-                top: 155,
+                left: 85,
+                top: 220,
                 width: 90,
                 height: 90,
                 child: _buildHeartbeatTarget(),
               ),
 
-            // 4. Elegant Thermometer Target (On Forehead)
+            // 4. Elegant Thermometer Target (On Forehead - Unobtrusive)
             if (_step == HospitalStep.diagnose)
               Positioned(
-                left: 115,
-                top: 75,
+                left: 175,
+                top: 42,
                 width: 90,
                 height: 90,
                 child: _buildThermometerTarget(),
@@ -1106,22 +1200,24 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
             // 5. Cute Cartoon Ice Pack on Forehead
             if (_step == HospitalStep.coolAndSyrup)
               Positioned(
-                top: 65,
+                top: 36,
                 child: _buildRealisticIcePack(),
               ),
 
             // 6. Sweet Syrup Spoon on Mouth
             if (_step == HospitalStep.coolAndSyrup)
               Positioned(
-                top: 135,
+                top: 145,
                 child: _buildSyrupMouthTarget(),
               ),
 
-            // 7. Harmonious Storybook Wounds & Band-aids
-            ..._liveWounds.map((w) => _buildRealisticWound(w)),
+            // 7. Harmonious Storybook Wounds & Band-aids (소독 단계부터 나타남 - 진찰/가시 단계에서는 숨김!)
+            if (_step != HospitalStep.diagnose && _step != HospitalStep.pluckThorns)
+              ..._liveWounds.map((w) => _buildRealisticWound(w)),
 
-            // 8. Harmonious Cartoon Thorns
-            ..._liveThorns.map((t) => _buildRealisticThorn(t)),
+            // 8. Harmonious Cartoon Thorns (가시 뽑기 단계에서만 집중 노출!)
+            if (_step == HospitalStep.pluckThorns)
+              ..._liveThorns.map((t) => _buildRealisticThorn(t)),
 
             // 9. Sparkles & Particles
             ..._particles.map((p) => Positioned(
@@ -1142,8 +1238,8 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
 
   Widget _buildLargeHospitalRoomScene() {
     return Container(
-      width: 325,
-      height: 345,
+      width: 335,
+      height: 425,
       decoration: BoxDecoration(
         color: const Color(0xFFE8F5E9), // Soothing soft pastel mint clinic background
         borderRadius: BorderRadius.circular(36),
@@ -1158,11 +1254,11 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
       ),
       alignment: Alignment.bottomCenter,
       child: Container(
-        height: 60,
-        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        height: 68,
+        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         decoration: BoxDecoration(
           color: const Color(0xFFFFF9C4), // Warm cozy yellow pastel towel
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
           border: Border.all(color: const Color(0xFFFFE082), width: 1.8),
         ),
       ),
@@ -1181,7 +1277,8 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
     return AnimatedBuilder(
       animation: _idleCtrl,
       builder: (context, child) {
-        final breatheScale = 1.0 + (_idleCtrl.value * 0.02);
+        // 동물 모습을 화면에 꽉 차게 1.25배 크게 렌더링!
+        final breatheScale = (1.0 + (_idleCtrl.value * 0.02)) * 1.25;
 
         return Transform.scale(
           scale: breatheScale,
@@ -1287,28 +1384,46 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
                 final scale = isHovered ? 1.25 : (1.0 + _pulseCtrl.value * 0.12);
                 return Transform.scale(
                   scale: scale,
-                  child: Container(
-                    width: 66,
-                    height: 66,
-                    decoration: BoxDecoration(
-                      color: (isHovered ? const Color(0xFFE0F7FA) : const Color(0xFFFFF0F5)).withValues(alpha: 0.85),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isHovered ? const Color(0xFF00ACC1) : const Color(0xFFFF4081),
-                        width: 2.2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: (isHovered ? Colors.cyan : Colors.pinkAccent).withValues(alpha: 0.35),
-                          blurRadius: 10,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 58,
+                        height: 58,
+                        decoration: BoxDecoration(
+                          color: (isHovered ? const Color(0xFFE0F7FA) : const Color(0xFFFFF0F5)).withValues(alpha: 0.9),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isHovered ? const Color(0xFF00ACC1) : const Color(0xFFFF4081),
+                            width: 2.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: (isHovered ? Colors.cyan : Colors.pinkAccent).withValues(alpha: 0.4),
+                              blurRadius: 10,
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      isHovered ? '🩺' : '❤️',
-                      style: const TextStyle(fontSize: 26),
-                    ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          isHovered ? '🩺' : '❤️',
+                          style: const TextStyle(fontSize: 26),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.pinkAccent, width: 1),
+                        ),
+                        child: Text(
+                          '청진기 🩺',
+                          style: GoogleFonts.jua(fontSize: 10, color: Colors.pink, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
@@ -1366,28 +1481,46 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
                 final scale = isHovered ? 1.25 : (1.0 + _pulseCtrl.value * 0.12);
                 return Transform.scale(
                   scale: scale,
-                  child: Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: (isHovered ? const Color(0xFFFFF8E1) : const Color(0xFFFFF3E0)).withValues(alpha: 0.85),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isHovered ? const Color(0xFFFFA000) : const Color(0xFFFFB300),
-                        width: 2.2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.amber.withValues(alpha: 0.35),
-                          blurRadius: 10,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 58,
+                        height: 58,
+                        decoration: BoxDecoration(
+                          color: (isHovered ? const Color(0xFFFFF8E1) : const Color(0xFFFFF3E0)).withValues(alpha: 0.9),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isHovered ? const Color(0xFFFFA000) : const Color(0xFFFFB300),
+                            width: 2.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.amber.withValues(alpha: 0.4),
+                              blurRadius: 10,
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      isHovered ? '🌡️' : '✨',
-                      style: const TextStyle(fontSize: 24),
-                    ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          isHovered ? '🌡️' : '🌡️',
+                          style: const TextStyle(fontSize: 26),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.amber.shade800, width: 1),
+                        ),
+                        child: Text(
+                          '체온계 🌡️',
+                          style: GoogleFonts.jua(fontSize: 10, color: Colors.amber.shade900, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
@@ -1500,7 +1633,7 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
     );
   }
 
-  // ── Harmonious Cartoon Thorn ───────────────────────────────────────────────
+  // ── Highly Visible & Easy-to-Tap Cartoon Thorn ────────────────────────────
 
   Widget _buildRealisticThorn(_ThornItem thorn) {
     if (thorn.isPlucked) return const SizedBox.shrink();
@@ -1508,9 +1641,10 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
     final isPluckStep = _step == HospitalStep.pluckThorns;
 
     return Positioned(
-      left: thorn.pos.dx - 18,
-      top: thorn.pos.dy - 18,
+      left: thorn.pos.dx - 30,
+      top: thorn.pos.dy - 30,
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           if (isPluckStep) {
             _pluckThorn(thorn);
@@ -1519,32 +1653,65 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
         child: AnimatedBuilder(
           animation: _pulseCtrl,
           builder: (context, child) {
-            final scale = isPluckStep ? (1.0 + _pulseCtrl.value * 0.18) : 1.0;
+            final scale = isPluckStep ? (1.0 + _pulseCtrl.value * 0.20) : 1.0;
             return Transform.scale(
               scale: scale,
               child: SizedBox(
-                width: 36,
-                height: 36,
+                width: 60,
+                height: 60,
                 child: Stack(
                   alignment: Alignment.center,
                   clipBehavior: Clip.none,
                   children: [
+                    // 1. 선명한 황금빛 펄싱 아우라 링 (어떤 털 색상에서도 1초 만에 눈에 띔)
                     if (isPluckStep)
                       Container(
-                        width: 32,
-                        height: 32,
+                        width: 52,
+                        height: 52,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: const Color(0xFFFFE082).withValues(alpha: 0.4),
+                          color: const Color(0xFFFFF176).withValues(alpha: 0.75),
+                          border: Border.all(color: const Color(0xFFFF8F00), width: 2.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFFB300).withValues(alpha: 0.6),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                          ],
                         ),
                       ),
+
+                    // 2. 큼직하고 또렷한 가시 벡터 그래픽
                     Transform.rotate(
                       angle: thorn.angle,
                       child: CustomPaint(
-                        size: const Size(18, 28),
+                        size: const Size(28, 40),
                         painter: _NordicThornPainter(),
                       ),
                     ),
+
+                    // 3. 핀셋 터치 유도 미니 뱃지 (✂️ 콕!)
+                    if (isPluckStep)
+                      Positioned(
+                        top: -8,
+                        right: -4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF6F00),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white, width: 1.5),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 4),
+                            ],
+                          ),
+                          child: const Text(
+                            '✂️ 쏙!',
+                            style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -1576,23 +1743,45 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
           animation: _pulseCtrl,
           builder: (context, child) {
             final isPulsing = isDisinfectStep || isBandaidStep;
-            final scale = isPulsing ? (1.0 + _pulseCtrl.value * 0.15) : 1.0;
+            final scale = isPulsing ? (1.0 + _pulseCtrl.value * 0.18) : 1.0;
 
             return Transform.scale(
               scale: scale,
               child: SizedBox(
-                width: wound.width + 10,
-                height: wound.height + 10,
+                width: wound.width + 24,
+                height: wound.height + 24,
                 child: Stack(
                   alignment: Alignment.center,
                   clipBehavior: Clip.none,
                   children: [
+                    // 소독 또는 밴드 붙이기 단계 펄싱 아우라
+                    if (isDisinfectStep)
+                      Container(
+                        width: wound.width + 16,
+                        height: wound.height + 16,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFF80DEEA).withValues(alpha: 0.5),
+                          border: Border.all(color: const Color(0xFF00ACC1), width: 2.2),
+                        ),
+                      )
+                    else if (isBandaidStep)
+                      Container(
+                        width: wound.width + 16,
+                        height: wound.height + 16,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFFFF80AB).withValues(alpha: 0.45),
+                          border: Border.all(color: const Color(0xFFFF4081), width: 2.2),
+                        ),
+                      ),
+
                     // Applied Cute Band-aid
                     if (wound.isBandaidApplied)
                       _buildRealisticBandaidWidget(
                         emoji: wound.bandaidEmoji ?? '❤️',
                         color: wound.bandaidColor ?? const Color(0xFFFF5252),
-                        width: wound.width + 6,
+                        width: wound.width + 8,
                         height: wound.height + 2,
                       )
                     // Disinfected/healed clean skin with sparkle
@@ -1601,7 +1790,7 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
                         width: wound.width,
                         height: wound.height,
                         alignment: Alignment.center,
-                        child: const Text('✨', style: TextStyle(fontSize: 20)),
+                        child: const Text('✨', style: TextStyle(fontSize: 22)),
                       )
                     // Cartoon Scratch Abrasion
                     else
@@ -1610,6 +1799,42 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
                         painter: _NordicScratchPainter(
                           healProgress: wound.healProgress,
                           isHighlight: isDisinfectStep,
+                        ),
+                      ),
+
+                    // 안내 미니 뱃지 (🧴 톡! 또는 🩹 착!)
+                    if (isDisinfectStep)
+                      Positioned(
+                        top: -8,
+                        right: -6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00838F),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white, width: 1.5),
+                          ),
+                          child: const Text(
+                            '🧴 톡!',
+                            style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      )
+                    else if (isBandaidStep)
+                      Positioned(
+                        top: -8,
+                        right: -6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD81B60),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white, width: 1.5),
+                          ),
+                          child: const Text(
+                            '🩹 착!',
+                            style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ),
                   ],
@@ -2111,6 +2336,18 @@ class _NordicAnimalIllustrationPainter extends CustomPainter {
       case 'fox':
         _drawFox(canvas, size, cx, cy, breathe);
         break;
+      case 'tiger':
+        _drawTiger(canvas, size, cx, cy, breathe);
+        break;
+      case 'penguin':
+        _drawPenguin(canvas, size, cx, cy, breathe);
+        break;
+      case 'lion':
+        _drawLion(canvas, size, cx, cy, breathe);
+        break;
+      case 'koala':
+        _drawKoala(canvas, size, cx, cy, breathe);
+        break;
       case 'cat':
       default:
         _drawCat(canvas, size, cx, cy, breathe);
@@ -2606,6 +2843,249 @@ class _NordicAnimalIllustrationPainter extends CustomPainter {
     _drawCheekBlush(canvas, cx - 44, 142, cx + 40, 142, isFever: isFever);
   }
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // 🐯 7. TIGER (비비드 오렌지 바디 + 이마 王 줄무늬 + 하얀 머즐 & 줄무늬 꼬리)
+  // ──────────────────────────────────────────────────────────────────────────
+  void _drawTiger(Canvas canvas, Size size, double cx, double cy, double breathe) {
+    final bodyPaint = Paint()..color = patient.bodyColor..style = PaintingStyle.fill;
+    final darkPaint = Paint()..color = patient.darkColor..style = PaintingStyle.fill;
+    final whitePaint = Paint()..color = const Color(0xFFFFF8E1)..style = PaintingStyle.fill;
+    final stripePaint = Paint()
+      ..color = const Color(0xFF212121)
+      ..strokeWidth = 3.0
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    // 1. Striped Tail on the Right
+    final tailPaint = Paint()
+      ..color = patient.bodyColor
+      ..strokeWidth = 20
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    final tailPath = Path()
+      ..moveTo(cx + 60, 240)
+      ..cubicTo(cx + 115, 245, cx + 125, 185, cx + 98, 160);
+    canvas.drawPath(tailPath, tailPaint);
+    // Tail stripes
+    canvas.drawLine(Offset(cx + 90, 215), Offset(cx + 102, 205), stripePaint);
+    canvas.drawLine(Offset(cx + 105, 185), Offset(cx + 115, 175), stripePaint);
+
+    // 2. Round Ears with Dark Edges
+    canvas.drawCircle(Offset(cx - 55, 92), 22, darkPaint);
+    canvas.drawCircle(Offset(cx - 55, 92), 15, bodyPaint);
+    canvas.drawCircle(Offset(cx - 55, 92), 9, whitePaint);
+
+    canvas.drawCircle(Offset(cx + 55, 92), 22, darkPaint);
+    canvas.drawCircle(Offset(cx + 55, 92), 15, bodyPaint);
+    canvas.drawCircle(Offset(cx + 55, 92), 9, whitePaint);
+
+    // 3. Smooth Pear Body
+    final bodyRRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(cx, 185 - (breathe * 0.5)), width: 170, height: 205),
+      const Radius.circular(75),
+    );
+    canvas.drawRRect(bodyRRect, bodyPaint);
+
+    // 4. White Belly / Bib
+    final bibPath = Path();
+    bibPath.moveTo(cx, 150);
+    bibPath.quadraticBezierTo(cx - 36, 160, cx - 28, 220);
+    bibPath.quadraticBezierTo(cx, 245, cx + 28, 220);
+    bibPath.quadraticBezierTo(cx + 36, 160, cx, 150);
+    bibPath.close();
+    canvas.drawPath(bibPath, whitePaint);
+
+    // 5. Forehead '王' Stripes & Cheek Stripes
+    canvas.drawLine(Offset(cx - 14, 88), Offset(cx + 14, 88), stripePaint);
+    canvas.drawLine(Offset(cx - 10, 96), Offset(cx + 10, 96), stripePaint);
+    canvas.drawLine(Offset(cx, 84), Offset(cx, 102), stripePaint);
+
+    // Cheek stripes
+    canvas.drawLine(Offset(cx - 68, 128), Offset(cx - 48, 132), stripePaint);
+    canvas.drawLine(Offset(cx - 65, 140), Offset(cx - 48, 142), stripePaint);
+    canvas.drawLine(Offset(cx + 68, 128), Offset(cx + 48, 132), stripePaint);
+    canvas.drawLine(Offset(cx + 65, 140), Offset(cx + 48, 142), stripePaint);
+
+    // 6. Front Paws
+    canvas.drawOval(Rect.fromCenter(center: Offset(cx - 28, 265), width: 34, height: 26), whitePaint);
+    canvas.drawOval(Rect.fromCenter(center: Offset(cx + 28, 265), width: 34, height: 26), whitePaint);
+
+    // 7. Facial Features
+    _drawBeadEyes(canvas, cx - 28, 124, cx + 28, 124, 6.5);
+    _drawNordicNoseMouth(canvas, cx, 142, const Color(0xFFD84315), isTiny: true);
+    _drawCheekBlush(canvas, cx - 44, 144, cx + 44, 144, isFever: isFever);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 🐧 8. PENGUIN (딥네이비 조약돌 바디 + 턱시도 화이트 배 + 노란 부리 & 플리퍼)
+  // ──────────────────────────────────────────────────────────────────────────
+  void _drawPenguin(Canvas canvas, Size size, double cx, double cy, double breathe) {
+    final bodyPaint = Paint()..color = patient.bodyColor..style = PaintingStyle.fill;
+    final whitePaint = Paint()..color = Colors.white..style = PaintingStyle.fill;
+    final beakPaint = Paint()..color = const Color(0xFFFFB300)..style = PaintingStyle.fill;
+    final footPaint = Paint()..color = const Color(0xFFFF8F00)..style = PaintingStyle.fill;
+
+    // 1. Orange Webbed Feet
+    canvas.drawOval(Rect.fromCenter(center: Offset(cx - 32, 285), width: 36, height: 20), footPaint);
+    canvas.drawOval(Rect.fromCenter(center: Offset(cx + 32, 285), width: 36, height: 20), footPaint);
+
+    // 2. Wings (Flippers)
+    final leftWing = Path()
+      ..moveTo(cx - 68, 150)
+      ..quadraticBezierTo(cx - 100, 185, cx - 82, 225)
+      ..quadraticBezierTo(cx - 60, 205, cx - 60, 160)
+      ..close();
+    canvas.drawPath(leftWing, bodyPaint);
+
+    final rightWing = Path()
+      ..moveTo(cx + 68, 150)
+      ..quadraticBezierTo(cx + 100, 185, cx + 82, 225)
+      ..quadraticBezierTo(cx + 60, 205, cx + 60, 160)
+      ..close();
+    canvas.drawPath(rightWing, bodyPaint);
+
+    // 3. Smooth Pear Penguin Body
+    final bodyRRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(cx, 180 - (breathe * 0.5)), width: 155, height: 215),
+      const Radius.circular(75),
+    );
+    canvas.drawRRect(bodyRRect, bodyPaint);
+
+    // 4. White Tuxedo Belly & Face Mask
+    final bellyRRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(cx, 195 - (breathe * 0.5)), width: 115, height: 165),
+      const Radius.circular(55),
+    );
+    canvas.drawRRect(bellyRRect, whitePaint);
+
+    // Eye surround mask
+    canvas.drawCircle(Offset(cx - 24, 122), 20, whitePaint);
+    canvas.drawCircle(Offset(cx + 24, 122), 20, whitePaint);
+
+    // 5. Golden Triangle Beak
+    final beakPath = Path()
+      ..moveTo(cx - 14, 134)
+      ..lineTo(cx, 148)
+      ..lineTo(cx + 14, 134)
+      ..close();
+    canvas.drawPath(beakPath, beakPaint);
+
+    // 6. Eyes & Blush
+    _drawBeadEyes(canvas, cx - 22, 120, cx + 22, 120, 6.0);
+    _drawCheekBlush(canvas, cx - 42, 138, cx + 42, 138, isFever: isFever);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 🦁 9. LION (풍성한 오렌지 갈기 + 골든 옐로우 바디 + 크림 머즐 & 꼬리 술)
+  // ──────────────────────────────────────────────────────────────────────────
+  void _drawLion(Canvas canvas, Size size, double cx, double cy, double breathe) {
+    final bodyPaint = Paint()..color = patient.bodyColor..style = PaintingStyle.fill;
+    final manePaint = Paint()..color = patient.darkColor..style = PaintingStyle.fill;
+    final whitePaint = Paint()..color = const Color(0xFFFFF8E1)..style = PaintingStyle.fill;
+
+    // 1. Lion Tufted Tail on the Right
+    final tailPaint = Paint()
+      ..color = patient.bodyColor
+      ..strokeWidth = 18
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    final tailPath = Path()
+      ..moveTo(cx + 60, 240)
+      ..cubicTo(cx + 115, 245, cx + 125, 185, cx + 98, 160);
+    canvas.drawPath(tailPath, tailPaint);
+    canvas.drawCircle(Offset(cx + 98, 160), 16, manePaint); // Tuft
+
+    // 2. Sunflower Styled Full Mane (풍성한 갈기)
+    for (int i = 0; i < 12; i++) {
+      final angle = (i * 2 * pi / 12);
+      final mx = cx + cos(angle) * 72;
+      final my = 135 + sin(angle) * 72;
+      canvas.drawCircle(Offset(mx, my), 28, manePaint);
+    }
+
+    // 3. Round Ears Behind Head
+    canvas.drawCircle(Offset(cx - 56, 82), 18, bodyPaint);
+    canvas.drawCircle(Offset(cx - 56, 82), 10, whitePaint);
+    canvas.drawCircle(Offset(cx + 56, 82), 18, bodyPaint);
+    canvas.drawCircle(Offset(cx + 56, 82), 10, whitePaint);
+
+    // 4. Smooth Body
+    final bodyRRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(cx, 195 - (breathe * 0.5)), width: 155, height: 185),
+      const Radius.circular(70),
+    );
+    canvas.drawRRect(bodyRRect, bodyPaint);
+
+    // 5. Cream Belly & Face Circle
+    canvas.drawCircle(Offset(cx, 135), 62, bodyPaint);
+    canvas.drawOval(Rect.fromCenter(center: Offset(cx, 215), width: 85, height: 95), whitePaint);
+
+    // 6. Cream Snout Muzzle
+    final snoutRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(cx, 145), width: 52, height: 38),
+      const Radius.circular(18),
+    );
+    canvas.drawRRect(snoutRect, whitePaint);
+
+    // 7. Front Paws
+    canvas.drawOval(Rect.fromCenter(center: Offset(cx - 28, 270), width: 34, height: 24), bodyPaint);
+    canvas.drawOval(Rect.fromCenter(center: Offset(cx + 28, 270), width: 34, height: 24), bodyPaint);
+
+    // 8. Eyes, Nose & Blush
+    _drawBeadEyes(canvas, cx - 26, 122, cx + 26, 122, 6.5);
+    _drawNordicNoseMouth(canvas, cx, 138, const Color(0xFF3E2723), isTiny: true);
+    _drawCheekBlush(canvas, cx - 44, 142, cx + 44, 142, isFever: isFever);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 🐨 10. KOALA (복슬복슬 큰 회색 귀 + 둥근 조약돌 바디 + 큼직한 흑색 고무 코)
+  // ──────────────────────────────────────────────────────────────────────────
+  void _drawKoala(Canvas canvas, Size size, double cx, double cy, double breathe) {
+    final bodyPaint = Paint()..color = patient.bodyColor..style = PaintingStyle.fill;
+    final darkPaint = Paint()..color = patient.darkColor..style = PaintingStyle.fill;
+    final whitePaint = Paint()..color = const Color(0xFFECEFF1)..style = PaintingStyle.fill;
+
+    // 1. Giant Fluffy Koala Ears
+    // Left ear with tufts
+    canvas.drawCircle(Offset(cx - 68, 92), 34, bodyPaint);
+    canvas.drawCircle(Offset(cx - 68, 92), 22, whitePaint);
+    canvas.drawCircle(Offset(cx - 82, 85), 14, whitePaint); // Fluff
+
+    // Right ear with tufts
+    canvas.drawCircle(Offset(cx + 68, 92), 34, bodyPaint);
+    canvas.drawCircle(Offset(cx + 68, 92), 22, whitePaint);
+    canvas.drawCircle(Offset(cx + 82, 85), 14, whitePaint); // Fluff
+
+    // 2. Smooth Pear Body
+    final bodyRRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(cx, 185 - (breathe * 0.5)), width: 165, height: 205),
+      const Radius.circular(75),
+    );
+    canvas.drawRRect(bodyRRect, bodyPaint);
+
+    // 3. Soft Light Chest / Belly
+    canvas.drawOval(Rect.fromCenter(center: Offset(cx, 205), width: 95, height: 115), whitePaint);
+
+    // 4. Round Head
+    canvas.drawCircle(Offset(cx, 130), 65, bodyPaint);
+
+    // 5. Iconic Big Oval Rubber Koala Nose
+    canvas.drawOval(Rect.fromCenter(center: Offset(cx, 136), width: 34, height: 48), darkPaint);
+    // Nose highlight
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(cx - 4, 126), width: 10, height: 14),
+      Paint()..color = Colors.white.withValues(alpha: 0.45),
+    );
+
+    // 6. Front Paws
+    canvas.drawOval(Rect.fromCenter(center: Offset(cx - 32, 268), width: 32, height: 24), bodyPaint);
+    canvas.drawOval(Rect.fromCenter(center: Offset(cx + 32, 268), width: 32, height: 24), bodyPaint);
+
+    // 7. Eyes & Blush
+    _drawBeadEyes(canvas, cx - 34, 122, cx + 34, 122, 6.0);
+    _drawCheekBlush(canvas, cx - 48, 144, cx + 48, 144, isFever: isFever);
+  }
+
   // ── Helper: Cute Glossy Bead Eyes (초롱초롱 구슬 눈) ──────────────────────
   void _drawBeadEyes(Canvas canvas, double leftX, double leftY, double rightX, double rightY, double radius) {
     if (isHappy) {
@@ -2716,34 +3196,61 @@ class _NordicThornPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    // Soft stylized cartoon wooden thorn
-    final thornPaint = Paint()
-      ..color = const Color(0xFF5D4037)
-      ..style = PaintingStyle.fill;
+    // 1. 선명하고 굵은 카툰 외곽선 & 짙은 나무결 가시 본체
+    final thornGrad = const LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFF8D6E63), Color(0xFF5D4037), Color(0xFF3E2723)],
+    ).createShader(Rect.fromLTWH(0, 0, w, h));
 
     final strokePaint = Paint()
-      ..color = const Color(0xFF3E2723)
-      ..strokeWidth = 1.2
+      ..color = const Color(0xFF1B0000)
+      ..strokeWidth = 2.5
       ..style = PaintingStyle.stroke;
 
     final path = Path();
-    path.moveTo(w / 2, 0); // Sharp tip
-    path.quadraticBezierTo(w * 0.75, h * 0.6, w * 0.85, h);
-    path.quadraticBezierTo(w / 2, h * 0.85, w * 0.15, h);
-    path.quadraticBezierTo(w * 0.25, h * 0.6, w / 2, 0);
+    path.moveTo(w * 0.5, 0); // 날카로운 가시 끝
+    path.quadraticBezierTo(w * 0.82, h * 0.55, w * 0.90, h);
+    path.quadraticBezierTo(w * 0.5, h * 0.82, w * 0.10, h);
+    path.quadraticBezierTo(w * 0.18, h * 0.55, w * 0.5, 0);
     path.close();
 
-    canvas.drawPath(path, thornPaint);
+    // 그림자 및 본체 채우기
+    canvas.drawPath(path, Paint()..shader = thornGrad);
     canvas.drawPath(path, strokePaint);
 
-    // Cute tiny leaf shoot on the side
-    final leafPaint = Paint()..color = const Color(0xFF81C784)..style = PaintingStyle.fill;
-    final leafPath = Path();
-    leafPath.moveTo(w * 0.7, h * 0.5);
-    leafPath.quadraticBezierTo(w * 1.1, h * 0.4, w * 1.15, h * 0.65);
-    leafPath.quadraticBezierTo(w * 0.85, h * 0.7, w * 0.7, h * 0.5);
-    leafPath.close();
-    canvas.drawPath(leafPath, leafPaint);
+    // 하얀 반사광 하이라이트 (Glossy Shine)
+    final shinePaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.6)
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    final shinePath = Path()
+      ..moveTo(w * 0.35, h * 0.25)
+      ..quadraticBezierTo(w * 0.28, h * 0.55, w * 0.25, h * 0.75);
+    canvas.drawPath(shinePath, shinePaint);
+
+    // 싱그러운 초록 새싹 잎사귀 2개 (Bright Green Leaves)
+    final leafPaint = Paint()..color = const Color(0xFF4CAF50);
+    final leafOutline = Paint()..color = const Color(0xFF1B5E20)..strokeWidth = 1.5..style = PaintingStyle.stroke;
+
+    // 우측 잎
+    final leafPath1 = Path()
+      ..moveTo(w * 0.75, h * 0.45)
+      ..quadraticBezierTo(w * 1.35, h * 0.30, w * 1.30, h * 0.60)
+      ..quadraticBezierTo(w * 0.90, h * 0.65, w * 0.75, h * 0.45)
+      ..close();
+    canvas.drawPath(leafPath1, leafPaint);
+    canvas.drawPath(leafPath1, leafOutline);
+
+    // 좌측 잎
+    final leafPath2 = Path()
+      ..moveTo(w * 0.25, h * 0.60)
+      ..quadraticBezierTo(w * -0.30, h * 0.45, w * -0.25, h * 0.75)
+      ..quadraticBezierTo(w * 0.10, h * 0.80, w * 0.25, h * 0.60)
+      ..close();
+    canvas.drawPath(leafPath2, leafPaint);
+    canvas.drawPath(leafPath2, leafOutline);
   }
 
   @override

@@ -305,10 +305,10 @@ class AudioManager {
     }
   }
 
-  Future<void> playCarWashWaterSpray() => playEffect('audio/bubble_boguel.wav');
-  Future<void> playCarWashSoapScrub() => playEffect('audio/bubble_pop.wav');
-  Future<void> playCarWashRinse() => playEffect('audio/bubble_boguel.wav', rate: 1.25);
-  Future<void> playCarWashDry() => playEffect('audio/squeak.wav');
+  Future<void> playCarWashWaterSpray() => playEffect('audio/car_water_spray.wav');
+  Future<void> playCarWashSoapScrub() => playEffect('audio/car_soap_foam.wav');
+  Future<void> playCarWashRinse() => playEffect('audio/car_rinse.wav');
+  Future<void> playCarWashDry() => playEffect('audio/car_towel_squeak.wav');
   Future<void> playCarWashSticker() => playEffect('audio/snap.wav');
 
   Future<void> _playAnimalSound(String path, {double rate = 1.0}) async {
@@ -526,7 +526,7 @@ class AudioManager {
     playEffect('audio/chime.wav', rate: pitch);
   }
 
-  // 🚒 꼬마 소방관 전용 실감나는 효과음
+  // 🚒 꼬마 소방관 전용 클래식 소방차 사이렌 ("삐-뽀- 삐-뽀-")
   Future<void> playFireSiren() async {
     if (!_soundEnabled) return;
     try {
