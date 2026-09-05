@@ -122,8 +122,8 @@ const List<_Vehicle> _kVehicles = [
   ),
 ];
 
-// 세차 순서: 차 선택 -> 매연 뿜으며 입장 -> 물로 먼지 씻기 -> 비누칠 -> 물로 헹구기 -> 수건 닦기 -> 스티커 -> 출발
-enum _WashStep { selectCar, driveIn, water, soap, rinse, dry, sticker }
+// 세차 순서: 차 선택 -> 매연 뿜으며 입장 -> 물로 먼지 씻기 -> 비누칠 -> 물로 헹구기 -> 수건 닦기 -> 스티커 -> 신나는 도로 달리기!
+enum _WashStep { selectCar, driveIn, water, soap, rinse, dry, sticker, driving }
 
 class _Droplet {
   Offset pos;
@@ -161,6 +161,23 @@ class _Sticker {
   final String emoji;
   final Offset rel;
   _Sticker(this.emoji, this.rel);
+}
+
+class _DrivingSpark {
+  Offset pos;
+  Offset vel;
+  double life;
+  Color color;
+  double size;
+  bool isStar;
+  _DrivingSpark({
+    required this.pos,
+    required this.vel,
+    required this.life,
+    required this.color,
+    this.size = 6.0,
+    this.isStar = false,
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -251,9 +268,6 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
   // Stickers
   final List<_Sticker> _stickers = [];
   int _selectedStickerIdx = 0;
-  static const List<String> _stickerEmojis = [
-    '🚨', '🛞', '🛡️', '⚙️', '🔧', '🔩', '🔥', '⚡', '🔊', '🏁',
-  ];
 
   DateTime _lastSoundTime = DateTime.now();
 
@@ -289,20 +303,20 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
 
     switch (_step) {
       case _WashStep.water:
-        _paintGridLocal(localPos, carSize, 2, _dirtGrid, -0.6);
+        _paintGridLocal(localPos, carSize, 3, _dirtGrid, -1.0);
         _spawnDroplets(localPos);
         break;
       case _WashStep.soap:
-        _paintGridLocal(localPos, carSize, 2, _soapGrid, 0.6);
+        _paintGridLocal(localPos, carSize, 3, _soapGrid, 1.0);
         _spawnBubbles(localPos);
         break;
       case _WashStep.rinse:
-        _paintGridLocal(localPos, carSize, 2, _rinseGrid, 0.6);
-        _paintGridLocal(localPos, carSize, 2, _soapGrid, -0.6);
+        _paintGridLocal(localPos, carSize, 3, _rinseGrid, 1.0);
+        _paintGridLocal(localPos, carSize, 3, _soapGrid, -1.0);
         _spawnDroplets(localPos);
         break;
       case _WashStep.dry:
-        _paintGridLocal(localPos, carSize, 2, _dryGrid, 0.6);
+        _paintGridLocal(localPos, carSize, 3, _dryGrid, 1.0);
         _spawnSparks(localPos);
         break;
       case _WashStep.sticker:
@@ -315,7 +329,13 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
   }
 
   void _placeSticker(Offset localPos, Size carSize) {
+    if (_stickers.length >= 30) return;
     final rel = _localToRel(localPos, carSize);
+    if (_stickers.isNotEmpty) {
+      final lastRel = _stickers.last.rel;
+      final dist = (lastRel - rel).distance;
+      if (dist < 0.08) return;
+    }
     final stickersList = _car.stickers;
     if (_selectedStickerIdx < stickersList.length) {
       setState(() {
@@ -347,6 +367,17 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
   // Step banner text
   String _bannerText = '';
   Color  _bannerColor = KidsTheme.orange;
+
+  // 🚗 Road Driving Scene State
+  double _roadScrollX = 0.0;
+  bool _isBoosting = false;
+  Timer? _boostTimer;
+  double _carJumpOffset = 0.0;
+  String? _honkBubbleText;
+  Timer? _honkTimer;
+  final List<_DrivingSpark> _drivingSparks = [];
+  bool _showFinishDialog = false;
+  double _drivingBouncePhase = 0.0;
 
   @override
   void initState() {
@@ -390,6 +421,30 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
     final dt = 1 / 60;
     setState(() {
       _idleToolPhase += dt * 3.0;
+
+      // ── Road Driving Animation Update ──
+      if (_step == _WashStep.driving) {
+        final currentSpeed = _isBoosting ? 2.6 : 1.0;
+        _roadScrollX += dt * 280 * currentSpeed;
+        _drivingBouncePhase += dt * 16 * currentSpeed;
+
+        // Sparkle trailing behind shiny clean car
+        if (_rng.nextDouble() < 0.45) {
+          _spawnDrivingSparkle();
+        }
+        if (_isBoosting && _rng.nextDouble() < 0.75) {
+          _spawnBoosterFire();
+        }
+
+        // Update driving sparks
+        for (int i = _drivingSparks.length - 1; i >= 0; i--) {
+          final s = _drivingSparks[i];
+          s.pos += s.vel;
+          s.vel = Offset(s.vel.dx * 0.96, s.vel.dy + 0.1);
+          s.life -= dt * (s.isStar ? 1.4 : 2.2);
+          if (s.life <= 0) _drivingSparks.removeAt(i);
+        }
+      }
 
       // Spawn exhaust smoke during drive-in
       if (_step == _WashStep.driveIn && _driveInCtrl.isAnimating) {
@@ -452,6 +507,8 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
   @override
   void dispose() {
     _autoAdvanceTimer?.cancel();
+    _boostTimer?.cancel();
+    _honkTimer?.cancel();
     _ticker.dispose();
     _carDriveCtrl.dispose();
     _driveInCtrl.dispose();
@@ -543,7 +600,7 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
     });
   }
 
-  static const double _advanceThreshold = 0.85;
+  static const double _advanceThreshold = 0.68;
 
   void _checkAdvance() {
     if (_stepComplete) return;
@@ -611,12 +668,134 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
     AudioManager.instance.playVehicleSound(car.id);
   }
 
+  void _spawnDrivingSparkle() {
+    final sw = MediaQuery.of(context).size.width;
+    final sh = MediaQuery.of(context).size.height;
+    final roadTop = sh * 0.64;
+    final roadH = sh - roadTop;
+    final carX = sw * 0.28;
+    final carY = roadTop + roadH * 0.38 - _carJumpOffset;
+    final colors = [Colors.yellow, Colors.cyanAccent, Colors.white, Colors.pinkAccent, Colors.amber];
+    _drivingSparks.add(_DrivingSpark(
+      pos: Offset(carX + (_rng.nextDouble() - 0.5) * 80, carY + (_rng.nextDouble() - 0.5) * 40),
+      vel: Offset(-(_rng.nextDouble() * 4 + 3), (_rng.nextDouble() - 0.5) * 2),
+      life: 1.0,
+      color: colors[_rng.nextInt(colors.length)],
+      size: _rng.nextDouble() * 5 + 4,
+      isStar: _rng.nextBool(),
+    ));
+  }
+
+  void _spawnBoosterFire() {
+    final sw = MediaQuery.of(context).size.width;
+    final sh = MediaQuery.of(context).size.height;
+    final roadTop = sh * 0.64;
+    final roadH = sh - roadTop;
+    final carW = (sw * 0.60).clamp(220.0, 360.0);
+    final carH = carW * 0.62;
+    final carX = sw * 0.28 - carW * 0.45;
+    final carY = roadTop + roadH * 0.38 - _carJumpOffset + carH * 0.16;
+    final fireColors = [Colors.red, Colors.orange, Colors.yellow, Colors.deepOrange];
+    for (int i = 0; i < 3; i++) {
+      _drivingSparks.add(_DrivingSpark(
+        pos: Offset(carX, carY + (_rng.nextDouble() - 0.5) * 18),
+        vel: Offset(-(_rng.nextDouble() * 8 + 6), (_rng.nextDouble() - 0.5) * 3),
+        life: 1.0,
+        color: fireColors[_rng.nextInt(fireColors.length)],
+        size: _rng.nextDouble() * 8 + 6,
+        isStar: false,
+      ));
+    }
+  }
+
+  void _spawnHonkStars() {
+    final sw = MediaQuery.of(context).size.width;
+    final sh = MediaQuery.of(context).size.height;
+    final roadTop = sh * 0.64;
+    final roadH = sh - roadTop;
+    final carX = sw * 0.28;
+    final carY = roadTop + roadH * 0.38 - _carJumpOffset - 40;
+    final starColors = [Colors.amber, Colors.yellow, Colors.pinkAccent, Colors.white, Colors.lightGreenAccent];
+    for (int i = 0; i < 14; i++) {
+      final angle = _rng.nextDouble() * 2 * pi;
+      final speed = _rng.nextDouble() * 5 + 2.5;
+      _drivingSparks.add(_DrivingSpark(
+        pos: Offset(carX, carY),
+        vel: Offset(cos(angle) * speed, sin(angle) * speed - 1.5),
+        life: 1.0,
+        color: starColors[_rng.nextInt(starColors.length)],
+        size: _rng.nextDouble() * 6 + 5,
+        isStar: true,
+      ));
+    }
+  }
+
+  void _startRoadDriving() {
+    _autoAdvanceTimer?.cancel();
+    _boostTimer?.cancel();
+    _honkTimer?.cancel();
+    setState(() {
+      _step = _WashStep.driving;
+      _roadScrollX = 0.0;
+      _isBoosting = false;
+      _carJumpOffset = 0.0;
+      _honkBubbleText = null;
+      _showFinishDialog = false;
+      _drivingSparks.clear();
+      _carDriveCtrl.reset();
+      _carDriveX = 0;
+    });
+    AudioManager.instance.playEngine();
+    AudioManager.instance.playChime();
+  }
+
+  void _honkCar() {
+    AudioManager.instance.playVehicleSound(_car.id);
+    AudioManager.instance.playJump();
+    setState(() {
+      _carJumpOffset = 26.0;
+      _honkBubbleText = switch (_car.id) {
+        'police' => '삐뽀삐뽀! 🚓✨',
+        'fire' => '애앵애앵! 🚒🔥',
+        'ambulance' => '삐뽀삐뽀! 🚑❤️',
+        'bus' => '빵빵~ 부릉! 🚌💨',
+        'racing' => '부우우웅~! 🏎️💨',
+        'monster' => '쿠구구궁! 🛻⚡',
+        'taxi' => '빵빵~ 손님타요! 🚕✨',
+        'tractor' => '탈탈탈~ 🚜🌾',
+        'suv' => '씽씽 달려요! 🚙💖',
+        _ => '빵빵~ 출발! 🚗✨',
+      };
+    });
+    _spawnHonkStars();
+
+    Future.delayed(const Duration(milliseconds: 220), () {
+      if (mounted) setState(() => _carJumpOffset = 0.0);
+    });
+    _honkTimer?.cancel();
+    _honkTimer = Timer(const Duration(milliseconds: 1600), () {
+      if (mounted) setState(() => _honkBubbleText = null);
+    });
+  }
+
+  void _triggerBooster() {
+    if (_isBoosting) return;
+    AudioManager.instance.playEngine();
+    AudioManager.instance.playChime();
+    setState(() => _isBoosting = true);
+    _boostTimer?.cancel();
+    _boostTimer = Timer(const Duration(milliseconds: 3500), () {
+      if (mounted) setState(() => _isBoosting = false);
+    });
+  }
+
   void _startDriveOut() {
     _autoAdvanceTimer?.cancel();
     _playCarArrivalSound(_car);
     _spawnConfetti();
     _carDriveCtrl.forward().then((_) {
-      setState(() => _driveComplete = true);
+      if (!mounted) return;
+      _startRoadDriving();
     });
   }
 
@@ -647,6 +826,8 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
 
   void _reset() {
     _autoAdvanceTimer?.cancel();
+    _boostTimer?.cancel();
+    _honkTimer?.cancel();
     setState(() {
       _step = _WashStep.selectCar;
       _stepComplete = false;
@@ -657,10 +838,15 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
       _smokes.clear();
       _confetti.clear();
       _stickers.clear();
+      _drivingSparks.clear();
       _carDriveX = 0;
       _carDriveInX = 1.0;
       _driveComplete = false;
       _bannerText = '';
+      _isBoosting = false;
+      _carJumpOffset = 0.0;
+      _honkBubbleText = null;
+      _showFinishDialog = false;
       _carDriveCtrl.reset();
       _driveInCtrl.reset();
     });
@@ -672,13 +858,16 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
+    if (_step == _WashStep.driving) {
+      return _buildRoadDrivingScreen();
+    }
     if (_driveComplete) return _buildCompleteScreen();
 
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF1A237E), Color(0xFF0288D1), Color(0xFF80DEEA)],
+            colors: [Color(0xFF0D47A1), Color(0xFF0288D1), Color(0xFF80DEEA)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -950,14 +1139,15 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
   Widget _buildCarArea(BoxConstraints constraints) {
     final areaW = constraints.maxWidth;
     final areaH = constraints.maxHeight;
-    final carW = (areaW * 0.80).clamp(200.0, 360.0);
-    final carH = (carW * 0.58).clamp(120.0, 220.0);
+    // 🌟 Significantly enlarged car size for easier touch and more satisfying presence!
+    final carW = (areaW * 0.92).clamp(280.0, 520.0);
+    final carH = (carW * 0.62).clamp(170.0, 320.0);
     final carL = (areaW - carW) / 2.0;
 
-    // Car sits on the road
+    // Car sits on the wash bay floor
     final groundH = areaH * 0.28;
     final groundTop = areaH - groundH;
-    final carT = (groundTop - carH * 0.78).clamp(0.0, areaH - carH);
+    final carT = (groundTop - carH * 0.76).clamp(10.0, areaH - carH);
 
     // X offsets for Drive-In and Drive-Out
     final driveInOffsetX = _step == _WashStep.driveIn
@@ -972,31 +1162,14 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
     return Stack(
       clipBehavior: Clip.hardEdge,
       children: [
-        // Road / Ground
-        Positioned(
-          left: 0, right: 0, bottom: 0,
-          height: areaH * 0.28,
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF546E7A),
-              border: Border(top: BorderSide(color: Colors.blueGrey.shade700, width: 3)),
-            ),
+        // 🌟 Rich, Fun Kid-Friendly Car Wash Bay Background (Canopy, Sign, Pipes, Rotating Soft Brushes, Tiles, Floor)
+        Positioned.fill(
+          child: _CarWashBayBackground(
+            step: _step,
+            idlePhase: _idleToolPhase,
+            groundH: groundH,
           ),
         ),
-
-        // Road markings
-        ...List.generate(5, (i) => Positioned(
-          left: areaW * 0.1 + i * areaW * 0.18,
-          bottom: areaH * 0.10,
-          child: Container(
-            width: areaW * 0.1,
-            height: 6,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(3),
-            ),
-          ),
-        )),
 
         // Exhaust smoke particles (renders behind car)
         if (_step == _WashStep.driveIn && _smokes.isNotEmpty)
@@ -1252,6 +1425,380 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
     );
   }
 
+  // ── Road Driving Screen ──────────────────────────────────────────────────
+  Widget _buildRoadDrivingScreen() {
+    return Scaffold(
+      backgroundColor: const Color(0xFF29B6F6),
+      body: SizedBox.expand(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 1. Full-screen Parallax Scenery (Sky, Sun, Clouds, Hills, Town, Trees, Cheering Animals, Road)
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _honkCar,
+                child: CustomPaint(
+                  size: Size.infinite,
+                  painter: _RoadDrivingSceneryPainter(
+                    scrollX: _roadScrollX,
+                    bouncePhase: _drivingBouncePhase,
+                    isBoosting: _isBoosting,
+                    vehicle: _car,
+                    stickers: _stickers,
+                    jumpOffset: _carJumpOffset,
+                    drivingSparks: _drivingSparks,
+                    honkBubbleText: _honkBubbleText,
+                  ),
+                ),
+              ),
+            ),
+
+            // 2. Top HUD Bar (Explicitly positioned at top of screen)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: _buildDrivingHud(),
+            ),
+
+            // 3. Interactive Kid Driving Control Buttons (Bottom)
+            _buildDrivingControls(),
+
+            // 4. Celebration Modal Dialog
+            if (_showFinishDialog)
+              Positioned.fill(
+                child: _buildCelebrationModal(),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrivingHud() {
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        child: Row(
+          children: [
+            // Cute Back to Car Wash Button
+            GestureDetector(
+              onTap: () {
+                AudioManager.instance.playClick();
+                _reset();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: const Color(0xFF4FC3F7), width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0288D1).withValues(alpha: 0.25),
+                      blurRadius: 0,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('🏠', style: TextStyle(fontSize: 16)),
+                    const SizedBox(width: 4),
+                    Text(
+                      '세차장',
+                      style: GoogleFonts.jua(
+                        fontSize: 15,
+                        color: const Color(0xFF0277BD),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const Spacer(),
+            // Cute Vehicle Badge Title: e.g. "🚌 버스 씽씽!", "🚓 경찰차 씽씽!"
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFFFFB74D), width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFF57C00).withValues(alpha: 0.25),
+                    blurRadius: 0,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_car.emoji, style: const TextStyle(fontSize: 18)),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${_car.label} 씽씽!',
+                    style: GoogleFonts.jua(
+                      fontSize: 16,
+                      color: const Color(0xFFE65100),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Spacer(),
+            // Cute Sound Toggle Button
+            GestureDetector(
+              onTap: () => setState(() => AudioManager.instance.toggleSound()),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFF4FC3F7), width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0288D1).withValues(alpha: 0.25),
+                      blurRadius: 0,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  AudioManager.instance.soundEnabled ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+                  color: const Color(0xFF0288D1),
+                  size: 22,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrivingControls() {
+    // Dynamic vehicle sound button label & icon across all vehicle types!
+    final (hornIcon, hornLabel) = switch (_car.id) {
+      'police' => ('🚨', '사이렌!'),
+      'fire' => ('🚒', '출동!'),
+      'ambulance' => ('🚑', '삐뽀!'),
+      'bus' => ('🚌', '빵빵!'),
+      'racing' => ('🏎️', '부릉!'),
+      'monster' => ('🛻', '쿠쿵!'),
+      'tractor' => ('🚜', '탈탈!'),
+      'taxi' => ('🚕', '손님타요!'),
+      'suv' => ('🚙', '씽씽!'),
+      _ => ('📢', '빵빵!'),
+    };
+
+    return Positioned(
+      left: 14,
+      right: 14,
+      bottom: 22,
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            // 1. Vehicle Specific Horn / Siren Action Button
+            Expanded(
+              flex: 10,
+              child: _buildDrivingToyButton(
+                icon: hornIcon,
+                label: hornLabel,
+                bgColors: [const Color(0xFFFFF59D), const Color(0xFFFFD54F)],
+                shadowColor: const Color(0xFFFFA000),
+                textColor: const Color(0xFF5D4037),
+                onTap: _honkCar,
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // 2. Celebration / Wash Finish Modal Button
+            Expanded(
+              flex: 13,
+              child: _buildDrivingToyButton(
+                icon: '🏆',
+                label: '세차 완성!',
+                bgColors: [const Color(0xFFB9F6CA), const Color(0xFF00E676)],
+                shadowColor: const Color(0xFF00B248),
+                textColor: const Color(0xFF1B5E20),
+                isHighlight: true,
+                onTap: () {
+                  AudioManager.instance.playSuccessSound('audio/chime.wav', rate: 1.2);
+                  _spawnConfetti();
+                  setState(() => _showFinishDialog = true);
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // 3. Speed Booster Button
+            Expanded(
+              flex: 10,
+              child: _buildDrivingToyButton(
+                icon: _isBoosting ? '🔥' : '⚡',
+                label: _isBoosting ? '터보!' : '부스터!',
+                bgColors: _isBoosting
+                    ? [const Color(0xFFFF8A80), const Color(0xFFFF5252)]
+                    : [const Color(0xFFFFCCBC), const Color(0xFFFF7043)],
+                shadowColor: _isBoosting ? const Color(0xFFD50000) : const Color(0xFFD84315),
+                textColor: _isBoosting ? Colors.white : const Color(0xFFBF360C),
+                onTap: _triggerBooster,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrivingToyButton({
+    required String icon,
+    required String label,
+    required List<Color> bgColors,
+    required Color shadowColor,
+    required Color textColor,
+    required VoidCallback onTap,
+    bool isHighlight = false,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        AudioManager.instance.playClick();
+        onTap();
+      },
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: bgColors,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+          borderRadius: BorderRadius.circular(26),
+          border: Border.all(color: Colors.white, width: 2.5),
+          boxShadow: [
+            BoxShadow(
+              color: shadowColor,
+              blurRadius: 0,
+              offset: const Offset(0, 3.5),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 6,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(icon, style: TextStyle(fontSize: isHighlight ? 21 : 18)),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.jua(
+                  fontSize: isHighlight ? 15.5 : 14.0,
+                  color: textColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCelebrationModal() {
+    return Container(
+      color: Colors.black.withValues(alpha: 0.65),
+      child: Center(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 28),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1A237E), Color(0xFF0288D1)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: Colors.amber, width: 3),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.withValues(alpha: 0.6),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('🏆✨🎉', style: TextStyle(fontSize: 48)),
+              const SizedBox(height: 10),
+              Text(
+                '우와! 완벽한 세차 성공!',
+                style: GoogleFonts.jua(fontSize: 26, color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${_car.label}이(가) 반짝반짝 빛나요!\n신나게 도로를 달렸어요! 🌟',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.jua(fontSize: 16, color: Colors.white70),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        AudioManager.instance.playClick();
+                        setState(() => _showFinishDialog = false);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF26A69A),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      ),
+                      child: Text('🛣️ 계속 달리기', style: GoogleFonts.jua(fontSize: 15, color: Colors.white)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        AudioManager.instance.playClick();
+                        _reset();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF7043),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      ),
+                      child: Text('🚗 다른 차 씻기', style: GoogleFonts.jua(fontSize: 15, color: Colors.white)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // ── Complete Screen ────────────────────────────────────────────────────────
   Widget _buildCompleteScreen() {
     return Scaffold(
@@ -1343,7 +1890,7 @@ class _CarSelectTile extends StatelessWidget {
                   children: [
                     FittedBox(
                       fit: BoxFit.scaleDown,
-                      child: Text(vehicle.emoji, style: const TextStyle(fontSize: 52)),
+                      child: Text(vehicle.emoji, style: const TextStyle(fontSize: 62)),
                     ),
                     const SizedBox(height: 4),
                     FittedBox(
@@ -1440,8 +1987,8 @@ class _CarCanvas extends StatelessWidget {
             child: IgnorePointer(
               child: FractionallySizedBox(
                 alignment: Alignment(s.rel.dx * 2 - 1, s.rel.dy * 2 - 1),
-                widthFactor: 0.15,
-                heightFactor: 0.3,
+                widthFactor: 0.18,
+                heightFactor: 0.32,
                 child: FittedBox(
                   child: Text(s.emoji, style: const TextStyle(fontSize: 100)),
                 ),
@@ -1493,8 +2040,8 @@ class _CarMaskedPainter extends CustomPainter {
     // 1. Master Layer for Car Masking
     canvas.saveLayer(bounds, Paint());
 
-    // Step A: Draw Car Emoji Graphic
-    final fontSize = min(size.width * 0.78, size.height * 0.85);
+    // Step A: Draw Car Emoji Graphic (Enlarged to 0.94 scale for bigger presence)
+    final fontSize = min(size.width * 0.94, size.height * 0.94);
     final textPainter = TextPainter(
       text: TextSpan(
         text: vehicle.emoji,
@@ -2424,6 +2971,891 @@ extension _OffsetNormalize on Offset {
     final len = distance;
     return len > 0 ? this / len : const Offset(0, 1);
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🌟 1. CAR WASH BAY BACKGROUND (Canopy, Sign, Pipes, Brushes, Tiles, Floor)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _CarWashBayBackground extends StatelessWidget {
+  final _WashStep step;
+  final double idlePhase;
+  final double groundH;
+
+  const _CarWashBayBackground({
+    required this.step,
+    required this.idlePhase,
+    required this.groundH,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _CarWashBayPainter(
+        step: step,
+        idlePhase: idlePhase,
+        groundH: groundH,
+      ),
+    );
+  }
+}
+
+class _CarWashBayPainter extends CustomPainter {
+  final _WashStep step;
+  final double idlePhase;
+  final double groundH;
+
+  _CarWashBayPainter({
+    required this.step,
+    required this.idlePhase,
+    required this.groundH,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final wallH = h - groundH;
+
+    // 1. Tiled Back Wall
+    _drawTiledWall(canvas, w, wallH);
+
+    // 2. Overhead Water Pipes & Pressure Gauge
+    _drawOverheadPipes(canvas, w);
+
+    // 3. Rotating Soft-Wash Cylinder Brushes on Left & Right
+    _drawSideBrushes(canvas, w, wallH);
+
+    // 4. Soap Foam Tank
+    _drawSoapTank(canvas);
+
+    // 5. Floating Iridescent Bubbles
+    _drawFloatingBubbles(canvas, w, wallH);
+
+    // 6. Top Canopy Awning & Glowing Signboard
+    _drawTopCanopyAndSign(canvas, w);
+
+    // 7. Modern Wash Bay Floor with Hazard Stripes & Drainage Grates
+    _drawBayFloor(canvas, w, h, groundH);
+  }
+
+  void _drawTiledWall(Canvas canvas, double w, double wallH) {
+    final rect = Rect.fromLTWH(0, 0, w, wallH);
+    final wallShader = const LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFE0F7FA), Color(0xFFB2EBF2), Color(0xFF80DEEA)],
+    ).createShader(rect);
+    canvas.drawRect(rect, Paint()..shader = wallShader);
+
+    // Ceramic tile grid
+    final gridPaint = Paint()
+      ..color = const Color(0xFF4DD0E1).withValues(alpha: 0.35)
+      ..strokeWidth = 1.0;
+
+    const tileSize = 38.0;
+    for (double y = 0; y < wallH; y += tileSize) {
+      canvas.drawLine(Offset(0, y), Offset(w, y), gridPaint);
+    }
+    for (double x = 0; x < w; x += tileSize) {
+      canvas.drawLine(Offset(x, 0), Offset(x, wallH), gridPaint);
+    }
+
+    // Sparkle glints on tiles
+    final glintPaint = Paint()..color = Colors.white.withValues(alpha: 0.45);
+    for (int i = 0; i < 6; i++) {
+      final gx = (i * 65.0 + 24.0) % w;
+      final gy = (i * 48.0 + 35.0) % wallH;
+      canvas.drawCircle(Offset(gx, gy), 2.0, glintPaint);
+    }
+  }
+
+  void _drawOverheadPipes(Canvas canvas, double w) {
+    final pipeY = 48.0;
+    // Pipe shadow
+    canvas.drawLine(
+      Offset(0, pipeY + 2), Offset(w, pipeY + 2),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.15)
+        ..strokeWidth = 12
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
+    );
+    // Silver pipe body
+    canvas.drawLine(
+      Offset(0, pipeY), Offset(w, pipeY),
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFCFD8DC), Color(0xFF90A4AE), Color(0xFF546E7A)],
+        ).createShader(Rect.fromLTWH(0, pipeY - 5, w, 10))
+        ..strokeWidth = 9,
+    );
+    // Pipe highlight
+    canvas.drawLine(
+      Offset(0, pipeY - 2), Offset(w, pipeY - 2),
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.6)
+        ..strokeWidth = 2,
+    );
+
+    // Brass joints along pipe
+    final brassPaint = Paint()..color = const Color(0xFFFFA000);
+    for (double jx = w * 0.2; jx < w * 0.9; jx += w * 0.25) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(Rect.fromLTWH(jx - 4, pipeY - 7, 8, 14), const Radius.circular(3)),
+        brassPaint,
+      );
+      // Spray nozzles hanging down
+      canvas.drawRect(
+        Rect.fromLTWH(jx - 2, pipeY + 6, 4, 8),
+        Paint()..color = const Color(0xFF78909C),
+      );
+      canvas.drawCircle(Offset(jx, pipeY + 15), 3, Paint()..color = const Color(0xFF37474F));
+    }
+
+    // Pressure gauge at top right
+    final gaugeCenter = Offset(w * 0.82, pipeY);
+    canvas.drawCircle(gaugeCenter, 14, Paint()..color = const Color(0xFFFFB300));
+    canvas.drawCircle(gaugeCenter, 11, Paint()..color = Colors.white);
+    // Needle twitching
+    final needleAngle = -pi * 0.2 + sin(idlePhase * 4) * 0.25;
+    canvas.drawLine(
+      gaugeCenter,
+      gaugeCenter + Offset(cos(needleAngle) * 8, sin(needleAngle) * 8),
+      Paint()
+        ..color = Colors.red
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawCircle(gaugeCenter, 2.5, Paint()..color = Colors.black);
+  }
+
+  void _drawSideBrushes(Canvas canvas, double w, double wallH) {
+    const brushW = 32.0;
+    final brushTop = 75.0;
+    final brushBottom = wallH - 12.0;
+    final brushH = brushBottom - brushTop;
+
+    // Left rotating roller brush
+    _drawCylinderBrush(canvas, 12, brushTop, brushW, brushH, idlePhase * 35);
+
+    // Right rotating roller brush
+    _drawCylinderBrush(canvas, w - 12 - brushW, brushTop, brushW, brushH, -idlePhase * 35);
+  }
+
+  void _drawCylinderBrush(Canvas canvas, double left, double top, double width, double height, double spinPhase) {
+    final centerX = left + width / 2;
+    // Central steel rod
+    canvas.drawLine(
+      Offset(centerX, top - 6),
+      Offset(centerX, top + height + 6),
+      Paint()
+        ..color = const Color(0xFF455A64)
+        ..strokeWidth = 6
+        ..strokeCap = StrokeCap.round,
+    );
+
+    // Clip to brush bounds
+    canvas.save();
+    canvas.clipRRect(RRect.fromRectAndRadius(Rect.fromLTWH(left, top, width, height), const Radius.circular(16)));
+
+    // Brush background
+    canvas.drawRect(
+      Rect.fromLTWH(left, top, width, height),
+      Paint()..color = const Color(0xFF81D4FA).withValues(alpha: 0.2),
+    );
+
+    // Alternating spiral bristle stripes (Sky Blue & Candy Pink)
+    const stripeSpacing = 28.0;
+    final offset = spinPhase % stripeSpacing;
+
+    final paintBlue = Paint()
+      ..color = const Color(0xFF29B6F6)
+      ..strokeWidth = 14
+      ..strokeCap = StrokeCap.round;
+
+    final paintPink = Paint()
+      ..color = const Color(0xFFF06292)
+      ..strokeWidth = 14
+      ..strokeCap = StrokeCap.round;
+
+    for (double y = top - stripeSpacing; y < top + height + stripeSpacing * 2; y += stripeSpacing) {
+      final sy = y + offset;
+      final isBlue = ((y / stripeSpacing).floor() % 2 == 0);
+      final p = isBlue ? paintBlue : paintPink;
+      canvas.drawLine(Offset(left - 4, sy - 8), Offset(left + width + 4, sy + 8), p);
+    }
+
+    // Shadow on sides to give 3D cylinder depth
+    canvas.drawRect(
+      Rect.fromLTWH(left, top, 6, height),
+      Paint()..color = Colors.black.withValues(alpha: 0.25),
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(left + width - 6, top, 6, height),
+      Paint()..color = Colors.black.withValues(alpha: 0.25),
+    );
+    // Center specular shine
+    canvas.drawRect(
+      Rect.fromLTWH(left + width * 0.35, top, width * 0.3, height),
+      Paint()..color = Colors.white.withValues(alpha: 0.25),
+    );
+
+    canvas.restore();
+  }
+
+  void _drawSoapTank(Canvas canvas) {
+    // Soap dispenser on left wall
+    const tankRect = Rect.fromLTWH(48, 85, 30, 48);
+    final rrect = RRect.fromRectAndRadius(tankRect, const Radius.circular(8));
+    // Tank shadow
+    canvas.drawRRect(rrect.shift(const Offset(2, 2)), Paint()..color = Colors.black.withValues(alpha: 0.15));
+    // Glass body
+    canvas.drawRRect(rrect, Paint()..color = Colors.white.withValues(alpha: 0.8));
+    canvas.drawRRect(rrect, Paint()..color = const Color(0xFF80DEEA)..style = PaintingStyle.stroke..strokeWidth = 2);
+
+    // Liquid inside (Bubbly turquoise)
+    final liquidH = 32.0 + sin(idlePhase * 2) * 2;
+    final liquidRect = Rect.fromLTWH(50, 85 + (48 - liquidH), 26, liquidH - 2);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(liquidRect, const Radius.circular(6)),
+      Paint()..color = const Color(0xFF26A69A).withValues(alpha: 0.75),
+    );
+
+    // Foam bubbles on top of liquid
+    canvas.drawCircle(Offset(56, 85 + (48 - liquidH)), 3.5, Paint()..color = Colors.white.withValues(alpha: 0.85));
+    canvas.drawCircle(Offset(64, 85 + (48 - liquidH) - 1), 4.5, Paint()..color = Colors.white.withValues(alpha: 0.9));
+    canvas.drawCircle(Offset(71, 85 + (48 - liquidH)), 3.0, Paint()..color = Colors.white.withValues(alpha: 0.85));
+  }
+
+  void _drawFloatingBubbles(Canvas canvas, double w, double wallH) {
+    final bubblePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+
+    for (int i = 0; i < 9; i++) {
+      final t = (idlePhase * 0.08 + i * 0.11) % 1.0;
+      final bx = (w * (0.12 + (i * 0.09))) + sin(idlePhase * 1.6 + i * 1.5) * 18;
+      final by = wallH * (0.90 - t * 0.85);
+      final r = 6.0 + (i % 3) * 3.5;
+
+      bubblePaint.color = Colors.white.withValues(alpha: (1.0 - t * 0.6).clamp(0.2, 0.7));
+      canvas.drawCircle(Offset(bx, by), r, bubblePaint);
+
+      // Inner rainbow tint
+      canvas.drawCircle(
+        Offset(bx, by), r * 0.85,
+        Paint()..color = const Color(0xFFE1BEE7).withValues(alpha: 0.15),
+      );
+      // Glint highlight
+      canvas.drawCircle(
+        Offset(bx - r * 0.35, by - r * 0.35), r * 0.25,
+        Paint()..color = Colors.white.withValues(alpha: 0.8),
+      );
+    }
+  }
+
+  void _drawTopCanopyAndSign(Canvas canvas, double w) {
+    const canopyH = 26.0;
+    const scallopW = 28.0;
+    final count = (w / scallopW).ceil() + 1;
+
+    // Scalloped canopy awning
+    for (int i = 0; i < count; i++) {
+      final sx = i * scallopW;
+      final isBlue = (i % 2 == 0);
+      final color = isBlue ? const Color(0xFF0288D1) : const Color(0xFFFFCA28);
+
+      final path = Path()
+        ..moveTo(sx, 0)
+        ..lineTo(sx + scallopW, 0)
+        ..lineTo(sx + scallopW, canopyH)
+        ..arcToPoint(
+          Offset(sx, canopyH),
+          radius: const Radius.circular(scallopW / 2),
+          clockwise: true,
+        )
+        ..close();
+
+      canvas.drawPath(path, Paint()..color = color);
+    }
+
+    // Dropshadow under canopy
+    canvas.drawRect(
+      Rect.fromLTWH(0, canopyH + scallopW / 2 - 4, w, 4),
+      Paint()..color = Colors.black.withValues(alpha: 0.12),
+    );
+
+    // Cheerful Signboard plaque
+    final signW = 190.0;
+    final signH = 30.0;
+    final signX = (w - signW) / 2;
+    final signY = 14.0;
+    final signRect = Rect.fromLTWH(signX, signY, signW, signH);
+    final signRRect = RRect.fromRectAndRadius(signRect, const Radius.circular(16));
+
+    // Sign background
+    canvas.drawRRect(signRRect.shift(const Offset(0, 2)), Paint()..color = Colors.black.withValues(alpha: 0.25));
+    canvas.drawRRect(
+      signRRect,
+      Paint()
+        ..shader = const LinearGradient(
+          colors: [Color(0xFFFF8F00), Color(0xFFFFA000), Color(0xFFFF6F00)],
+        ).createShader(signRect),
+    );
+    canvas.drawRRect(
+      signRRect,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
+
+    // Text on sign
+    final tp = TextPainter(
+      text: TextSpan(
+        text: '🫧 뽀득뽀득 키즈 세차장 🧽',
+        style: GoogleFonts.jua(
+          fontSize: 13,
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          shadows: const [Shadow(color: Colors.black38, blurRadius: 3, offset: Offset(0, 1))],
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    tp.layout();
+    tp.paint(canvas, Offset(signX + (signW - tp.width) / 2, signY + (signH - tp.height) / 2));
+
+    // Blinking lights around sign
+    final bulbColors = [const Color(0xFFFFEB3B), const Color(0xFFFF1744), const Color(0xFF00E676), const Color(0xFF00E5FF)];
+    for (int i = 0; i < 4; i++) {
+      final bx = signX + 16 + i * (signW - 32) / 3;
+      final pulse = (sin(idlePhase * 4 + i) * 0.4 + 0.6).clamp(0.2, 1.0);
+      final bColor = bulbColors[i % bulbColors.length].withValues(alpha: pulse);
+      canvas.drawCircle(Offset(bx, signY + 3), 3, Paint()..color = bColor);
+      canvas.drawCircle(Offset(bx, signY + signH - 3), 3, Paint()..color = bColor);
+    }
+  }
+
+  void _drawBayFloor(Canvas canvas, double w, double h, double groundH) {
+    final floorTop = h - groundH;
+    final floorRect = Rect.fromLTWH(0, floorTop, w, groundH);
+
+    // Sleek wet slate floor
+    canvas.drawRect(
+      floorRect,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF455A64), Color(0xFF263238), Color(0xFF1E272C)],
+        ).createShader(floorRect),
+    );
+
+    // Yellow & black safety hazard caution stripe curb along top of floor
+    const curbH = 10.0;
+    const stripeW = 16.0;
+    final curbRect = Rect.fromLTWH(0, floorTop, w, curbH);
+    canvas.drawRect(curbRect, Paint()..color = const Color(0xFFFFCA28));
+
+    final hazardPaint = Paint()
+      ..color = const Color(0xFF212121)
+      ..strokeWidth = stripeW * 0.5
+      ..style = PaintingStyle.stroke;
+
+    canvas.save();
+    canvas.clipRect(curbRect);
+    for (double sx = -curbH; sx < w + curbH * 2; sx += stripeW) {
+      canvas.drawLine(Offset(sx, floorTop + curbH), Offset(sx + curbH, floorTop), hazardPaint);
+    }
+    canvas.restore();
+
+    // Central drainage grate
+    final grateRect = Rect.fromCenter(
+      center: Offset(w / 2, floorTop + groundH * 0.52),
+      width: w * 0.72,
+      height: 18,
+    );
+    final grateRRect = RRect.fromRectAndRadius(grateRect, const Radius.circular(5));
+    // Grate pit glow
+    canvas.drawRRect(grateRRect, Paint()..color = const Color(0xFF102027));
+    // Water puddle sheen
+    canvas.drawRRect(
+      grateRRect,
+      Paint()
+        ..color = const Color(0xFF4DD0E1).withValues(alpha: 0.25)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
+    );
+    // Grate bars
+    final barPaint = Paint()
+      ..color = const Color(0xFF78909C)
+      ..strokeWidth = 2.0;
+    for (double bx = grateRect.left + 8; bx < grateRect.right - 8; bx += 8) {
+      canvas.drawLine(Offset(bx, grateRect.top + 2), Offset(bx, grateRect.bottom - 2), barPaint);
+    }
+
+    // Tire guide stripes
+    final tirePaint = Paint()
+      ..color = const Color(0xFFFFD54F).withValues(alpha: 0.6)
+      ..strokeWidth = 3.5
+      ..strokeCap = StrokeCap.round;
+
+    final leftTrackX = w * 0.22;
+    final rightTrackX = w * 0.78;
+    canvas.drawLine(Offset(leftTrackX, floorTop + 14), Offset(leftTrackX, h - 8), tirePaint);
+    canvas.drawLine(Offset(rightTrackX, floorTop + 14), Offset(rightTrackX, h - 8), tirePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CarWashBayPainter oldDelegate) => true;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🚗 2. ROAD DRIVING SCENERY PAINTER (Parallax, Animals, Town, Car, Booster)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _RoadDrivingSceneryPainter extends CustomPainter {
+  final double scrollX;
+  final double bouncePhase;
+  final bool isBoosting;
+  final _Vehicle vehicle;
+  final List<_Sticker> stickers;
+  final double jumpOffset;
+  final List<_DrivingSpark> drivingSparks;
+  final String? honkBubbleText;
+
+  _RoadDrivingSceneryPainter({
+    required this.scrollX,
+    required this.bouncePhase,
+    required this.isBoosting,
+    required this.vehicle,
+    required this.stickers,
+    required this.jumpOffset,
+    required this.drivingSparks,
+    required this.honkBubbleText,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // 1. Sunny Sky, Smiling Sun, Clouds & Hot Air Balloon
+    _drawSkyAndSun(canvas, w, h);
+
+    // 2. Rolling Green Hills & Wind Turbines
+    _drawHillsAndTurbines(canvas, w, h);
+
+    // 3. Cheerful Roadside Scenery (Houses, Apple Trees, Cheering Animals)
+    _drawRoadsideScenery(canvas, w, h);
+
+    // 4. Asphalt Highway Road & Moving Center Stripes
+    _drawHighway(canvas, w, h);
+
+    // 5. Clean & Decorated Player Car
+    _drawPlayerCar(canvas, w, h);
+
+    // 6. Driving Particles (Sparkles, Stars, Booster Flame)
+    _drawParticles(canvas);
+  }
+
+  void _drawSkyAndSun(Canvas canvas, double w, double h) {
+    final skyH = h * 0.62;
+    final skyRect = Rect.fromLTWH(0, 0, w, skyH);
+    canvas.drawRect(
+      skyRect,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF29B6F6), Color(0xFF81D4FA), Color(0xFFE1F5FE)],
+        ).createShader(skyRect),
+    );
+
+    // Smiling Sun at top right
+    final sunCenter = Offset(w * 0.82, h * 0.12);
+    final rayCount = 12;
+    final rayPaint = Paint()
+      ..color = const Color(0xFFFFCA28).withValues(alpha: 0.6)
+      ..strokeWidth = 3.5
+      ..strokeCap = StrokeCap.round;
+
+    for (int i = 0; i < rayCount; i++) {
+      final ang = i * (2 * pi / rayCount) + bouncePhase * 0.25;
+      final p1 = sunCenter + Offset(cos(ang) * 25, sin(ang) * 25);
+      final p2 = sunCenter + Offset(cos(ang) * 35, sin(ang) * 35);
+      canvas.drawLine(p1, p2, rayPaint);
+    }
+    // Sun body
+    canvas.drawCircle(sunCenter, 22, Paint()..color = const Color(0xFFFFD54F));
+    canvas.drawCircle(sunCenter, 19, Paint()..color = const Color(0xFFFFEE58));
+
+    // Sun cute smiling eyes & blush
+    canvas.drawCircle(sunCenter + const Offset(-6, -2), 2.5, Paint()..color = const Color(0xFF5D4037));
+    canvas.drawCircle(sunCenter + const Offset(6, -2), 2.5, Paint()..color = const Color(0xFF5D4037));
+    canvas.drawCircle(sunCenter + const Offset(-9, 4), 2.8, Paint()..color = const Color(0xFFFF8A80).withValues(alpha: 0.7));
+    canvas.drawCircle(sunCenter + const Offset(9, 4), 2.8, Paint()..color = const Color(0xFFFF8A80).withValues(alpha: 0.7));
+    // Smile mouth
+    canvas.drawArc(
+      Rect.fromCenter(center: sunCenter + const Offset(0, 3), width: 10, height: 8),
+      0, pi, false,
+      Paint()..color = const Color(0xFF5D4037)..strokeWidth = 1.8..style = PaintingStyle.stroke,
+    );
+
+    // Floating Clouds
+    final cloudConfigs = [
+      [w * 0.15, h * 0.08, 22.0],
+      [w * 0.55, h * 0.16, 26.0],
+      [w * 0.90, h * 0.22, 20.0],
+    ];
+    for (int i = 0; i < cloudConfigs.length; i++) {
+      final cfg = cloudConfigs[i];
+      final cx = (cfg[0] - scrollX * (0.10 + i * 0.03)) % (w + 120) - 60;
+      final cy = cfg[1];
+      final cr = cfg[2];
+      _drawFluffyCloud(canvas, Offset(cx, cy), cr);
+    }
+
+    // Distant hot air balloon
+    final balloonX = (w * 0.38 - scrollX * 0.06) % (w + 100) - 50;
+    _drawHotAirBalloon(canvas, Offset(balloonX, h * 0.18));
+  }
+
+  void _drawFluffyCloud(Canvas canvas, Offset pos, double r) {
+    final p = Paint()..color = Colors.white.withValues(alpha: 0.92);
+    canvas.drawCircle(pos, r, p);
+    canvas.drawCircle(pos + Offset(-r * 0.6, r * 0.2), r * 0.75, p);
+    canvas.drawCircle(pos + Offset(r * 0.6, r * 0.2), r * 0.75, p);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromLTWH(pos.dx - r * 0.8, pos.dy, r * 1.6, r * 0.6), Radius.circular(r * 0.3)),
+      p,
+    );
+  }
+
+  void _drawHotAirBalloon(Canvas canvas, Offset pos) {
+    // Balloon envelope
+    final balloonRect = Rect.fromCenter(center: pos, width: 24, height: 30);
+    canvas.drawOval(
+      balloonRect,
+      Paint()
+        ..shader = const LinearGradient(
+          colors: [Color(0xFFFF5252), Color(0xFFFFD740), Color(0xFF40C4FF)],
+        ).createShader(balloonRect),
+    );
+    // Basket
+    canvas.drawRect(
+      Rect.fromLTWH(pos.dx - 3, pos.dy + 18, 6, 5),
+      Paint()..color = const Color(0xFF8D6E63),
+    );
+  }
+
+  void _drawHillsAndTurbines(Canvas canvas, double w, double h) {
+    // Distant soft mountain ridge
+    final hillPath1 = Path()..moveTo(0, h * 0.44);
+    for (double x = 0; x <= w; x += 25) {
+      final y = h * 0.44 + sin((x + scrollX * 0.15) * 0.012) * 16;
+      hillPath1.lineTo(x, y);
+    }
+    // Seamlessly finish at exact right edge to prevent broken cut-off edge
+    final endY1 = h * 0.44 + sin((w + scrollX * 0.15) * 0.012) * 16;
+    hillPath1.lineTo(w, endY1);
+    hillPath1.lineTo(w, h * 0.65);
+    hillPath1.lineTo(0, h * 0.65);
+    hillPath1.close();
+    canvas.drawPath(hillPath1, Paint()..color = const Color(0xFFA5D6A7));
+
+    // Foreground rolling green hills
+    final hillPath2 = Path()..moveTo(0, h * 0.50);
+    for (double x = 0; x <= w; x += 20) {
+      final y = h * 0.50 + sin((x + scrollX * 0.35) * 0.016) * 14;
+      hillPath2.lineTo(x, y);
+    }
+    // Seamlessly finish at exact right edge
+    final endY2 = h * 0.50 + sin((w + scrollX * 0.35) * 0.016) * 14;
+    hillPath2.lineTo(w, endY2);
+    hillPath2.lineTo(w, h * 0.65);
+    hillPath2.lineTo(0, h * 0.65);
+    hillPath2.close();
+    canvas.drawPath(hillPath2, Paint()..color = const Color(0xFF66BB6A));
+
+    // Wind turbines on hills
+    final turbineX1 = (w * 0.25 - scrollX * 0.25) % (w + 80) - 40;
+    final turbineX2 = (w * 0.72 - scrollX * 0.25) % (w + 80) - 40;
+    _drawWindTurbine(canvas, Offset(turbineX1, h * 0.42));
+    _drawWindTurbine(canvas, Offset(turbineX2, h * 0.44));
+  }
+
+  void _drawWindTurbine(Canvas canvas, Offset base) {
+    final polePaint = Paint()..color = Colors.white..strokeWidth = 2.5;
+    final hubY = base.dy - 32;
+    canvas.drawLine(base, Offset(base.dx, hubY), polePaint);
+    canvas.drawCircle(Offset(base.dx, hubY), 3.5, Paint()..color = const Color(0xFFCFD8DC));
+
+    // 3 spinning blades
+    final bladePaint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round;
+
+    for (int i = 0; i < 3; i++) {
+      final ang = i * (2 * pi / 3) + bouncePhase * 2.8;
+      canvas.drawLine(
+        Offset(base.dx, hubY),
+        Offset(base.dx + cos(ang) * 18, hubY + sin(ang) * 18),
+        bladePaint,
+      );
+    }
+  }
+
+  void _drawRoadsideScenery(Canvas canvas, double w, double h) {
+    // Roadside grass strip
+    final grassRect = Rect.fromLTWH(0, h * 0.54, w, h * 0.11);
+    canvas.drawRect(grassRect, Paint()..color = const Color(0xFF4CAF50));
+
+    // Clean, spacious single-item storybook elements (spaced at 240dp)
+    const itemSpacing = 240.0;
+    final items = [
+      ('🏡', 38.0, -12.0, false), // Cozy House
+      ('🐰', 34.0, -8.0, true),   // Cute Bunny
+      ('🌳', 38.0, -12.0, false), // Green Apple Tree
+      ('🐶', 34.0, -8.0, true),   // Cheering Puppy
+      ('🌸', 32.0, -6.0, false),  // Beautiful Flower
+      ('🐻', 34.0, -8.0, true),   // Friendly Bear
+      ('🌲', 38.0, -12.0, false), // Tall Pine Tree
+      ('🐱', 34.0, -8.0, true),   // Smiling Cat
+    ];
+
+    final totalW = items.length * itemSpacing;
+
+    for (int i = 0; i < items.length; i++) {
+      final item = items[i];
+      final ix = (i * itemSpacing - scrollX * 0.85) % totalW - 50;
+      if (ix < -70 || ix > w + 70) continue; // Skip off-screen
+
+      final isAnimal = item.$4;
+      final hop = isAnimal ? sin(bouncePhase * 1.5 + i) * 4.0 : 0.0;
+      final iy = h * 0.53 + item.$3 + hop;
+
+      final tp = TextPainter(
+        text: TextSpan(text: item.$1, style: TextStyle(fontSize: item.$2)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset(ix, iy));
+    }
+  }
+
+  void _drawHighway(Canvas canvas, double w, double h) {
+    final roadTop = h * 0.64;
+    final roadH = h - roadTop;
+    final roadRect = Rect.fromLTWH(0, roadTop, w, roadH);
+
+    // Asphalt highway surface extending completely to the bottom
+    canvas.drawRect(
+      roadRect,
+      Paint()..color = const Color(0xFF263238),
+    );
+
+    // Top and bottom yellow kerb boundary lines
+    final linePaint = Paint()
+      ..color = const Color(0xFFFFD54F)
+      ..strokeWidth = 3.5;
+    canvas.drawLine(Offset(0, roadTop + 2), Offset(w, roadTop + 2), linePaint);
+    canvas.drawLine(Offset(0, h - 2), Offset(w, h - 2), linePaint);
+
+    // Center white dashed stripes (Rapidly moving right to left)
+    const dashSpacing = 80.0;
+    const dashLen = 42.0;
+    final dashY = roadTop + roadH * 0.40;
+    final dashOffset = (scrollX * 1.6) % dashSpacing;
+
+    final dashPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.9)
+      ..strokeWidth = 5.0
+      ..strokeCap = StrokeCap.round;
+
+    for (double dx = -dashSpacing; dx < w + dashSpacing; dx += dashSpacing) {
+      final sx = dx - dashOffset;
+      canvas.drawLine(Offset(sx, dashY), Offset(sx + dashLen, dashY), dashPaint);
+    }
+  }
+
+  void _drawPlayerCar(Canvas canvas, double w, double h) {
+    final roadTop = h * 0.64;
+    final roadH = h - roadTop;
+    final carW = (w * 0.60).clamp(220.0, 360.0);
+    final carH = carW * 0.62;
+    final carX = w * 0.28;
+    final carY = roadTop + roadH * 0.38 - jumpOffset + sin(bouncePhase) * 3.5;
+
+    canvas.save();
+    canvas.translate(carX, carY);
+
+    // Tilt forward slightly when boosting
+    if (isBoosting) {
+      canvas.rotate(0.04);
+    }
+
+    // ── Exhaust Booster Fire & Rainbow Wind Streaks (When boosting) ──
+    if (isBoosting) {
+      // Booster fire
+      final fireX = -carW * 0.46;
+      final fireY = carH * 0.16;
+      final flameLen = 42.0 + sin(bouncePhase * 8) * 12.0;
+
+      final flamePath = Path()
+        ..moveTo(fireX, fireY - 6)
+        ..lineTo(fireX - flameLen, fireY)
+        ..lineTo(fireX, fireY + 6)
+        ..close();
+
+      canvas.drawPath(flamePath, Paint()..color = const Color(0xFFFF1744));
+      canvas.drawPath(
+        Path()
+          ..moveTo(fireX, fireY - 3)
+          ..lineTo(fireX - flameLen * 0.65, fireY)
+          ..lineTo(fireX, fireY + 3)
+          ..close(),
+        Paint()..color = const Color(0xFFFFEA00),
+      );
+
+      // Rainbow wind streaks
+      final streakColors = [Colors.red, Colors.orange, Colors.yellow, Colors.cyanAccent];
+      for (int s = 0; s < 4; s++) {
+        final sy = -carH * 0.2 + s * 14.0;
+        final sx1 = -carW * 0.5 - s * 15.0;
+        final sx2 = sx1 - 40.0;
+        canvas.drawLine(
+          Offset(sx1, sy), Offset(sx2, sy),
+          Paint()
+            ..color = streakColors[s].withValues(alpha: 0.75)
+            ..strokeWidth = 2.5
+            ..strokeCap = StrokeCap.round,
+        );
+      }
+    }
+
+    // ── Clean Car Body Emoji (Flipped horizontally so Unicode vehicles face forward to the RIGHT 👉) ──
+    final tpCar = TextPainter(
+      text: TextSpan(
+        text: vehicle.emoji,
+        style: TextStyle(fontSize: carW * 0.92),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    final carTopLeft = Offset(-tpCar.width / 2, -tpCar.height / 2);
+
+    canvas.save();
+    canvas.scale(-1.0, 1.0);
+    tpCar.paint(canvas, carTopLeft);
+    canvas.restore();
+
+    // ── Decorated Stickers ──
+    // In wash bay, car faced left (rel.dx = 0 at front).
+    // Now car faces right (front is at +width/2, rear at -width/2).
+    for (final s in stickers) {
+      final sx = (0.5 - s.rel.dx) * tpCar.width;
+      final sy = (s.rel.dy - 0.5) * tpCar.height;
+      final tpSticker = TextPainter(
+        text: TextSpan(
+          text: s.emoji,
+          style: const TextStyle(fontSize: 26),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tpSticker.paint(canvas, Offset(sx - tpSticker.width / 2, sy - tpSticker.height / 2));
+    }
+
+    // ── Continuous Sparkles around clean car ──
+    final sparklePhase = bouncePhase * 3;
+    final starGlints = [
+      Offset(-carW * 0.35, -carH * 0.28),
+      Offset(carW * 0.28, -carH * 0.25),
+      Offset(carW * 0.05, -carH * 0.38),
+    ];
+    for (int g = 0; g < starGlints.length; g++) {
+      final sp = starGlints[g];
+      final scale = (sin(sparklePhase + g * 2) * 0.35 + 0.65).clamp(0.2, 1.0);
+      _drawGlintStar(canvas, sp, 7.0 * scale, Colors.white);
+    }
+
+    // ── Speech Bubble (Honk 빵빵!) ──
+    if (honkBubbleText != null) {
+      final bubbleW = 120.0;
+      final bubbleH = 34.0;
+      final bubbleX = -bubbleW / 2;
+      final bubbleY = -carH * 0.5 - 46.0;
+
+      final bubbleRect = Rect.fromLTWH(bubbleX, bubbleY, bubbleW, bubbleH);
+      final bubbleRRect = RRect.fromRectAndRadius(bubbleRect, const Radius.circular(16));
+
+      // Pointer
+      final pointerPath = Path()
+        ..moveTo(0, bubbleY + bubbleH)
+        ..lineTo(-8, bubbleY + bubbleH + 8)
+        ..lineTo(8, bubbleY + bubbleH)
+        ..close();
+
+      canvas.drawRRect(bubbleRRect.shift(const Offset(0, 3)), Paint()..color = Colors.black.withValues(alpha: 0.25));
+      canvas.drawRRect(bubbleRRect, Paint()..color = Colors.white);
+      canvas.drawPath(pointerPath, Paint()..color = Colors.white);
+      canvas.drawRRect(
+        bubbleRRect,
+        Paint()..color = const Color(0xFFFFB300)..style = PaintingStyle.stroke..strokeWidth = 2.5,
+      );
+
+      final tpHonk = TextPainter(
+        text: TextSpan(
+          text: honkBubbleText!,
+          style: GoogleFonts.jua(
+            fontSize: 14,
+            color: const Color(0xFFD84315),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tpHonk.paint(canvas, Offset(bubbleX + (bubbleW - tpHonk.width) / 2, bubbleY + (bubbleH - tpHonk.height) / 2));
+    }
+
+    canvas.restore();
+  }
+
+  void _drawGlintStar(Canvas canvas, Offset center, double r, Color c) {
+    final path = Path();
+    for (int i = 0; i < 8; i++) {
+      final ang = i * pi / 4;
+      final rad = (i % 2 == 0) ? r : r * 0.35;
+      final pt = center + Offset(cos(ang) * rad, sin(ang) * rad);
+      if (i == 0) {
+        path.moveTo(pt.dx, pt.dy);
+      } else {
+        path.lineTo(pt.dx, pt.dy);
+      }
+    }
+    path.close();
+    canvas.drawPath(path, Paint()..color = c);
+  }
+
+  void _drawParticles(Canvas canvas) {
+    for (final s in drivingSparks) {
+      final alpha = s.life.clamp(0.0, 1.0);
+      if (s.isStar) {
+        _drawGlintStar(canvas, s.pos, s.size * alpha, s.color.withValues(alpha: alpha));
+      } else {
+        canvas.drawCircle(
+          s.pos,
+          s.size * alpha,
+          Paint()..color = s.color.withValues(alpha: alpha),
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RoadDrivingSceneryPainter oldDelegate) => true;
 }
 
 

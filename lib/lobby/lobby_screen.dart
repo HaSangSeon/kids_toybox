@@ -675,12 +675,8 @@ class _LobbyScreenState extends State<LobbyScreen>
 
   // ── Games Grid ────────────────────────────────────────────────────────────
   Widget _buildGamesGrid() {
+    // 결제 전환율과 호기심 유도를 위해 '무료 2개 + 잠금 1개' 비율로 교차 배치된 순서 유지
     final games = _gameData();
-    // 무료 게임을 항상 상단(앞쪽)으로, 유료/잠금 게임을 하단(뒤쪽)으로 정렬
-    games.sort((a, b) {
-      if (a.isPremium == b.isPremium) return 0;
-      return a.isPremium ? 1 : -1;
-    });
 
     return ValueListenableBuilder<bool>(
       valueListenable: PlayerDataManager.instance.isPremiumUnlockedNotifier,
@@ -827,9 +823,10 @@ class _LobbyScreenState extends State<LobbyScreen>
   }
 
   // ── Game Data ─────────────────────────────────────────────────────────────
+  // 결제 유도와 재미의 균형을 위해 무료 게임과 잠금(프리미엄) 게임을 2:1 비율로 교차 배치합니다.
   List<_GameData> _gameData() {
     return [
-      // 🆓 [무료 게임 - 상단 배치]
+      // ── [줄 1] 최상단 첫인상: 최고의 인기 무료 2개 + 눈길을 끄는 킬러 잠금 1개
       _GameData(
         title: '출동! 소방대',
         emoji: '🚒',
@@ -850,48 +847,6 @@ class _LobbyScreenState extends State<LobbyScreen>
         ),
         gradientColors: KidsTheme.gameGradients['red'] ?? const [Color(0xFFFF5964), Color(0xFFE84393)],
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FirefighterGame())); },
-      ),
-      _GameData(
-        title: '꼬마 동물 병원',
-        emoji: '🏥',
-        customIcon: Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.center,
-          children: [
-            const Text('🏥', style: TextStyle(fontSize: 38)),
-            Positioned(
-              top: -6, right: -6,
-              child: const Text('🩺', style: TextStyle(fontSize: 18)),
-            ),
-            Positioned(
-              bottom: -4, left: -4,
-              child: const Text('✨', style: TextStyle(fontSize: 16)),
-            ),
-          ],
-        ),
-        gradientColors: KidsTheme.gameGradients['teal'] ?? const [Color(0xFF26A69A), Color(0xFF00897B)],
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PetHospitalGame())); },
-      ),
-      _GameData(
-        title: '삐까번쩍 세차장',
-        emoji: '🚗',
-        customIcon: Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.center,
-          children: [
-            const Text('🚗', style: TextStyle(fontSize: 42)),
-            Positioned(
-              top: -6, right: -6,
-              child: const Text('🫧', style: TextStyle(fontSize: 24)),
-            ),
-            Positioned(
-              bottom: -4, left: -4,
-              child: const Text('🧼', style: TextStyle(fontSize: 18)),
-            ),
-          ],
-        ),
-        gradientColors: KidsTheme.gameGradients['teal']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CarWashGame())); },
       ),
       _GameData(
         title: '자동차 조립소',
@@ -919,6 +874,268 @@ class _LobbyScreenState extends State<LobbyScreen>
         },
       ),
       _GameData(
+        title: '요리조리 자동차',
+        emoji: '🏎️',
+        gradientColors: KidsTheme.gameGradients['red']!,
+        onTap: () { 
+          AudioManager.instance.playClick();
+          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MiniRacingGame()));
+        },
+        isPremium: true,
+      ),
+
+      // ── [줄 2] 아이들이 좋아하는 역할놀이 & 프리미엄 요리사
+      _GameData(
+        title: '꼬마 동물 병원',
+        emoji: '🏥',
+        customIcon: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            const Text('🏥', style: TextStyle(fontSize: 38)),
+            Positioned(
+              top: -6, right: -6,
+              child: const Text('🩺', style: TextStyle(fontSize: 18)),
+            ),
+            Positioned(
+              bottom: -4, left: -4,
+              child: const Text('✨', style: TextStyle(fontSize: 16)),
+            ),
+          ],
+        ),
+        gradientColors: KidsTheme.gameGradients['teal'] ?? const [Color(0xFF26A69A), Color(0xFF00897B)],
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PetHospitalGame())); },
+      ),
+      _GameData(
+        title: '풍선 팡팡',
+        emoji: '🎈',
+        gradientColors: KidsTheme.gameGradients['pink']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BalloonPopGame())); },
+      ),
+      _GameData(
+        title: '요리사 놀이',
+        emoji: '🍳',
+        gradientColors: KidsTheme.gameGradients['amber']!,
+        isPremium: true,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CookingGame())); },
+      ),
+
+      // ── [줄 3] 신나는 세차장 & 액션 공룡 & 잠금 비눗방울
+      _GameData(
+        title: '삐까번쩍 세차장',
+        emoji: '🚗',
+        customIcon: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            const Text('🚗', style: TextStyle(fontSize: 42)),
+            Positioned(
+              top: -6, right: -6,
+              child: const Text('🫧', style: TextStyle(fontSize: 24)),
+            ),
+            Positioned(
+              bottom: -4, left: -4,
+              child: const Text('🧼', style: TextStyle(fontSize: 18)),
+            ),
+          ],
+        ),
+        gradientColors: KidsTheme.gameGradients['teal']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CarWashGame())); },
+      ),
+      _GameData(
+        title: '공룡 점프',
+        emoji: '🦖',
+        gradientColors: KidsTheme.gameGradients['teal']!,
+        onTap: () { 
+          SkinSelectModal.show(
+            context,
+            gameTitle: '공룡 점프',
+            defaultSkin: '🦖',
+            gameSkins: const ['🦕', '🐎', '🐕', '🐇', '🦘', '🐆', '🐉', '🐢'],
+            onStart: (skin) {
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => DinoJumpGame(playerEmoji: skin)));
+            },
+          );
+        },
+      ),
+      _GameData(
+        title: '비눗방울 톡톡',
+        emoji: '🫧',
+        gradientColors: KidsTheme.gameGradients['blue']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BubblePopGame())); },
+        isPremium: true,
+      ),
+
+      // ── [줄 4] 아케이드 액션 & 잠금 낚시 놀이
+      _GameData(
+        title: '과일 쓱싹',
+        emoji: '🍉',
+        gradientColors: KidsTheme.gameGradients['red']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FruitSlicerGame())); },
+      ),
+      _GameData(
+        title: '두더지 잡기',
+        emoji: '🐹',
+        gradientColors: KidsTheme.gameGradients['brown']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WhackAMoleGame())); },
+      ),
+      _GameData(
+        title: '낚시 놀이',
+        emoji: '🎣',
+        gradientColors: KidsTheme.gameGradients['teal']!,
+        onTap: () { 
+          SkinSelectModal.show(
+            context,
+            gameTitle: '낚시 놀이',
+            defaultSkin: '🎣',
+            gameSkins: const ['🧲', '🔱', '🦈', '🦑'],
+            onStart: (skin) {
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => FishingGame(hookEmoji: skin)));
+            },
+          );
+        },
+        isPremium: true,
+      ),
+
+      // ── [줄 5] 퍼즐 & 미술 & 잠금 실로폰
+      _GameData(
+        title: '직소 퍼즐',
+        emoji: '🧩',
+        gradientColors: KidsTheme.gameGradients['pink']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const JigsawPuzzleGame())); },
+      ),
+      _GameData(
+        title: '색깔 섞기',
+        emoji: '🎨',
+        gradientColors: KidsTheme.gameGradients['purple']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ColorMixingGame())); },
+      ),
+      _GameData(
+        title: '실로폰 연주',
+        emoji: '🎹',
+        gradientColors: KidsTheme.gameGradients['pink']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const XylophoneGame())); },
+        isPremium: true,
+      ),
+
+      // ── [줄 6] 관찰력 게임 & 잠금 먹보 미로
+      _GameData(
+        title: '숨은 그림',
+        emoji: '🔍',
+        gradientColors: KidsTheme.gameGradients['blue']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HiddenObjectGame())); },
+      ),
+      _GameData(
+        title: '짝맞추기',
+        emoji: '🃏',
+        gradientColors: KidsTheme.gameGradients['orange']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MemoryMatchGame())); },
+      ),
+      _GameData(
+        title: '먹보 미로',
+        emoji: '🟡',
+        gradientColors: KidsTheme.gameGradients['amber']!,
+        onTap: () {
+          SkinSelectModal.show(
+            context,
+            gameTitle: '먹보 미로',
+            defaultSkin: '🟡',
+            gameSkins: const ['🐥', '🐱', '🐶', '🐸'],
+            onStart: (skin) {
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => PacmanGame(playerSkin: skin)));
+            },
+          );
+        },
+        isPremium: true,
+      ),
+
+      // ── [줄 7] 탈출 & 레트로 & 잠금 틀린 그림
+      _GameData(
+        title: '미로 찾기',
+        emoji: '🧭',
+        gradientColors: KidsTheme.gameGradients['green']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MazeEscapeGame())); },
+      ),
+      _GameData(
+        title: '신나는 벽돌깨기',
+        emoji: '🧱',
+        gradientColors: KidsTheme.gameGradients['orange']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BrickBreakerGame())); },
+      ),
+      _GameData(
+        title: '틀린 그림',
+        emoji: '🕵️',
+        gradientColors: KidsTheme.gameGradients['purple']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SpotDifferenceGame())); },
+        isPremium: true,
+      ),
+
+      // ── [줄 8] 창의 블럭 & 슬라이드 & 잠금 지렁이
+      _GameData(
+        title: '블럭 조립',
+        emoji: '🧩',
+        gradientColors: KidsTheme.gameGradients['indigo']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BlockBuilderGame())); },
+      ),
+      _GameData(
+        title: '슬라이드 퍼즐',
+        emoji: '🔢',
+        gradientColors: KidsTheme.gameGradients['teal']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SlidePuzzleGame())); },
+      ),
+      _GameData(
+        title: '지렁이 탐험',
+        emoji: '🐛',
+        gradientColors: KidsTheme.gameGradients['lime']!,
+        onTap: () {
+          SkinSelectModal.show(
+            context,
+            gameTitle: '지렁이 탐험',
+            defaultSkin: '🐛',
+            gameSkins: const ['🐍', '🐲', '🦄', '🐊'],
+            onStart: (skin) {
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => SnakeGame(playerSkin: skin)));
+            },
+          );
+        },
+        isPremium: true,
+      ),
+
+      // ── [줄 9] 학습 & 그리기 & 잠금 따라 쓰기
+      _GameData(
+        title: '모양 색칠',
+        emoji: '🖌️',
+        gradientColors: KidsTheme.gameGradients['yellow']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ShapeColoringGame())); },
+      ),
+      _GameData(
+        title: '점 잇기',
+        emoji: '✏️',
+        gradientColors: KidsTheme.gameGradients['lime']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ConnectDotsGame())); },
+      ),
+      _GameData(
+        title: '따라 쓰기',
+        emoji: '🖍️',
+        gradientColors: KidsTheme.gameGradients['yellow']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TracingGame())); },
+        isPremium: true,
+      ),
+
+      // ── [줄 10] 감성 놀이 & 생활 습관 치카치카
+      _GameData(
+        title: '데칼코마니',
+        emoji: '🦋',
+        gradientColors: KidsTheme.gameGradients['pink']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DecalcomaniaGame())); },
+      ),
+      _GameData(
+        title: '동물 맘마',
+        emoji: '🐰',
+        gradientColors: KidsTheme.gameGradients['green']!,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FeedAnimalsGame())); },
+      ),
+      _GameData(
         title: '치카치카',
         emoji: '🪥',
         customIcon: Stack(
@@ -939,215 +1156,13 @@ class _LobbyScreenState extends State<LobbyScreen>
         isPremium: true,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ToothBrushingGame())); },
       ),
-      _GameData(
-        title: '풍선 팡팡',
-        emoji: '🎈',
-        gradientColors: KidsTheme.gameGradients['pink']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BalloonPopGame())); },
-      ),
-      _GameData(
-        title: '색깔 섞기',
-        emoji: '🎨',
-        gradientColors: KidsTheme.gameGradients['purple']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ColorMixingGame())); },
-      ),
-      _GameData(
-        title: '요리사 놀이',
-        emoji: '🍳',
-        gradientColors: KidsTheme.gameGradients['amber']!,
-        isPremium: true,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CookingGame())); },
-      ),
-      _GameData(
-        title: '직소 퍼즐',
-        emoji: '🧩',
-        gradientColors: KidsTheme.gameGradients['pink']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const JigsawPuzzleGame())); },
-      ),
-      _GameData(
-        title: '슬라이드 퍼즐',
-        emoji: '🔢',
-        gradientColors: KidsTheme.gameGradients['teal']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SlidePuzzleGame())); },
-      ),
-      _GameData(
-        title: '모양 색칠',
-        emoji: '🖌️',
-        gradientColors: KidsTheme.gameGradients['yellow']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ShapeColoringGame())); },
-      ),
-      _GameData(
-        title: '숨은 그림',
-        emoji: '🔍',
-        gradientColors: KidsTheme.gameGradients['blue']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HiddenObjectGame())); },
-      ),
-      _GameData(
-        title: '짝맞추기',
-        emoji: '🃏',
-        gradientColors: KidsTheme.gameGradients['orange']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MemoryMatchGame())); },
-      ),
-      _GameData(
-        title: '과일 쓱싹',
-        emoji: '🍉',
-        gradientColors: KidsTheme.gameGradients['red']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FruitSlicerGame())); },
-      ),
-      _GameData(
-        title: '동물 맘마',
-        emoji: '🐰',
-        gradientColors: KidsTheme.gameGradients['green']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FeedAnimalsGame())); },
-      ),
-      _GameData(
-        title: '두더지 잡기',
-        emoji: '🐹',
-        gradientColors: KidsTheme.gameGradients['brown']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WhackAMoleGame())); },
-      ),
-      _GameData(
-        title: '공룡 점프',
-        emoji: '🦖',
-        gradientColors: KidsTheme.gameGradients['teal']!,
-        onTap: () { 
-          SkinSelectModal.show(
-            context,
-            gameTitle: '공룡 점프',
-            defaultSkin: '🦖',
-            gameSkins: const ['🦕', '🐎', '🐕', '🐇', '🦘', '🐆', '🐉', '🐢'],
-            onStart: (skin) {
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => DinoJumpGame(playerEmoji: skin)));
-            },
-          );
-        },
-      ),
-      _GameData(
-        title: '신나는 벽돌깨기',
-        emoji: '🧱',
-        gradientColors: KidsTheme.gameGradients['orange']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BrickBreakerGame())); },
-      ),
-      _GameData(
-        title: '미로 찾기',
-        emoji: '🧭',
-        gradientColors: KidsTheme.gameGradients['green']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MazeEscapeGame())); },
-      ),
-      _GameData(
-        title: '블럭 조립',
-        emoji: '🧩',
-        gradientColors: KidsTheme.gameGradients['indigo']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BlockBuilderGame())); },
-      ),
 
-      // 🔒 [유료/잠금 게임 11종 - 하단 배치]
-      _GameData(
-        title: '틀린 그림',
-        emoji: '🕵️',
-        gradientColors: KidsTheme.gameGradients['purple']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SpotDifferenceGame())); },
-        isPremium: true,
-      ),
-      _GameData(
-        title: '실로폰 연주',
-        emoji: '🎹',
-        gradientColors: KidsTheme.gameGradients['pink']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const XylophoneGame())); },
-        isPremium: true,
-      ),
-      _GameData(
-        title: '비눗방울 톡톡',
-        emoji: '🫧',
-        gradientColors: KidsTheme.gameGradients['blue']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BubblePopGame())); },
-        isPremium: true,
-      ),
-      _GameData(
-        title: '데칼코마니',
-        emoji: '🦋',
-        gradientColors: KidsTheme.gameGradients['pink']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DecalcomaniaGame())); },
-      ),
+      // ── [줄 11] 마지막 하단
       _GameData(
         title: '탑 쌓기',
         emoji: '🏗️',
         gradientColors: KidsTheme.gameGradients['purple']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TowerBuilderGame())); },
-        isPremium: true,
-      ),
-      _GameData(
-        title: '요리조리 자동차',
-        emoji: '🏎️',
-        gradientColors: KidsTheme.gameGradients['red']!,
-        onTap: () { 
-          AudioManager.instance.playClick();
-          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MiniRacingGame()));
-        },
-        isPremium: true,
-      ),
-      _GameData(
-        title: '낚시 놀이',
-        emoji: '🎣',
-        gradientColors: KidsTheme.gameGradients['teal']!,
-        onTap: () { 
-          SkinSelectModal.show(
-            context,
-            gameTitle: '낚시 놀이',
-            defaultSkin: '🎣',
-            gameSkins: const ['🧲', '🔱', '🦈', '🦑'],
-            onStart: (skin) {
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => FishingGame(hookEmoji: skin)));
-            },
-          );
-        },
-        isPremium: true,
-      ),
-      _GameData(
-        title: '점 잇기',
-        emoji: '✏️',
-        gradientColors: KidsTheme.gameGradients['lime']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ConnectDotsGame())); },
-      ),
-      _GameData(
-        title: '따라 쓰기',
-        emoji: '🖍️',
-        gradientColors: KidsTheme.gameGradients['yellow']!,
-        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TracingGame())); },
-        isPremium: true,
-      ),
-      _GameData(
-        title: '먹보 미로',
-        emoji: '🟡',
-        gradientColors: KidsTheme.gameGradients['amber']!,
-        onTap: () {
-          SkinSelectModal.show(
-            context,
-            gameTitle: '먹보 미로',
-            defaultSkin: '🟡',
-            gameSkins: const ['🐥', '🐱', '🐶', '🐸'],
-            onStart: (skin) {
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => PacmanGame(playerSkin: skin)));
-            },
-          );
-        },
-        isPremium: true,
-      ),
-      _GameData(
-        title: '지렁이 탐험',
-        emoji: '🐛',
-        gradientColors: KidsTheme.gameGradients['lime']!,
-        onTap: () {
-          SkinSelectModal.show(
-            context,
-            gameTitle: '지렁이 탐험',
-            defaultSkin: '🐛',
-            gameSkins: const ['🐍', '🐲', '🦄', '🐊'],
-            onStart: (skin) {
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => SnakeGame(playerSkin: skin)));
-            },
-          );
-        },
         isPremium: true,
       ),
     ];

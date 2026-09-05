@@ -90,8 +90,8 @@ const List<_ChassisPreset> _kChassisList = [
 const Map<String, _SceneTheme> _kChassisScene = {
   'sedan':     _SceneTheme.coastal,   // 해안가 드라이브
   'truck':     _SceneTheme.mountain,  // 산속 도로
-  'sports':    _SceneTheme.city,      // 고속 도심
-  'police':    _SceneTheme.night,     // 야간 도시
+  'sports':    _SceneTheme.coastal,   // 해안가 고속도로
+  'police':    _SceneTheme.city,      // 맑은 낮 도심 순찰 (검은색 차체가 선명하게 잘 보임)
   'ambulance': _SceneTheme.suburb,    // 주택가 도로
   'monster':   _SceneTheme.offroad,   // 오프로드 황야
   'bus':       _SceneTheme.park,      // 공원 가로수길
@@ -99,18 +99,6 @@ const Map<String, _SceneTheme> _kChassisScene = {
 };
 
 enum _SceneTheme { coastal, mountain, city, night, suburb, offroad, park, space }
-
-const List<Color> _kBodyColorPalette = [
-  Color(0xFFFF5964), // 빨강
-  Color(0xFFFF9F1C), // 주황
-  Color(0xFFFFD166), // 노랑
-  Color(0xFF06D6A0), // 초록
-  Color(0xFF38BDF8), // 하늘
-  Color(0xFF8338EC), // 보라
-  Color(0xFFFF6EB4), // 핑크
-  Color(0xFF1E293B), // 다크
-  Color(0xFFFFFFFF), // 화이트
-];
 
 const List<_PartTemplate> _kAllParts = [
   // 🛞 바퀴류 (시운전 시 씽씽 굴러감!)
@@ -196,6 +184,8 @@ class _CarBuilderGameState extends State<CarBuilderGame>
 
   // 조립된 부품 리스트
   final List<_PlacedPart> _placedParts = [];
+  // 각 차종별 독립 부품 보관함 (차종 변경 시 부품이 따라다니지 않도록 분리)
+  final Map<String, List<_PlacedPart>> _chassisPlacedParts = {};
   String? _selectedPlacedPartId; // 선택된 부품
 
   // 시운전 애니메이션 컨트롤러
@@ -242,28 +232,106 @@ class _CarBuilderGameState extends State<CarBuilderGame>
     _carBounceCtrl.forward();
   }
 
+  List<_PlacedPart> _createDefaultPartsForChassis(String chassisId) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final basicWheel = _kAllParts.firstWhere((p) => p.id == 'w_basic');
+    final basicWin = _kAllParts.firstWhere((p) => p.id == 'win_pilot');
+
+    switch (chassisId) {
+      case 'truck':
+        return [
+          _PlacedPart(id: 'w1_$now', template: basicWheel, relativePos: const Offset(0.24, 0.72), scale: 1.15),
+          _PlacedPart(id: 'w2_${now + 1}', template: basicWheel, relativePos: const Offset(0.76, 0.72), scale: 1.15),
+          _PlacedPart(id: 'win_${now + 2}', template: basicWin, relativePos: const Offset(0.72, 0.32), scale: 1.0),
+        ];
+      case 'sports':
+        final sportWheel = _kAllParts.firstWhere((p) => p.id == 'w_sport', orElse: () => basicWheel);
+        return [
+          _PlacedPart(id: 'w1_$now', template: sportWheel, relativePos: const Offset(0.24, 0.72), scale: 1.15),
+          _PlacedPart(id: 'w2_${now + 1}', template: sportWheel, relativePos: const Offset(0.76, 0.72), scale: 1.15),
+          _PlacedPart(id: 'win_${now + 2}', template: basicWin, relativePos: const Offset(0.52, 0.32), scale: 1.0),
+        ];
+      case 'police':
+        final siren = _kAllParts.firstWhere((p) => p.id == 'l_siren_b', orElse: () => basicWin);
+        return [
+          _PlacedPart(id: 'w1_$now', template: basicWheel, relativePos: const Offset(0.24, 0.72), scale: 1.15),
+          _PlacedPart(id: 'w2_${now + 1}', template: basicWheel, relativePos: const Offset(0.76, 0.72), scale: 1.15),
+          _PlacedPart(id: 'win_${now + 2}', template: basicWin, relativePos: const Offset(0.56, 0.32), scale: 1.0),
+          _PlacedPart(id: 'sir_${now + 3}', template: siren, relativePos: const Offset(0.54, 0.16), scale: 1.0),
+        ];
+      case 'ambulance':
+        final siren = _kAllParts.firstWhere((p) => p.id == 'l_siren_r', orElse: () => basicWin);
+        return [
+          _PlacedPart(id: 'w1_$now', template: basicWheel, relativePos: const Offset(0.24, 0.72), scale: 1.15),
+          _PlacedPart(id: 'w2_${now + 1}', template: basicWheel, relativePos: const Offset(0.76, 0.72), scale: 1.15),
+          _PlacedPart(id: 'win_${now + 2}', template: basicWin, relativePos: const Offset(0.68, 0.32), scale: 1.0),
+          _PlacedPart(id: 'sir_${now + 3}', template: siren, relativePos: const Offset(0.64, 0.16), scale: 1.0),
+        ];
+      case 'monster':
+        final monsterWheel = _kAllParts.firstWhere((p) => p.id == 'w_monster', orElse: () => basicWheel);
+        return [
+          _PlacedPart(id: 'w1_$now', template: monsterWheel, relativePos: const Offset(0.24, 0.74), scale: 1.25),
+          _PlacedPart(id: 'w2_${now + 1}', template: monsterWheel, relativePos: const Offset(0.76, 0.74), scale: 1.25),
+          _PlacedPart(id: 'win_${now + 2}', template: basicWin, relativePos: const Offset(0.56, 0.32), scale: 1.0),
+        ];
+      case 'bus':
+        return [
+          _PlacedPart(id: 'w1_$now', template: basicWheel, relativePos: const Offset(0.24, 0.74), scale: 1.15),
+          _PlacedPart(id: 'w2_${now + 1}', template: basicWheel, relativePos: const Offset(0.76, 0.74), scale: 1.15),
+          _PlacedPart(id: 'win_${now + 2}', template: basicWin, relativePos: const Offset(0.72, 0.34), scale: 1.0),
+        ];
+      case 'rocket':
+        final booster = _kAllParts.firstWhere((p) => p.id == 'b_rocket', orElse: () => basicWin);
+        return [
+          _PlacedPart(id: 'w1_$now', template: basicWheel, relativePos: const Offset(0.24, 0.72), scale: 1.15),
+          _PlacedPart(id: 'w2_${now + 1}', template: basicWheel, relativePos: const Offset(0.76, 0.72), scale: 1.15),
+          _PlacedPart(id: 'win_${now + 2}', template: basicWin, relativePos: const Offset(0.52, 0.32), scale: 1.0),
+          _PlacedPart(id: 'bst_${now + 3}', template: booster, relativePos: const Offset(0.12, 0.58), scale: 1.0),
+        ];
+      case 'sedan':
+      default:
+        return [
+          _PlacedPart(id: 'w1_$now', template: basicWheel, relativePos: const Offset(0.24, 0.72), scale: 1.15),
+          _PlacedPart(id: 'w2_${now + 1}', template: basicWheel, relativePos: const Offset(0.76, 0.72), scale: 1.15),
+          _PlacedPart(id: 'win_${now + 2}', template: basicWin, relativePos: const Offset(0.56, 0.32), scale: 1.0),
+        ];
+    }
+  }
+
   void _addDefaultStartingParts() {
     _placedParts.clear();
-    final basicWheel = _kAllParts.firstWhere((p) => p.id == 'w_basic');
-    _placedParts.add(_PlacedPart(
-      id: 'w1_${DateTime.now().millisecondsSinceEpoch}',
-      template: basicWheel,
-      relativePos: const Offset(0.24, 0.72),
-      scale: 1.15,
-    ));
-    _placedParts.add(_PlacedPart(
-      id: 'w2_${DateTime.now().millisecondsSinceEpoch + 1}',
-      template: basicWheel,
-      relativePos: const Offset(0.76, 0.72),
-      scale: 1.15,
-    ));
-    final basicWin = _kAllParts.firstWhere((p) => p.id == 'win_pilot');
-    _placedParts.add(_PlacedPart(
-      id: 'win_${DateTime.now().millisecondsSinceEpoch + 2}',
-      template: basicWin,
-      relativePos: const Offset(0.56, 0.32), // 운전석(앞좌석) 위치
-      scale: 1.0,
-    ));
+    final defaultParts = _createDefaultPartsForChassis(_selectedChassis.id);
+    _placedParts.addAll(defaultParts);
+    _chassisPlacedParts[_selectedChassis.id] = List<_PlacedPart>.from(defaultParts);
+  }
+
+  void _onChassisSelected(_ChassisPreset newChassis) {
+    if (newChassis.id == _selectedChassis.id) return;
+
+    AudioManager.instance.playSnap();
+    HapticFeedback.lightImpact();
+    _triggerCarBounce();
+
+    setState(() {
+      // 1. 현재 자동차의 부품 목록을 백업 저장
+      _chassisPlacedParts[_selectedChassis.id] = List<_PlacedPart>.from(_placedParts);
+
+      // 2. 새로운 차종으로 변경
+      _selectedChassis = newChassis;
+      _bodyColor = newChassis.defaultColor;
+      _selectedPlacedPartId = null;
+
+      // 3. 바뀐 자동차의 부품을 가져오거나, 처음 선택된 자동차라면
+      //    이전 차의 부품이 따라오지 않고 해당 차종에 맞는 기본 부품으로 '처음부터 새로 시작'!
+      _placedParts.clear();
+      if (_chassisPlacedParts.containsKey(newChassis.id)) {
+        _placedParts.addAll(_chassisPlacedParts[newChassis.id]!);
+      } else {
+        final newParts = _createDefaultPartsForChassis(newChassis.id);
+        _placedParts.addAll(newParts);
+        _chassisPlacedParts[newChassis.id] = List<_PlacedPart>.from(newParts);
+      }
+    });
   }
 
   @override
@@ -367,6 +435,7 @@ class _CarBuilderGameState extends State<CarBuilderGame>
     setState(() {
       _placedParts.clear();
       _selectedPlacedPartId = null;
+      _chassisPlacedParts[_selectedChassis.id] = [];
     });
   }
 
@@ -608,8 +677,8 @@ class _CarBuilderGameState extends State<CarBuilderGame>
   Widget _buildWorkshopAssembleView() {
     return Column(
       children: [
-        // 1. Top Controls (Chassis Preset & Paint Color Picker)
-        _buildChassisAndColorBar(),
+        // 1. Top Controls (Chassis Preset Picker)
+        _buildChassisBar(),
 
         // 2. Workbench Interactive Car Canvas (DragTarget)
         Expanded(
@@ -625,26 +694,19 @@ class _CarBuilderGameState extends State<CarBuilderGame>
     );
   }
 
-  Widget _buildChassisAndColorBar() {
+  Widget _buildChassisBar() {
     return Container(
       height: 48,
       margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
       child: ListView(
         scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
         children: [
-          // Chassis selector
+          // 차종 선택 버튼 목록 (혼란 방지를 위해 색상 선택 제거)
           ..._kChassisList.map((chassis) {
             final isSelected = chassis.id == _selectedChassis.id;
             return GestureDetector(
-              onTap: () {
-                AudioManager.instance.playSnap();
-                HapticFeedback.lightImpact();
-                _triggerCarBounce();
-                setState(() {
-                  _selectedChassis = chassis;
-                  _bodyColor = chassis.defaultColor;
-                });
-              },
+              onTap: () => _onChassisSelected(chassis),
               child: Container(
                 margin: const EdgeInsets.only(right: 6),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -667,36 +729,6 @@ class _CarBuilderGameState extends State<CarBuilderGame>
                       fontSize: 12,
                       color: isSelected ? Colors.white : const Color(0xFF334155),
                     )),
-                  ],
-                ),
-              ),
-            );
-          }),
-
-          const VerticalDivider(width: 14, thickness: 1.5, color: Color(0xFFCBD5E1)),
-
-          // Color palette
-          ..._kBodyColorPalette.map((color) {
-            final isSelected = color == _bodyColor;
-            return GestureDetector(
-              onTap: () {
-                AudioManager.instance.playClick();
-                HapticFeedback.lightImpact();
-                _triggerCarBounce();
-                setState(() => _bodyColor = color);
-              },
-              child: Container(
-                width: 32, height: 32,
-                margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isSelected ? const Color(0xFFFF9F1C) : Colors.white,
-                    width: isSelected ? 3 : 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 3),
                   ],
                 ),
               ),
@@ -748,6 +780,19 @@ class _CarBuilderGameState extends State<CarBuilderGame>
             child: Stack(
               fit: StackFit.expand,
               children: [
+                // 0. Tap canvas background to complete part editing
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: () {
+                      if (_selectedPlacedPartId != null) {
+                        AudioManager.instance.playClick();
+                        setState(() => _selectedPlacedPartId = null);
+                      }
+                    },
+                  ),
+                ),
+
                 // 1. Live Animated Scene background (Wave, Seagulls, Stars, etc.)
                 AnimatedBuilder(
                   animation: _sceneAnimCtrl,
@@ -849,31 +894,61 @@ class _CarBuilderGameState extends State<CarBuilderGame>
                                     placed.relativePos = Offset(newX, newY);
                                   });
                                 },
-                                child: Container(
-                                  width: partW,
-                                  height: partH,
-                                  decoration: isSelected
-                                      ? BoxDecoration(
-                                          borderRadius: BorderRadius.circular(14),
-                                          border: Border.all(color: const Color(0xFF06D6A0), width: 2.5),
-                                          color: const Color(0xFF06D6A0).withValues(alpha: 0.18),
-                                        )
-                                      : null,
-                                  child: Transform.rotate(
-                                    angle: placed.rotation,
-                                    child: Transform.scale(
-                                      scale: placed.scale,
-                                      child: Transform.flip(
-                                        flipX: placed.isFlipped,
-                                        child: Center(
-                                          child: Text(
-                                            placed.template.emoji,
-                                            style: TextStyle(fontSize: placed.template.defaultWidth * 0.72),
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    Container(
+                                      width: partW,
+                                      height: partH,
+                                      decoration: isSelected
+                                          ? BoxDecoration(
+                                              borderRadius: BorderRadius.circular(14),
+                                              border: Border.all(color: const Color(0xFF06D6A0), width: 2.5),
+                                              color: const Color(0xFF06D6A0).withValues(alpha: 0.18),
+                                            )
+                                          : null,
+                                      child: Transform.rotate(
+                                        angle: placed.rotation,
+                                        child: Transform.scale(
+                                          scale: placed.scale,
+                                          child: Transform.flip(
+                                            flipX: placed.isFlipped,
+                                            child: Center(
+                                              child: Text(
+                                                placed.template.emoji,
+                                                style: TextStyle(fontSize: placed.template.defaultWidth * 0.72),
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
+                                    // 선택된 부품 우측 상단 바로 완료(체크) 버튼
+                                    if (isSelected)
+                                      Positioned(
+                                        top: -10,
+                                        right: -10,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            AudioManager.instance.playClick();
+                                            HapticFeedback.lightImpact();
+                                            setState(() => _selectedPlacedPartId = null);
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF06D6A0),
+                                              shape: BoxShape.circle,
+                                              border: Border.all(color: Colors.white, width: 1.5),
+                                              boxShadow: [
+                                                BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 4, offset: const Offset(0, 2)),
+                                              ],
+                                            ),
+                                            child: const Icon(Icons.check_rounded, size: 14, color: Colors.white),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
                             );
@@ -884,113 +959,132 @@ class _CarBuilderGameState extends State<CarBuilderGame>
                   ),
                 ),
 
-                // 4. Dedicated High-Accessibility Floating Action Bar for Selected Part
+                // 4. Dedicated High-Accessibility Floating Action Bar for Selected Part (한눈에 완료까지 100% 다 보임)
                 if (selectedPart != null)
                   Positioned(
-                    top: 10,
-                    left: 10,
-                    right: 10,
+                    top: 8,
+                    left: 6,
+                    right: 6,
                     child: Center(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                         decoration: BoxDecoration(
                           color: const Color(0xFF1E293B),
-                          borderRadius: BorderRadius.circular(24),
+                          borderRadius: BorderRadius.circular(22),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 8, offset: const Offset(0, 3)),
+                            BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 10, offset: const Offset(0, 3)),
                           ],
                         ),
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Selected part preview
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Text(selectedPart.template.emoji, style: const TextStyle(fontSize: 18)),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      selectedPart.template.name,
-                                      style: GoogleFonts.jua(fontSize: 12, color: Colors.white),
-                                    ),
-                                  ],
-                                ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // 1. 선택 부품 이모지 뱃지
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              const SizedBox(width: 8),
+                              child: Text(selectedPart.template.emoji, style: const TextStyle(fontSize: 18)),
+                            ),
+                            const SizedBox(width: 5),
 
-                              // 🔄 Rotate Button
-                              _buildToolButton(
-                                label: '회전',
-                                icon: Icons.rotate_right_rounded,
-                                color: const Color(0xFF38BDF8),
+                            // 2. 🔄 회전 버튼
+                            _buildToolButton(
+                              label: '회전',
+                              icon: Icons.rotate_right_rounded,
+                              color: const Color(0xFF38BDF8),
+                              onTap: () {
+                                AudioManager.instance.playClick();
+                                HapticFeedback.lightImpact();
+                                setState(() => selectedPart.rotation += pi / 4);
+                              },
+                            ),
+                            const SizedBox(width: 4),
+
+                            // 3. 🔍 크기 버튼
+                            _buildToolButton(
+                              label: '크기',
+                              icon: Icons.aspect_ratio_rounded,
+                              color: const Color(0xFFFFCA28),
+                              onTap: () {
+                                AudioManager.instance.playClick();
+                                HapticFeedback.lightImpact();
+                                setState(() {
+                                  if (selectedPart.scale >= 1.5) {
+                                    selectedPart.scale = 0.8;
+                                  } else {
+                                    selectedPart.scale += 0.3;
+                                  }
+                                });
+                              },
+                            ),
+                            const SizedBox(width: 4),
+
+                            // 4. ↔️ 반전 버튼
+                            _buildToolButton(
+                              label: '반전',
+                              icon: Icons.flip_rounded,
+                              color: const Color(0xFFA855F7),
+                              onTap: () {
+                                AudioManager.instance.playClick();
+                                HapticFeedback.lightImpact();
+                                setState(() => selectedPart.isFlipped = !selectedPart.isFlipped);
+                              },
+                            ),
+                            const SizedBox(width: 4),
+
+                            // 5. 🗑️ 삭제 버튼
+                            _buildToolButton(
+                              label: '삭제',
+                              icon: Icons.delete_outline_rounded,
+                              color: const Color(0xFFFF5964),
+                              onTap: () => _removePlacedPart(selectedPart.id),
+                            ),
+                            const SizedBox(width: 6),
+
+                            // 6. ✅ 완료 버튼 (언제나 맨 우측에 눈에 띄는 초록색으로 확실히 표시!)
+                            Material(
+                              color: Colors.transparent,
+                              child: InkWell(
                                 onTap: () {
                                   AudioManager.instance.playClick();
                                   HapticFeedback.lightImpact();
-                                  setState(() => selectedPart.rotation += pi / 4);
-                                },
-                              ),
-                              const SizedBox(width: 6),
-
-                              // 🔍 Scale Button
-                              _buildToolButton(
-                                label: '크기',
-                                icon: Icons.aspect_ratio_rounded,
-                                color: const Color(0xFFFFCA28),
-                                onTap: () {
-                                  AudioManager.instance.playClick();
-                                  HapticFeedback.lightImpact();
-                                  setState(() {
-                                    if (selectedPart.scale >= 1.5) {
-                                      selectedPart.scale = 0.8;
-                                    } else {
-                                      selectedPart.scale += 0.3;
-                                    }
-                                  });
-                                },
-                              ),
-                              const SizedBox(width: 6),
-
-                              // ↔️ Flip Button
-                              _buildToolButton(
-                                label: '반전',
-                                icon: Icons.flip_rounded,
-                                color: const Color(0xFFA855F7),
-                                onTap: () {
-                                  AudioManager.instance.playClick();
-                                  HapticFeedback.lightImpact();
-                                  setState(() => selectedPart.isFlipped = !selectedPart.isFlipped);
-                                },
-                              ),
-                              const SizedBox(width: 6),
-
-                              // 🗑️ Delete Button
-                              _buildToolButton(
-                                label: '삭제',
-                                icon: Icons.delete_forever_rounded,
-                                color: const Color(0xFFFF5964),
-                                onTap: () => _removePlacedPart(selectedPart.id),
-                              ),
-                              const SizedBox(width: 6),
-
-                              // ✅ Done Button
-                              _buildToolButton(
-                                label: '완료',
-                                icon: Icons.check_circle_rounded,
-                                color: const Color(0xFF06D6A0),
-                                onTap: () {
-                                  AudioManager.instance.playClick();
                                   setState(() => _selectedPlacedPartId = null);
                                 },
+                                borderRadius: BorderRadius.circular(16),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF06D6A0),
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF06D6A0).withValues(alpha: 0.5),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.check_circle_rounded, color: Colors.white, size: 17),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        '완료',
+                                        style: GoogleFonts.jua(
+                                          fontSize: 13,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -1077,24 +1171,24 @@ class _CarBuilderGameState extends State<CarBuilderGame>
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             boxShadow: [
-              BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 4, offset: const Offset(0, 1)),
+              BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 4, offset: const Offset(0, 1)),
             ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: Colors.white, size: 16),
-              const SizedBox(width: 3),
+              Icon(icon, color: Colors.white, size: 15),
+              const SizedBox(width: 2),
               Text(
                 label,
-                style: GoogleFonts.jua(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),
+                style: GoogleFonts.jua(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -1107,8 +1201,9 @@ class _CarBuilderGameState extends State<CarBuilderGame>
     final filteredParts = _kAllParts.where((p) => p.category == _selectedCategory).toList();
 
     return Container(
-      height: 155,
-      padding: const EdgeInsets.only(top: 6, bottom: 6),
+      height: 165,
+      padding: const EdgeInsets.only(top: 8, bottom: 8),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
@@ -1127,7 +1222,8 @@ class _CarBuilderGameState extends State<CarBuilderGame>
             height: 42,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               children: _PartCategory.values.map((cat) {
                 final isSelected = cat == _selectedCategory;
                 final catInfo = _getCategoryInfo(cat);
@@ -1201,6 +1297,7 @@ class _CarBuilderGameState extends State<CarBuilderGame>
               child: ListView.separated(
                 key: ValueKey<String>('tray_${_selectedCategory.name}'),
                 scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 itemCount: filteredParts.length,
                 separatorBuilder: (_, _) => const SizedBox(width: 10),
@@ -1219,6 +1316,7 @@ class _CarBuilderGameState extends State<CarBuilderGame>
   Widget _buildDraggablePartTile(_PartTemplate part) {
     return Draggable<_PartTemplate>(
       data: part,
+      affinity: Axis.vertical,
       feedback: Material(
         color: Colors.transparent,
         child: Transform.scale(
@@ -2284,24 +2382,31 @@ class _ChassisPainter extends CustomPainter {
     _drawLightsAndCutouts(canvas, w, h, Rect.fromLTWH(w * 0.10, h * 0.44, w * 0.80, h * 0.32));
   }
 
-  // 3. 경찰차 (Police Car) — 흑백 투톤 + POLICE 배지 + 범퍼 가드
+  // 3. 경찰차 (Police Car) — 흑백 투톤 + POLICE 배지 + 범퍼 가드 + 선명한 윤곽선
   void _drawPoliceCar(Canvas canvas, double w, double h) {
-    final darkPaint = Paint()..color = const Color(0xFF0F172A);
+    final darkPaint = Paint()..color = const Color(0xFF1E293B);
     final whitePaint = Paint()..color = Colors.white;
+    final outlinePaint = Paint()
+      ..color = const Color(0xFF94A3B8)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
 
     final bodyRect = Rect.fromLTWH(w * 0.10, h * 0.44, w * 0.80, h * 0.32);
     _drawShadow(canvas, bodyRect);
 
-    // Front/Rear Black body
+    // Front/Rear Black body & high contrast silver outline
     canvas.drawRRect(RRect.fromRectAndRadius(bodyRect, const Radius.circular(16)), darkPaint);
+    canvas.drawRRect(RRect.fromRectAndRadius(bodyRect, const Radius.circular(16)), outlinePaint);
 
     // Center White Door Section (경찰차 특유의 도어 화이트 도색)
     final doorRect = Rect.fromLTWH(w * 0.36, h * 0.44, w * 0.34, h * 0.32);
     canvas.drawRect(doorRect, whitePaint);
+    canvas.drawRect(doorRect, Paint()..color = const Color(0xFFCBD5E1)..style = PaintingStyle.stroke..strokeWidth = 1.5);
 
     // Police Star Badge & Text
     canvas.drawCircle(Offset(w * 0.53, h * 0.58), 12, Paint()..color = const Color(0xFFFFD700));
     canvas.drawCircle(Offset(w * 0.53, h * 0.58), 9, Paint()..color = const Color(0xFF1E293B));
+    canvas.drawCircle(Offset(w * 0.53, h * 0.58), 4, Paint()..color = const Color(0xFFFFD700));
 
     // Cabin
     final cabinPath = Path()
@@ -2311,6 +2416,7 @@ class _ChassisPainter extends CustomPainter {
       ..lineTo(w * 0.80, h * 0.44)
       ..close();
     canvas.drawPath(cabinPath, darkPaint);
+    canvas.drawPath(cabinPath, outlinePaint);
 
     // White Roof top
     canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(w * 0.36, h * 0.20, w * 0.36, 6), const Radius.circular(3)), whitePaint);
@@ -2319,8 +2425,8 @@ class _ChassisPainter extends CustomPainter {
     _drawWindow(canvas, Rect.fromLTWH(w * 0.38, h * 0.24, w * 0.16, h * 0.19));
     _drawWindow(canvas, Rect.fromLTWH(w * 0.56, h * 0.24, w * 0.16, h * 0.19));
 
-    // Front Push-Bar (경찰 범퍼 가드)
-    final pushBar = Paint()..color = const Color(0xFF475569)..strokeWidth = 4;
+    // Front Push-Bar (경찰 범퍼 가드 - 눈에 띄는 밝은 크롬 실버)
+    final pushBar = Paint()..color = const Color(0xFFCBD5E1)..strokeWidth = 4;
     canvas.drawLine(Offset(w * 0.90, h * 0.44), Offset(w * 0.90, h * 0.72), pushBar);
     canvas.drawLine(Offset(w * 0.86, h * 0.52), Offset(w * 0.92, h * 0.52), pushBar);
 
