@@ -173,7 +173,7 @@ class GameEngine extends ChangeNotifier {
     for (var p in particles) {
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += 0.001; // Gravity
+      p.vy += 0.003; // Gravity (increased for punchier pop feel)
       p.life -= p.decay;
       dirty = true;
     }
@@ -341,7 +341,7 @@ class GameEngine extends ChangeNotifier {
     switch (balloon.type) {
       case BalloonType.normal:
         AudioManager.instance.playPop();
-        points = 10;
+        points = comboCount >= 5 ? 15 : 10;
         floatText = comboCount >= 5 ? "+15 🔥 FEVER!" : (comboCount >= 2 ? "+10 ⚡x$comboCount" : "+10");
         break;
       case BalloonType.fast:
@@ -382,9 +382,9 @@ class GameEngine extends ChangeNotifier {
         break;
       case BalloonType.spiky:
         AudioManager.instance.playBoing();
-        points = 10;
-        floatText = "통통! ✨";
-        particleColor = const Color(0xFFE040FB);
+        points = 15;
+        floatText = "반짝! 🌟";
+        particleColor = const Color(0xFFFFD700);
         break;
     }
 
@@ -418,6 +418,7 @@ class GameEngine extends ChangeNotifier {
       isStageCleared = true;
       // AudioManager.instance.playSuccess(); // 사운드가 너무 시끄럽다는 피드백으로 제거
       HapticFeedback.heavyImpact();
+      _saveHighScore();
     }
     
     notifyListeners();
@@ -1178,168 +1179,210 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
 
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withValues(alpha: 0.65),
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 320, maxHeight: 480),
-            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.18),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Clean Top Row: Close button on top right, clean title
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '어디까지 날아볼까요? 🎈',
-                      style: GoogleFonts.jua(
-                        fontSize: 16,
-                        color: const Color(0xFF37474F),
-                        fontWeight: FontWeight.bold,
+        color: Colors.black.withValues(alpha: 0.55),
+        child: SafeArea(
+          child: Center(
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 400),
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(color: const Color(0xFFFFD54F), width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFF9800).withValues(alpha: 0.25),
+                    blurRadius: 30,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // ── Cute Gradient Header ──
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(20, 20, 12, 16),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFFFF9800), Color(0xFFFF5722)],
+                      ),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(29),
+                        topRight: Radius.circular(29),
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        AudioManager.instance.playClick();
-                        setState(() {
-                          _showStageSelect = false;
-                        });
-                      },
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFF5F5F5),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF757575)),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // 5 Identical, Clean & Charming Stage Cards
-                Expanded(
-                  child: ListView.separated(
-                    padding: EdgeInsets.zero,
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: stagesInfo.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final info = stagesInfo[index];
-                      final bool isCurrent = _engine.stage == info.stage;
-
-                      return GestureDetector(
-                        onTap: () {
-                          AudioManager.instance.playClick();
-                          _engine.setStage(info.stage);
-                          setState(() {
-                            _showStageSelect = false;
-                          });
-                        },
-                        child: Container(
-                          height: 58,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: info.cardBg,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: isCurrent ? info.badgeColor : info.borderColor,
-                              width: isCurrent ? 2.2 : 1.2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: info.badgeColor.withValues(alpha: isCurrent ? 0.18 : 0.05),
-                                blurRadius: isCurrent ? 6 : 3,
-                                offset: const Offset(0, 2),
+                    child: Row(
+                      children: [
+                        const Text('🎈', style: TextStyle(fontSize: 36)),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '어디까지 날아볼까요?',
+                                style: GoogleFonts.jua(
+                                  fontSize: 22,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                '단계를 골라보세요! ✨',
+                                style: GoogleFonts.jua(
+                                  fontSize: 14,
+                                  color: Colors.white.withValues(alpha: 0.85),
+                                ),
                               ),
                             ],
                           ),
-                          child: Row(
-                            children: [
-                              // Cute Round Icon Emblem
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.06),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 1),
-                                    ),
-                                  ],
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(info.icon, style: const TextStyle(fontSize: 22)),
-                              ),
-                              const SizedBox(width: 12),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            AudioManager.instance.playClick();
+                            setState(() {
+                              _showStageSelect = false;
+                            });
+                          },
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.25),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.close_rounded, size: 24, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
-                              // Stage Name & Score
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      '${info.stage}단계 • ${info.title}',
-                                      style: GoogleFonts.jua(
-                                        fontSize: 14.5,
-                                        color: const Color(0xFF263238),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    Text(
-                                      info.scoreText,
-                                      style: GoogleFonts.jua(
-                                        fontSize: 11,
-                                        color: const Color(0xFF78909C),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                  // ── Stage Cards ──
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: stagesInfo.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final info = stagesInfo[index];
+                        final bool isCurrent = _engine.stage == info.stage;
 
-                              // Selected or Play Tag
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: isCurrent ? info.badgeColor : Colors.white,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: isCurrent ? null : Border.all(color: info.borderColor),
+                        return GestureDetector(
+                          onTap: () {
+                            AudioManager.instance.playClick();
+                            _engine.setStage(info.stage);
+                            setState(() {
+                              _showStageSelect = false;
+                            });
+                          },
+                          child: Container(
+                            height: 78,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: info.cardBg,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isCurrent ? info.badgeColor : info.borderColor,
+                                width: isCurrent ? 2.5 : 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: info.badgeColor.withValues(alpha: isCurrent ? 0.22 : 0.08),
+                                  blurRadius: isCurrent ? 10 : 4,
+                                  offset: const Offset(0, 3),
                                 ),
-                                child: Text(
-                                  isCurrent ? '선택됨 ✨' : '시작 ▶',
-                                  style: GoogleFonts.jua(
-                                    fontSize: 11,
-                                    color: isCurrent ? Colors.white : const Color(0xFF546E7A),
-                                    fontWeight: FontWeight.bold,
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                // Big Round Icon
+                                Container(
+                                  width: 54,
+                                  height: 54,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: info.badgeColor.withValues(alpha: 0.3),
+                                      width: 2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: info.badgeColor.withValues(alpha: 0.15),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(info.icon, style: const TextStyle(fontSize: 30)),
+                                ),
+                                const SizedBox(width: 14),
+
+                                // Stage Name & Score
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        '${info.stage}단계 • ${info.title}',
+                                        style: GoogleFonts.jua(
+                                          fontSize: 18,
+                                          color: const Color(0xFF263238),
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        info.scoreText,
+                                        style: GoogleFonts.jua(
+                                          fontSize: 13,
+                                          color: const Color(0xFF78909C),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ),
-                            ],
+
+                                // Big Play / Selected Tag
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: isCurrent ? info.badgeColor : Colors.white,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: isCurrent ? null : Border.all(color: info.borderColor, width: 1.5),
+                                    boxShadow: isCurrent ? [
+                                      BoxShadow(
+                                        color: info.badgeColor.withValues(alpha: 0.3),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ] : null,
+                                  ),
+                                  child: Text(
+                                    isCurrent ? '선택됨 ✨' : '시작 ▶',
+                                    style: GoogleFonts.jua(
+                                      fontSize: 14,
+                                      color: isCurrent ? Colors.white : const Color(0xFF546E7A),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -1537,7 +1580,7 @@ class _GamePainter extends CustomPainter {
       textPainter.paint(canvas, Offset(cx - textPainter.width / 2, cy - textPainter.height / 2));
     } else if (type == BalloonType.spiky) {
       final textPainter = TextPainter(
-        text: const TextSpan(text: '💀', style: TextStyle(fontSize: 22)),
+        text: const TextSpan(text: '🌟', style: TextStyle(fontSize: 22)),
         textDirection: TextDirection.ltr,
       );
       textPainter.layout();

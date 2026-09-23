@@ -108,6 +108,7 @@ class LobbyScreen extends StatefulWidget {
 
 class _LobbyScreenState extends State<LobbyScreen>
     with TickerProviderStateMixin {
+  int _selectedAgeTab = 3;
   late AnimationController _cloudController;
   late AnimationController _bounceController;
   late AnimationController _starController;
@@ -675,24 +676,111 @@ class _LobbyScreenState extends State<LobbyScreen>
 
   // ── Games Grid ────────────────────────────────────────────────────────────
   Widget _buildGamesGrid() {
-    // 결제 전환율과 호기심 유도를 위해 '무료 2개 + 잠금 1개' 비율로 교차 배치된 순서 유지
-    final games = _gameData();
+    final allGames = _gameData();
+    final games = allGames.where((g) => g.minAge == _selectedAgeTab).toList();
 
-    return ValueListenableBuilder<bool>(
-      valueListenable: PlayerDataManager.instance.isPremiumUnlockedNotifier,
-      builder: (context, isPremiumUnlocked, child) {
-        return GridView.builder(
-          padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            childAspectRatio: 0.88,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
+    return Column(
+      children: [
+        _buildAgeTabs(),
+        Expanded(
+          child: ValueListenableBuilder<bool>(
+            valueListenable: PlayerDataManager.instance.isPremiumUnlockedNotifier,
+            builder: (context, isPremiumUnlocked, child) {
+              return GridView.builder(
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  childAspectRatio: 0.88,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                ),
+                itemCount: games.length,
+                itemBuilder: (context, i) => _buildGameTile(games[i], isPremiumUnlocked),
+              );
+            },
           ),
-          itemCount: games.length,
-          itemBuilder: (context, i) => _buildGameTile(games[i], isPremiumUnlocked),
-        );
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAgeTabs() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.85),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: KidsTheme.blue.withValues(alpha: 0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildTabButton(
+                title: '👶 3~5세 게임',
+                age: 3,
+                activeColor: KidsTheme.green,
+              ),
+            ),
+            Expanded(
+              child: _buildTabButton(
+                title: '👦 6세 이상 게임',
+                age: 6,
+                activeColor: KidsTheme.orange,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabButton({required String title, required int age, required Color activeColor}) {
+    final bool isActive = _selectedAgeTab == age;
+    return GestureDetector(
+      onTap: () {
+        if (!isActive) {
+          AudioManager.instance.playClick();
+          setState(() {
+            _selectedAgeTab = age;
+          });
+        }
       },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isActive ? activeColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: activeColor.withValues(alpha: 0.40),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  )
+                ]
+              : null,
+        ),
+        child: Center(
+          child: Text(
+            title,
+            style: GoogleFonts.jua(
+              fontSize: 16,
+              color: isActive ? Colors.white : KidsTheme.textLight,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -875,6 +963,7 @@ class _LobbyScreenState extends State<LobbyScreen>
       ),
       _GameData(
         title: '요리조리 자동차',
+        minAge: 6,
         emoji: '🏎️',
         gradientColors: KidsTheme.gameGradients['red']!,
         onTap: () { 
@@ -944,6 +1033,7 @@ class _LobbyScreenState extends State<LobbyScreen>
       ),
       _GameData(
         title: '공룡 점프',
+        minAge: 6,
         emoji: '🦖',
         gradientColors: KidsTheme.gameGradients['teal']!,
         onTap: () { 
@@ -969,12 +1059,14 @@ class _LobbyScreenState extends State<LobbyScreen>
       // ── [줄 4] 아케이드 액션 & 잠금 낚시 놀이
       _GameData(
         title: '과일 쓱싹',
+        minAge: 6,
         emoji: '🍉',
         gradientColors: KidsTheme.gameGradients['red']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FruitSlicerGame())); },
       ),
       _GameData(
         title: '두더지 잡기',
+        minAge: 6,
         emoji: '🐹',
         gradientColors: KidsTheme.gameGradients['brown']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WhackAMoleGame())); },
@@ -1000,6 +1092,7 @@ class _LobbyScreenState extends State<LobbyScreen>
       // ── [줄 5] 퍼즐 & 미술 & 잠금 실로폰
       _GameData(
         title: '직소 퍼즐',
+        minAge: 6,
         emoji: '🧩',
         gradientColors: KidsTheme.gameGradients['pink']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const JigsawPuzzleGame())); },
@@ -1021,18 +1114,21 @@ class _LobbyScreenState extends State<LobbyScreen>
       // ── [줄 6] 관찰력 게임 & 잠금 먹보 미로
       _GameData(
         title: '숨은 그림',
+        minAge: 6,
         emoji: '🔍',
         gradientColors: KidsTheme.gameGradients['blue']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HiddenObjectGame())); },
       ),
       _GameData(
         title: '짝맞추기',
+        minAge: 6,
         emoji: '🃏',
         gradientColors: KidsTheme.gameGradients['orange']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MemoryMatchGame())); },
       ),
       _GameData(
         title: '먹보 미로',
+        minAge: 6,
         emoji: '🟡',
         gradientColors: KidsTheme.gameGradients['amber']!,
         onTap: () {
@@ -1052,18 +1148,21 @@ class _LobbyScreenState extends State<LobbyScreen>
       // ── [줄 7] 탈출 & 레트로 & 잠금 틀린 그림
       _GameData(
         title: '미로 찾기',
+        minAge: 6,
         emoji: '🧭',
         gradientColors: KidsTheme.gameGradients['green']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MazeEscapeGame())); },
       ),
       _GameData(
         title: '신나는 벽돌깨기',
+        minAge: 6,
         emoji: '🧱',
         gradientColors: KidsTheme.gameGradients['orange']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BrickBreakerGame())); },
       ),
       _GameData(
         title: '틀린 그림',
+        minAge: 6,
         emoji: '🕵️',
         gradientColors: KidsTheme.gameGradients['purple']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SpotDifferenceGame())); },
@@ -1073,18 +1172,21 @@ class _LobbyScreenState extends State<LobbyScreen>
       // ── [줄 8] 창의 블럭 & 슬라이드 & 잠금 지렁이
       _GameData(
         title: '블럭 조립',
+        minAge: 6,
         emoji: '🧩',
         gradientColors: KidsTheme.gameGradients['indigo']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BlockBuilderGame())); },
       ),
       _GameData(
         title: '슬라이드 퍼즐',
+        minAge: 6,
         emoji: '🔢',
         gradientColors: KidsTheme.gameGradients['teal']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SlidePuzzleGame())); },
       ),
       _GameData(
         title: '지렁이 탐험',
+        minAge: 6,
         emoji: '🐛',
         gradientColors: KidsTheme.gameGradients['lime']!,
         onTap: () {
@@ -1160,6 +1262,7 @@ class _LobbyScreenState extends State<LobbyScreen>
       // ── [줄 11] 마지막 하단
       _GameData(
         title: '탑 쌓기',
+        minAge: 6,
         emoji: '🏗️',
         gradientColors: KidsTheme.gameGradients['purple']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TowerBuilderGame())); },
@@ -1227,6 +1330,7 @@ class _GameData {
   final VoidCallback? onTrophyTap;
   final bool isNew;
   final bool isPremium;
+  final int minAge;
 
   _GameData({
     required this.title,
@@ -1237,6 +1341,7 @@ class _GameData {
     this.onTrophyTap,
     this.isNew = false,
     this.isPremium = false,
+    this.minAge = 3,
   });
 }
 
