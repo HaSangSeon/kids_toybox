@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -198,8 +197,7 @@ class _PieceData {
     required this.col,
     required this.edge,
     required this.currentPos,
-    this.isPlaced = false,
-  });
+  }) : isPlaced = false;
 }
 
 class _Spark {

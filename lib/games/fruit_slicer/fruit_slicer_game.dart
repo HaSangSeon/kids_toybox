@@ -124,11 +124,11 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
     '🍍': Colors.yellowAccent,
   };
 
-  List<Fruit> _fruits = [];
-  List<JuiceParticle> _particles = [];
-  List<SlicedFruit> _slicedPieces = [];
-  List<FloatingText> _floatingTexts = [];
-  List<Offset> _bladeTrail = [];
+  final List<Fruit> _fruits = [];
+  final List<JuiceParticle> _particles = [];
+  final List<SlicedFruit> _slicedPieces = [];
+  final List<FloatingText> _floatingTexts = [];
+  final List<Offset> _bladeTrail = [];
 
   int _score = 0;
   int _lives = 3;
@@ -191,8 +191,9 @@ class _FruitSlicerGameState extends State<FruitSlicerGame> with TickerProviderSt
 
       _spawnTimer += deltaTime;
       double spawnInterval = 1.8;
-      if (_currentLevel == 1) spawnInterval = 2.0;
-      else if (_currentLevel == 2) spawnInterval = 1.6;
+      if (_currentLevel == 1) {
+        spawnInterval = 2.0;
+      } else if (_currentLevel == 2) spawnInterval = 1.6;
       else if (_currentLevel == 3) spawnInterval = 1.3;
       else if (_currentLevel == 4) spawnInterval = 1.0;
       else spawnInterval = 0.8;

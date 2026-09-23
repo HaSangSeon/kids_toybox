@@ -218,12 +218,12 @@ class _ConnectDotsGameState extends State<ConnectDotsGame> with TickerProviderSt
   int _level = 1;
   bool _isLevelClear = false;
 
-  List<Dot> _dots = [];
+  final List<Dot> _dots = [];
   int _currentDotIndex = 1;
 
-  List<Offset> _completedPoints = [];
+  final List<Offset> _completedPoints = [];
   // 각 세그먼트(선 구간)의 무지개 색상 인덱스 추적
-  List<int> _segmentColorIndices = [];
+  final List<int> _segmentColorIndices = [];
   Offset? _currentDragPos;
 
   final Random _random = Random();

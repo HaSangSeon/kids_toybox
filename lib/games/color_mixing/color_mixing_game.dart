@@ -25,7 +25,7 @@ class _DropState {
   final int tubeIndex;
   final int totalTubes;
   double progress;
-  _DropState({required this.color, required this.tubeIndex, required this.totalTubes, this.progress = 0});
+  _DropState({required this.color, required this.tubeIndex, required this.totalTubes}) : progress = 0;
 }
 
 class _Sparkle {
@@ -415,7 +415,7 @@ class _ColorMixingGameState extends State<ColorMixingGame>
   Widget _buildResultLabel() {
     return AnimatedBuilder(
       animation: _popScale,
-      builder: (_, __) => Transform.scale(
+      builder: (_, _) => Transform.scale(
         scale: _hasMix ? (0.85 + _popScale.value * 0.15) : 1.0,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 400),
@@ -458,7 +458,7 @@ class _ColorMixingGameState extends State<ColorMixingGame>
   Widget _buildBowl() {
     return AnimatedBuilder(
       animation: Listenable.merge([_swirlCtrl, _wobbleCtrl, _shakeCtrl, _mixCtrl, _swirlStrengthCtrl]),
-      builder: (_, __) => SlideTransition(
+      builder: (_, _) => SlideTransition(
         position: _shakeAnim,
         child: SizedBox(width: 240, height: 240,
           child: CustomPaint(painter: _BowlPainter(
@@ -474,7 +474,7 @@ class _ColorMixingGameState extends State<ColorMixingGame>
   Widget _buildSpoon() {
     return AnimatedBuilder(
       animation: _mixCtrl,
-      builder: (_, __) {
+      builder: (_, _) {
         final angle = _mixCtrl.value * 4 * pi;
         const orbitR = 62.0;
         final sx = cos(angle) * orbitR;

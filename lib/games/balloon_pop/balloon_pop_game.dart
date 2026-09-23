@@ -1267,7 +1267,7 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
                       padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
                       physics: const BouncingScrollPhysics(),
                       itemCount: stagesInfo.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
                         final info = stagesInfo[index];
                         final bool isCurrent = _engine.stage == info.stage;

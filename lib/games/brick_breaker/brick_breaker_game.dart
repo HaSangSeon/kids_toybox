@@ -219,10 +219,10 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
 
   List<Ball> _balls = [];
   Paddle? _paddle;
-  List<Brick> _bricks = [];
-  List<DroppedItem> _items = [];
-  List<BrickParticle> _particles = [];
-  List<ScorePopup> _popups = [];
+  final List<Brick> _bricks = [];
+  final List<DroppedItem> _items = [];
+  final List<BrickParticle> _particles = [];
+  final List<ScorePopup> _popups = [];
 
   Size _screenSize = Size.zero;
   double _paddleWidth = 130.0;
@@ -477,9 +477,13 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
     }
 
     // Update particles & popups always (even when not playing, for visual continuity)
-    for (final p in _particles) p.update(dt);
+    for (final p in _particles) {
+      p.update(dt);
+    }
     _particles.removeWhere((p) => p.opacity <= 0);
-    for (final p in _popups) p.update(dt);
+    for (final p in _popups) {
+      p.update(dt);
+    }
     _popups.removeWhere((p) => p.opacity <= 0);
 
     if (!_isPlaying || _isGameOver || _isGameClear) {
@@ -518,7 +522,9 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
       _fireballTimer -= dt;
       if (_fireballTimer <= 0) {
         _fireballTimer = 0;
-        for (final b in _balls) b.isFireball = false;
+        for (final b in _balls) {
+          b.isFireball = false;
+        }
       }
     }
 
@@ -791,7 +797,7 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
         vx: cos(angle) * speed,
         vy: sin(angle) * speed - 30,
         size: 3 + _random.nextDouble() * 5,
-        color: brick.color.withOpacity(0.7),
+        color: brick.color.withValues(alpha: 0.7),
       ));
     }
   }
@@ -1240,7 +1246,7 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.4),
+        color: Colors.black.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white24, width: 1),
       ),
@@ -1284,19 +1290,19 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
           border: Border.all(
             color: isTough
                 ? (brick.hp > 1 ? const Color(0xFFFFE082) : Colors.white70)
-                : Colors.white.withOpacity(0.55),
+                : Colors.white.withValues(alpha: 0.55),
             width: isTough ? 2.2 : 1.6,
           ),
           boxShadow: [
             // 하단 3D 베벨 그림자
             BoxShadow(
-              color: Colors.black.withOpacity(0.4),
+              color: Colors.black.withValues(alpha: 0.4),
               offset: const Offset(0, 3.5),
               blurRadius: 1,
             ),
             // 은은한 글로우
             BoxShadow(
-              color: blockColor.withOpacity(0.4),
+              color: blockColor.withValues(alpha: 0.4),
               blurRadius: 6,
               offset: const Offset(0, 1),
             ),
@@ -1305,9 +1311,9 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.white.withOpacity(0.4),
-              Colors.white.withOpacity(0.05),
-              Colors.black.withOpacity(0.25),
+              Colors.white.withValues(alpha: 0.4),
+              Colors.white.withValues(alpha: 0.05),
+              Colors.black.withValues(alpha: 0.25),
             ],
             stops: const [0.0, 0.4, 1.0],
           ),
@@ -1338,7 +1344,7 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
+                    color: Colors.black.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(5),
                     border: Border.all(color: Colors.amber, width: 1),
                   ),
@@ -1366,12 +1372,12 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
       width: 13,
       height: 7,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.35),
+        color: Colors.white.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.white.withOpacity(0.6), width: 1),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             offset: const Offset(0, 1),
             blurRadius: 1,
           )
@@ -1444,7 +1450,7 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: glowColor.withOpacity(0.8),
+              color: glowColor.withValues(alpha: 0.8),
               blurRadius: ball.isFireball ? 20 : 12,
               spreadRadius: ball.isFireball ? 4 : 2,
             ),
@@ -1465,11 +1471,11 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
       height: item.size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: item.color.withOpacity(0.85),
+        color: item.color.withValues(alpha: 0.85),
         border: Border.all(color: Colors.white, width: 2),
         boxShadow: [
           BoxShadow(
-            color: item.color.withOpacity(0.6),
+            color: item.color.withValues(alpha: 0.6),
             blurRadius: 10,
             spreadRadius: 2,
           ),
@@ -1491,9 +1497,9 @@ class _BrickBreakerGameState extends State<BrickBreakerGame>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.12),
+              color: Colors.white.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.5),
             ),
             child: Column(
               children: [
@@ -1744,9 +1750,9 @@ class _ActiveItemChip extends StatelessWidget {
       margin: const EdgeInsets.only(right: 6),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.25),
+        color: color.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.6), width: 1),
+        border: Border.all(color: color.withValues(alpha: 0.6), width: 1),
       ),
       child: Text(
         '$label ${secs.toStringAsFixed(1)}s',
@@ -1771,7 +1777,7 @@ class _ArcadeBgPainter extends CustomPainter {
 
     // 1. 격자 (Grid) — subtle
     final gridPaint = Paint()
-      ..color = Colors.white.withOpacity(0.04)
+      ..color = Colors.white.withValues(alpha: 0.04)
       ..strokeWidth = 0.8;
     const step = 36.0;
     for (double x = 0; x < w; x += step) {
@@ -1791,7 +1797,7 @@ class _ArcadeBgPainter extends CustomPainter {
       canvas.drawCircle(
         Offset(sx, sy),
         r,
-        Paint()..color = Colors.white.withOpacity(0.2 + twinkle * 0.5),
+        Paint()..color = Colors.white.withValues(alpha: 0.2 + twinkle * 0.5),
       );
     }
 
@@ -1809,7 +1815,7 @@ class _ArcadeBgPainter extends CustomPainter {
         Offset(w / 2, h * 0.6),
         radius,
         Paint()
-          ..color = colors[i % colors.length].withOpacity(opacity)
+          ..color = colors[i % colors.length].withValues(alpha: opacity)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.5,
       );
@@ -1832,7 +1838,7 @@ class _ArcadeBgPainter extends CustomPainter {
       canvas.drawCircle(
         Offset(baseX + ox, baseY + oy),
         2.5 + bright * 2.5,
-        Paint()..color = floatColors[i % floatColors.length].withOpacity(0.15 + bright * 0.25),
+        Paint()..color = floatColors[i % floatColors.length].withValues(alpha: 0.15 + bright * 0.25),
       );
     }
   }
@@ -1854,7 +1860,7 @@ class _ParticlePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     for (final p in particles) {
-      final paint = Paint()..color = p.color.withOpacity(p.opacity.clamp(0.0, 1.0));
+      final paint = Paint()..color = p.color.withValues(alpha: p.opacity.clamp(0.0, 1.0));
       canvas.drawCircle(Offset(p.x, p.y), p.size, paint);
     }
 
@@ -1864,7 +1870,7 @@ class _ParticlePainter extends CustomPainter {
         text: TextSpan(
           text: pop.text,
           style: TextStyle(
-            color: pop.color.withOpacity(pop.opacity.clamp(0.0, 1.0)),
+            color: pop.color.withValues(alpha: pop.opacity.clamp(0.0, 1.0)),
             fontSize: 18,
             fontWeight: FontWeight.bold,
             shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],

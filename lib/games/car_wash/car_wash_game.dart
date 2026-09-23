@@ -196,22 +196,22 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
   _WashStep _step = _WashStep.selectCar;
   _Vehicle _car = _kVehicles[0];
 
-  // Dirt / soap / shine coverage grids (15×15 = 225 cells, balanced size)
+  // Dirt / soap / wet / shine coverage grids (15×15 = 225 cells)
   static const int _gridN = 15;
   static const int _gridSize = _gridN * _gridN;
-  final List<double> _dirtGrid   = List.filled(_gridSize, 0.0); // 1=dirty 0=clean
-  final List<double> _soapGrid   = List.filled(_gridSize, 0.0); // 0=bare  1=soapy
-  final List<double> _rinseGrid  = List.filled(_gridSize, 0.0); // 0=soapy 1=rinsed
-  final List<double> _dryGrid    = List.filled(_gridSize, 0.0); // 0=wet   1=dry
+  final List<double> _dirtGrid  = List.filled(_gridSize, 0.0); // 1=dirty 0=clean
+  final List<double> _soapGrid  = List.filled(_gridSize, 0.0); // 0=bare  1=soapy
+  final List<double> _wetGrid   = List.filled(_gridSize, 0.0); // 0=dry   1=wet
+  final List<double> _shineGrid = List.filled(_gridSize, 0.0); // 0=matte 1=glossy
 
-  // Car body strictly matches a generic car emoji profile (roof + body)
-  // This ensures no "invisible" dirt is tracked in transparent corners
+  // Generous envelope covering the car emoji shape (roof/cabin + body/wheels)
+  // Everything outside emoji non-transparent pixels is cleanly clipped by BlendMode.srcATop
   bool _isCarCell(int x, int y) {
     final rx = (x + 0.5) / _gridN;
     final ry = (y + 0.5) / _gridN;
     
-    final isRoof = rx >= 0.35 && rx <= 0.65 && ry >= 0.20 && ry < 0.50;
-    final isBody = rx >= 0.20 && rx <= 0.80 && ry >= 0.50 && ry <= 0.85;
+    final isRoof = rx >= 0.24 && rx <= 0.76 && ry >= 0.18 && ry < 0.50;
+    final isBody = rx >= 0.10 && rx <= 0.90 && ry >= 0.48 && ry <= 0.86;
     
     return isRoof || isBody;
   }
@@ -233,10 +233,10 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
       for (int x = 0; x < _gridN; x++) {
         final idx = y * _gridN + x;
         final inside = _isCarCell(x, y);
-        _dirtGrid[idx] = inside ? 1.0 : 0.0;
-        _soapGrid[idx] = 0.0;
-        _rinseGrid[idx] = 0.0;
-        _dryGrid[idx] = 0.0;
+        _dirtGrid[idx]  = inside ? 1.0 : 0.0;
+        _soapGrid[idx]  = 0.0;
+        _wetGrid[idx]   = 0.0;
+        _shineGrid[idx] = 0.0;
       }
     }
   }
@@ -255,8 +255,8 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
 
   double get _waterProgress => _gridProgress(_dirtGrid, true);
   double get _soapProgress  => _gridProgress(_soapGrid, false);
-  double get _rinseProgress => _gridProgress(_rinseGrid, false);
-  double get _dryProgress   => _gridProgress(_dryGrid, false);
+  double get _rinseProgress => _gridProgress(_soapGrid, true);
+  double get _dryProgress   => _gridProgress(_wetGrid, true);
 
   // Particles
   final List<_Droplet> _drops   = [];
@@ -298,25 +298,27 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
   // delta=0.6 → needs 2 passes or slower drag to fully clean
   void _onDrag(Offset localPos, Size carSize) {
     if (_step == _WashStep.driveIn) return;
+    if (_stepComplete || _requireNewTouch) return;
 
     _playStepDragSound();
 
     switch (_step) {
       case _WashStep.water:
-        _paintGridLocal(localPos, carSize, 3, _dirtGrid, -1.0);
+        _paintGridLocal(localPos, carSize, 4, _dirtGrid, -1.0);
         _spawnDroplets(localPos);
         break;
       case _WashStep.soap:
-        _paintGridLocal(localPos, carSize, 3, _soapGrid, 1.0);
+        _paintGridLocal(localPos, carSize, 4, _soapGrid, 1.0);
         _spawnBubbles(localPos);
         break;
       case _WashStep.rinse:
-        _paintGridLocal(localPos, carSize, 3, _rinseGrid, 1.0);
-        _paintGridLocal(localPos, carSize, 3, _soapGrid, -1.0);
+        _paintGridLocal(localPos, carSize, 4, _soapGrid, -1.0);
+        _paintGridLocal(localPos, carSize, 4, _wetGrid, 1.0);
         _spawnDroplets(localPos);
         break;
       case _WashStep.dry:
-        _paintGridLocal(localPos, carSize, 3, _dryGrid, 1.0);
+        _paintGridLocal(localPos, carSize, 4, _wetGrid, -1.0);
+        _paintGridLocal(localPos, carSize, 4, _shineGrid, 1.0);
         _spawnSparks(localPos);
         break;
       case _WashStep.sticker:
@@ -358,6 +360,7 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
   double _carDriveInX = 1.0;  // Drive-in progress (1..0)
   bool _driveComplete = false;
   bool _stepComplete = false;
+  bool _requireNewTouch = false;
 
   // Real-time Interactive Tool Overlay (Hose, Sponge, Shower, Towel)
   Offset? _toolPos;
@@ -590,38 +593,59 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
   }
 
   void _triggerStepComplete(String bannerText, Color bannerColor) {
-    setState(() => _stepComplete = true);
+    AudioManager.instance.playCarWashStageComplete();
+    setState(() {
+      _stepComplete = true;
+      _requireNewTouch = true;
+    });
     _showBanner(bannerText, bannerColor);
     _autoAdvanceTimer?.cancel();
-    _autoAdvanceTimer = Timer(const Duration(milliseconds: 1200), () {
+    _autoAdvanceTimer = Timer(const Duration(milliseconds: 2500), () {
       if (mounted && _stepComplete) {
         _advanceStep();
       }
     });
   }
 
-  static const double _advanceThreshold = 0.68;
+  // 🌟 Relaxed threshold (85%) makes it easier to complete despite different car shapes
+  static const double _advanceThreshold = 0.85;
 
   void _checkAdvance() {
     if (_stepComplete) return;
     switch (_step) {
       case _WashStep.water:
         if (_waterProgress >= _advanceThreshold) {
+          // Perfectly clear any remaining specks of mud
+          _dirtGrid.fillRange(0, _gridSize, 0.0);
           _triggerStepComplete('✨ 먼지 씻기 성공! 비누칠 단계로 넘어가요!', const Color(0xFF7E57C2));
         }
         break;
       case _WashStep.soap:
         if (_soapProgress >= _advanceThreshold) {
-          _triggerStepComplete('🌊 거품 칠하기 성공! 헹구러 가요!', const Color(0xFF0288D1));
+          // Fully envelop all car cells in fluffy foam
+          for (int i = 0; i < _gridSize; i++) {
+            if (_isCarCell(i % _gridN, i ~/ _gridN)) _soapGrid[i] = 1.0;
+          }
+          _triggerStepComplete('🫧 거품 칠하기 성공! 헹구러 가요!', const Color(0xFF0288D1));
         }
         break;
       case _WashStep.rinse:
         if (_rinseProgress >= _advanceThreshold) {
-          _triggerStepComplete('🧹 헹구기 성공! 닦기 단계로 넘어가요!', const Color(0xFFFF7043));
+          // Completely rinse all soap and leave car fully glistening wet
+          _soapGrid.fillRange(0, _gridSize, 0.0);
+          for (int i = 0; i < _gridSize; i++) {
+            if (_isCarCell(i % _gridN, i ~/ _gridN)) _wetGrid[i] = 1.0;
+          }
+          _triggerStepComplete('🌊 헹구기 성공! 닦기 단계로 넘어가요!', const Color(0xFFFF7043));
         }
         break;
       case _WashStep.dry:
         if (_dryProgress >= _advanceThreshold) {
+          // Wipe all wetness away and leave brilliant diamond shine
+          _wetGrid.fillRange(0, _gridSize, 0.0);
+          for (int i = 0; i < _gridSize; i++) {
+            if (_isCarCell(i % _gridN, i ~/ _gridN)) _shineGrid[i] = 1.0;
+          }
           _spawnConfetti();
           _triggerStepComplete('🎨 반짝반짝! 이제 스티커로 꾸며봐요!', const Color(0xFF26A69A));
         }
@@ -637,11 +661,32 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
       _stepComplete = false;
       _bannerText = '';
       switch (_step) {
-        case _WashStep.water:  _step = _WashStep.soap;    break;
-        case _WashStep.soap:   _step = _WashStep.rinse;   break;
-        case _WashStep.rinse:  _step = _WashStep.dry;     break;
-        case _WashStep.dry:    _step = _WashStep.sticker; break;
-        default: break;
+        case _WashStep.water:
+          _dirtGrid.fillRange(0, _gridSize, 0.0);
+          _step = _WashStep.soap;
+          break;
+        case _WashStep.soap:
+          for (int i = 0; i < _gridSize; i++) {
+            if (_isCarCell(i % _gridN, i ~/ _gridN)) _soapGrid[i] = 1.0;
+          }
+          _step = _WashStep.rinse;
+          break;
+        case _WashStep.rinse:
+          _soapGrid.fillRange(0, _gridSize, 0.0);
+          for (int i = 0; i < _gridSize; i++) {
+            if (_isCarCell(i % _gridN, i ~/ _gridN)) _wetGrid[i] = 1.0;
+          }
+          _step = _WashStep.dry;
+          break;
+        case _WashStep.dry:
+          _wetGrid.fillRange(0, _gridSize, 0.0);
+          for (int i = 0; i < _gridSize; i++) {
+            if (_isCarCell(i % _gridN, i ~/ _gridN)) _shineGrid[i] = 1.0;
+          }
+          _step = _WashStep.sticker;
+          break;
+        default:
+          break;
       }
     });
   }
@@ -745,13 +790,11 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
       _carDriveCtrl.reset();
       _carDriveX = 0;
     });
-    AudioManager.instance.playEngine();
-    AudioManager.instance.playChime();
+    AudioManager.instance.playCarWashHighwayDrive();
   }
 
   void _honkCar() {
     AudioManager.instance.playVehicleSound(_car.id);
-    AudioManager.instance.playJump();
     setState(() {
       _carJumpOffset = 26.0;
       _honkBubbleText = switch (_car.id) {
@@ -780,8 +823,7 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
 
   void _triggerBooster() {
     if (_isBoosting) return;
-    AudioManager.instance.playEngine();
-    AudioManager.instance.playChime();
+    AudioManager.instance.playCarWashHighwayDrive();
     setState(() => _isBoosting = true);
     _boostTimer?.cancel();
     _boostTimer = Timer(const Duration(milliseconds: 3500), () {
@@ -1044,13 +1086,27 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
       default: progress = 1.0;
     }
 
+    final double displayProgress = _stepComplete
+        ? 1.0
+        : (progress / _advanceThreshold).clamp(0.0, 1.0);
+    final int percentInt = (displayProgress * 100).round();
+
+    final stepInfoMap = <_WashStep, (String, Color, Color)>{
+      _WashStep.water: ('🚿 물로 먼지와 진흙 씻기', const Color(0xFF0288D1), const Color(0xFF4FC3F7)),
+      _WashStep.soap:  ('🫧 골고루 비누 거품 칠하기', const Color(0xFF7E57C2), const Color(0xFFBA68C8)),
+      _WashStep.rinse: ('🌊 깨끗하게 거품 헹구기', const Color(0xFF00ACC1), const Color(0xFF4DD0E1)),
+      _WashStep.dry:   ('🧻 수건으로 물기 뽀송뽀송 닦기', const Color(0xFFFF7043), const Color(0xFFFFB74D)),
+      _WashStep.sticker: ('🎀 예쁜 스티커로 꾸미기', const Color(0xFF26A69A), const Color(0xFF80CBC4)),
+    };
+    final currentInfo = stepInfoMap[_step] ?? ('🚗 신나는 드라이브', const Color(0xFF43E97B), const Color(0xFF06D6A0));
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+          padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
           child: SizedBox(
-            height: 72, // Fixed height to prevent layout shift when items grow
+            height: 68,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: steps.map((s) {
@@ -1069,8 +1125,8 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
                         children: [
                           AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
-                            height: isNextReady ? 48 : (isCurrent ? 44 : 36),
-                            width:  isNextReady ? 48 : (isCurrent ? 44 : 36),
+                            height: isNextReady ? 46 : (isCurrent ? 42 : 34),
+                            width:  isNextReady ? 46 : (isCurrent ? 42 : 34),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: isDone
@@ -1085,7 +1141,7 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
                               boxShadow: isNextReady ? [
                                 BoxShadow(
                                   color: s.$4.withValues(alpha: 0.8),
-                                  blurRadius: 18, spreadRadius: 3,
+                                  blurRadius: 16, spreadRadius: 2,
                                 ),
                               ] : isCurrent ? [
                                 BoxShadow(color: s.$4.withValues(alpha: 0.6), blurRadius: 10, spreadRadius: 2),
@@ -1093,15 +1149,15 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
                             ),
                             child: Center(
                               child: isDone
-                                  ? const Icon(Icons.check_rounded, color: Colors.white, size: 22)
-                                  : Text(s.$1, style: TextStyle(fontSize: isNextReady ? 24 : (isCurrent ? 22 : 18))),
+                                  ? const Icon(Icons.check_rounded, color: Colors.white, size: 20)
+                                  : Text(s.$1, style: TextStyle(fontSize: isNextReady ? 22 : (isCurrent ? 20 : 16))),
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 3),
                           Text(
                             isNextReady ? '👆 탭!' : s.$2,
                             style: GoogleFonts.jua(
-                              fontSize: isNextReady ? 12 : (isCurrent ? 12 : 11),
+                              fontSize: isNextReady ? 11 : (isCurrent ? 11 : 10),
                               color: isNextReady || isCurrent ? Colors.white : Colors.white60,
                               fontWeight: (isNextReady || isCurrent) ? FontWeight.bold : FontWeight.normal,
                             ),
@@ -1115,22 +1171,110 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
             ),
           ),
         ),
-        // Progress bar
+
+        // 🌟 Synchronized, Responsive, Crystal-clear Progress Bar with Percentage
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: (progress / _advanceThreshold).clamp(0.0, 1.0),
-              minHeight: 6,
-              backgroundColor: Colors.white.withValues(alpha: 0.2),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                _stepComplete ? const Color(0xFF43E97B) : const Color(0xFF81D4FA),
-              ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      currentInfo.$1,
+                      style: GoogleFonts.jua(
+                        fontSize: 13,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        shadows: const [
+                          Shadow(color: Colors.black45, offset: Offset(0, 1), blurRadius: 2),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _stepComplete ? const Color(0xFF43E97B) : currentInfo.$2,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (_stepComplete ? const Color(0xFF43E97B) : currentInfo.$2).withValues(alpha: 0.5),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        _stepComplete ? '✨ 100% 완료!' : '$percentInt%',
+                        style: GoogleFonts.jua(
+                          fontSize: 11,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  height: 12,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.25),
+                        blurRadius: 3,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LayoutBuilder(
+                      builder: (context, boxConstraints) {
+                        final barW = boxConstraints.maxWidth * displayProgress;
+                        return Stack(
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              width: barW,
+                              height: double.infinity,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: _stepComplete
+                                      ? [const Color(0xFF06D6A0), const Color(0xFF43E97B)]
+                                      : [currentInfo.$2, currentInfo.$3],
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 1,
+                              left: 2,
+                              right: 2,
+                              height: 3,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.3),
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
       ],
     );
   }
@@ -1191,6 +1335,7 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) {
               setState(() {
+                _requireNewTouch = false;
                 _isToolActive = true;
                 _toolPos = d.localPosition;
               });
@@ -1211,6 +1356,7 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
             },
             onTapDown: (d) {
               setState(() {
+                _requireNewTouch = false;
                 _isToolActive = true;
                 _toolPos = d.localPosition;
               });
@@ -1227,7 +1373,8 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
               step: _step,
               dirtGrid: _dirtGrid,
               soapGrid: _soapGrid,
-              dryGrid: _dryGrid,
+              wetGrid: _wetGrid,
+              shineGrid: _shineGrid,
               drops: _drops,
               bubbles: _bubbles,
               sparks: _sparks,
@@ -1359,10 +1506,10 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
     }
 
     final hints = <_WashStep, String>{
-      _WashStep.water: '💧 손가락으로 쓱쓱~ 먼지를 씻어내요!',
-      _WashStep.soap:  '🫧 비누로 구석구석 문질러요!',
-      _WashStep.rinse: '🌊 물로 거품을 깨끗이 씻어내요!',
-      _WashStep.dry:   '🧻 수건으로 반짝반짝 닦아요!',
+      _WashStep.water: '💧 손가락으로 쓱쓱 문질러 먼지와 진흙을 깨끗이 씻어내요!',
+      _WashStep.soap:  '🫧 자동차 구석구석 문질러 뽀글뽀글 거품을 내봐요!',
+      _WashStep.rinse: '🌊 샤워기로 물을 뿌려 비누 거품을 깨끗이 헹궈내요!',
+      _WashStep.dry:   '🧻 보들보들 수건으로 쓱싹 문질러 물기를 닦아내요!',
     };
 
     final nextInfo = <_WashStep, (String, String, Color)>{
@@ -1599,31 +1746,14 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
       _ => ('📢', '빵빵!'),
     };
 
-    return Positioned(
-      left: 14,
-      right: 14,
-      bottom: 22,
+    return Positioned.fill(
       child: SafeArea(
-        top: false,
-        child: Row(
+        child: Stack(
           children: [
-            // 1. Vehicle Specific Horn / Siren Action Button
-            Expanded(
-              flex: 10,
-              child: _buildDrivingToyButton(
-                icon: hornIcon,
-                label: hornLabel,
-                bgColors: [const Color(0xFFFFF59D), const Color(0xFFFFD54F)],
-                shadowColor: const Color(0xFFFFA000),
-                textColor: const Color(0xFF5D4037),
-                onTap: _honkCar,
-              ),
-            ),
-            const SizedBox(width: 8),
-
-            // 2. Celebration / Wash Finish Modal Button
-            Expanded(
-              flex: 13,
+            // 1. Celebration / Wash Finish Modal Button (Top Right)
+            Positioned(
+              top: 90,
+              right: 16,
               child: _buildDrivingToyButton(
                 icon: '🏆',
                 label: '세차 완성!',
@@ -1638,11 +1768,25 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
                 },
               ),
             ),
-            const SizedBox(width: 8),
 
-            // 3. Speed Booster Button
-            Expanded(
-              flex: 10,
+            // 2. Vehicle Specific Horn / Siren Action Button (Bottom Left)
+            Positioned(
+              bottom: 32,
+              left: 24,
+              child: _buildDrivingToyButton(
+                icon: hornIcon,
+                label: hornLabel,
+                bgColors: [const Color(0xFFFFF59D), const Color(0xFFFFD54F)],
+                shadowColor: const Color(0xFFFFA000),
+                textColor: const Color(0xFF5D4037),
+                onTap: _honkCar,
+              ),
+            ),
+
+            // 3. Speed Booster Button (Bottom Right)
+            Positioned(
+              bottom: 32,
+              right: 24,
               child: _buildDrivingToyButton(
                 icon: _isBoosting ? '🔥' : '⚡',
                 label: _isBoosting ? '터보!' : '부스터!',
@@ -1697,9 +1841,12 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
             ),
           ],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
             Text(icon, style: TextStyle(fontSize: isHighlight ? 21 : 18)),
             const SizedBox(width: 4),
             Flexible(
@@ -1714,7 +1861,8 @@ class _CarWashGameState extends State<CarWashGame> with TickerProviderStateMixin
                 ),
               ),
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1929,7 +2077,8 @@ class _CarCanvas extends StatelessWidget {
   final _WashStep step;
   final List<double> dirtGrid;
   final List<double> soapGrid;
-  final List<double> dryGrid;
+  final List<double> wetGrid;
+  final List<double> shineGrid;
   final List<_Droplet> drops;
   final List<_Bubble> bubbles;
   final List<_Spark> sparks;
@@ -1944,7 +2093,8 @@ class _CarCanvas extends StatelessWidget {
     required this.step,
     required this.dirtGrid,
     required this.soapGrid,
-    required this.dryGrid,
+    required this.wetGrid,
+    required this.shineGrid,
     required this.drops,
     required this.bubbles,
     required this.sparks,
@@ -1960,7 +2110,7 @@ class _CarCanvas extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Car Emoji + Masked Dirt + Masked Soap + Masked Shine (Strictly clipped to car silhouette)
+        // Car Emoji + Masked Dirt + Masked Wet + Masked Soap + Masked Shine (Strictly clipped to car silhouette)
         Positioned.fill(
           child: CustomPaint(
             painter: _CarMaskedPainter(
@@ -1968,7 +2118,8 @@ class _CarCanvas extends StatelessWidget {
               step: step,
               dirtGrid: dirtGrid,
               soapGrid: soapGrid,
-              dryGrid: dryGrid,
+              wetGrid: wetGrid,
+              shineGrid: shineGrid,
               gridN: gridN,
             ),
           ),
@@ -2021,7 +2172,8 @@ class _CarMaskedPainter extends CustomPainter {
   final _WashStep step;
   final List<double> dirtGrid;
   final List<double> soapGrid;
-  final List<double> dryGrid;
+  final List<double> wetGrid;
+  final List<double> shineGrid;
   final int gridN;
 
   _CarMaskedPainter({
@@ -2029,7 +2181,8 @@ class _CarMaskedPainter extends CustomPainter {
     required this.step,
     required this.dirtGrid,
     required this.soapGrid,
-    required this.dryGrid,
+    required this.wetGrid,
+    required this.shineGrid,
     required this.gridN,
   });
 
@@ -2056,17 +2209,20 @@ class _CarMaskedPainter extends CustomPainter {
     );
     textPainter.paint(canvas, textPos);
 
-    // Step B: Draw Dirt, Soap, Gloss ONLY inside Car Emoji Silhouette (srcATop)
+    // Step B: Draw Dirt, Wet Drops, Soap Foam, Gloss ONLY inside Car Emoji Silhouette (srcATop)
     canvas.saveLayer(bounds, Paint()..blendMode = BlendMode.srcATop);
 
-    // B-1: Natural Mud Splatters (Rendered directly from dirtGrid)
+    // B-1: Mud Layer (only rendered if there is dirt in dirtGrid)
     _drawMudLayer(canvas, size);
 
-    // B-2: Soap foam
+    // B-2: Wet Water Film & Droplets Layer (visible during rinse and dry)
+    _drawWetLayer(canvas, size);
+
+    // B-3: Soap Foam Layer (rendered above car and water film)
     _drawSoapLayer(canvas, size);
 
-    // B-3: Dry Shine (Only shown during wiping step)
-    if (step == _WashStep.dry) {
+    // B-4: Dry Shine Layer (Diamond gloss and sparkles)
+    if (step == _WashStep.dry || step == _WashStep.sticker || step == _WashStep.driving) {
       _drawShineLayer(canvas, size);
     }
 
@@ -2078,9 +2234,11 @@ class _CarMaskedPainter extends CustomPainter {
     final cw = size.width / gridN;
     final ch = size.height / gridN;
     final mudColor = const Color(0xFF5D4037);
+    final darkMud = const Color(0xFF3E2723);
     final paint = Paint()
       ..style = PaintingStyle.fill
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+    final darkPaint = Paint()..style = PaintingStyle.fill;
 
     for (int y = 0; y < gridN; y++) {
       for (int x = 0; x < gridN; x++) {
@@ -2088,18 +2246,19 @@ class _CarMaskedPainter extends CustomPainter {
         if (dirtVal <= 0.02) continue;
 
         final center = Offset((x + 0.5) * cw, (y + 0.5) * ch);
-        final baseR = cw * 0.90 * dirtVal;
+        final baseR = cw * 0.92 * dirtVal;
         paint.color = mudColor.withValues(alpha: (dirtVal * 0.95).clamp(0.0, 0.95));
 
         canvas.drawCircle(center, baseR, paint);
 
-        // Add subtle natural organic splatter texture per cell
+        // Organic mud splatter specks
         final rng = Random((y * 31 + x * 17) & 0x7FFFFFFF);
-        for (int k = 0; k < 2; k++) {
-          final ox = (rng.nextDouble() - 0.5) * cw * 0.7;
-          final oy = (rng.nextDouble() - 0.5) * ch * 0.7;
-          final subR = baseR * (0.35 + rng.nextDouble() * 0.35);
-          canvas.drawCircle(center + Offset(ox, oy), subR, paint);
+        darkPaint.color = darkMud.withValues(alpha: (dirtVal * 0.85).clamp(0.0, 0.85));
+        for (int k = 0; k < 3; k++) {
+          final ox = (rng.nextDouble() - 0.5) * cw * 0.75;
+          final oy = (rng.nextDouble() - 0.5) * ch * 0.75;
+          final subR = baseR * (0.25 + rng.nextDouble() * 0.35);
+          canvas.drawCircle(center + Offset(ox, oy), subR, darkPaint);
         }
       }
     }
@@ -2108,21 +2267,88 @@ class _CarMaskedPainter extends CustomPainter {
   void _drawSoapLayer(Canvas canvas, Size size) {
     final cw = size.width / gridN;
     final ch = size.height / gridN;
-    final foamPaint = Paint()..style = PaintingStyle.fill..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+    final foamPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+    final bubbleStrokePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..color = Colors.white.withValues(alpha: 0.9);
+    final shimmerPaint = Paint()..style = PaintingStyle.fill;
 
     for (int y = 0; y < gridN; y++) {
       for (int x = 0; x < gridN; x++) {
         final v = soapGrid[y * gridN + x];
         if (v <= 0.01) continue;
         final center = Offset((x + 0.5) * cw, (y + 0.5) * ch);
-        final r = cw * 0.7 * v;
+        final r = cw * 0.75 * v;
+
+        // 1. Base fluffy foam body
         foamPaint.color = Colors.white.withValues(alpha: (v * 0.92).clamp(0.0, 0.92));
         canvas.drawCircle(center, r, foamPaint);
 
-        final shimmer = Paint()
-          ..style = PaintingStyle.fill
-          ..color = const Color(0xFFE1BEE7).withValues(alpha: v * 0.35);
-        canvas.drawCircle(center, r * 0.6, shimmer);
+        // 2. Multi-cluster bubbly bumps (fluffy foam shape)
+        final rng = Random((y * 43 + x * 19) & 0x7FFFFFFF);
+        for (int k = 0; k < 3; k++) {
+          final angle = (k * 2 * pi / 3) + rng.nextDouble() * 0.4;
+          final dist = r * 0.45;
+          final subCenter = center + Offset(cos(angle) * dist, sin(angle) * dist);
+          final subR = r * (0.45 + rng.nextDouble() * 0.25);
+          canvas.drawCircle(subCenter, subR, foamPaint);
+        }
+
+        // 3. Iridescent pastel shimmer (lavender & cyan reflection)
+        shimmerPaint.color = const Color(0xFFE1BEE7).withValues(alpha: v * 0.35);
+        canvas.drawCircle(center - Offset(r * 0.15, r * 0.15), r * 0.45, shimmerPaint);
+
+        // 4. Popping bubble ring highlight
+        canvas.drawCircle(center - Offset(r * 0.2, r * 0.2), r * 0.25, bubbleStrokePaint);
+      }
+    }
+  }
+
+  void _drawWetLayer(Canvas canvas, Size size) {
+    final cw = size.width / gridN;
+    final ch = size.height / gridN;
+
+    final sheenPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+    final dropBasePaint = Paint()..style = PaintingStyle.fill;
+    final dropHighlightPaint = Paint()..style = PaintingStyle.fill;
+    final dropShadowPaint = Paint()..style = PaintingStyle.fill;
+
+    for (int y = 0; y < gridN; y++) {
+      for (int x = 0; x < gridN; x++) {
+        final v = wetGrid[y * gridN + x];
+        if (v <= 0.02) continue;
+
+        final center = Offset((x + 0.5) * cw, (y + 0.5) * ch);
+
+        // 1. Soft glistening wet sheen across the car body
+        sheenPaint.color = const Color(0xFF81D4FA).withValues(alpha: (v * 0.28).clamp(0.0, 0.28));
+        canvas.drawCircle(center, cw * 0.70 * v, sheenPaint);
+
+        // 2. Realistic water droplets resting on the surface
+        final rng = Random((y * 67 + x * 23) & 0x7FFFFFFF);
+        dropBasePaint.color = const Color(0xFFB3E5FC).withValues(alpha: (v * 0.85).clamp(0.0, 0.85));
+        dropHighlightPaint.color = Colors.white.withValues(alpha: (v * 0.95).clamp(0.0, 0.95));
+        dropShadowPaint.color = const Color(0xFF01579B).withValues(alpha: (v * 0.35).clamp(0.0, 0.35));
+
+        // Draw 3 water drops of various sizes per wet cell
+        for (int k = 0; k < 3; k++) {
+          final ox = (rng.nextDouble() - 0.5) * cw * 0.75;
+          final oy = (rng.nextDouble() - 0.5) * ch * 0.75;
+          final dropPos = center + Offset(ox, oy);
+          final dropR = (cw * 0.12 * (0.7 + rng.nextDouble() * 0.6) * v).clamp(1.5, cw * 0.22);
+
+          // Subtle shadow under droplet
+          canvas.drawCircle(dropPos + const Offset(0.5, 1.0), dropR, dropShadowPaint);
+          // Droplet body
+          canvas.drawCircle(dropPos, dropR, dropBasePaint);
+          // Tiny specular light reflection dot
+          canvas.drawCircle(dropPos - Offset(dropR * 0.35, dropR * 0.35), dropR * 0.35, dropHighlightPaint);
+        }
       }
     }
   }
@@ -2130,17 +2356,45 @@ class _CarMaskedPainter extends CustomPainter {
   void _drawShineLayer(Canvas canvas, Size size) {
     final cw = size.width / gridN;
     final ch = size.height / gridN;
-    final glossPaint = Paint()..style = PaintingStyle.fill;
+    final glossPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+    final starPaint = Paint()..style = PaintingStyle.fill;
 
     for (int y = 0; y < gridN; y++) {
       for (int x = 0; x < gridN; x++) {
-        final v = dryGrid[y * gridN + x];
+        final v = shineGrid[y * gridN + x];
         if (v <= 0.05) continue;
         final center = Offset((x + 0.5) * cw, (y + 0.5) * ch);
-        glossPaint.color = Colors.white.withValues(alpha: (v * 0.25).clamp(0.0, 0.25));
-        canvas.drawCircle(center, cw * 0.55 * v, glossPaint);
+
+        // Mirror glossy highlight
+        glossPaint.color = Colors.white.withValues(alpha: (v * 0.35).clamp(0.0, 0.35));
+        canvas.drawCircle(center, cw * 0.65 * v, glossPaint);
+
+        // Twinkling 4-point star on polished spots
+        if (v > 0.4) {
+          final rng = Random((y * 53 + x * 29) & 0x7FFFFFFF);
+          if (rng.nextDouble() < 0.40) {
+            final starPos = center + Offset((rng.nextDouble() - 0.5) * cw * 0.4, (rng.nextDouble() - 0.5) * ch * 0.4);
+            final starSize = (cw * 0.38 * v).clamp(3.0, 16.0);
+            starPaint.color = Colors.white.withValues(alpha: (v * 0.95).clamp(0.0, 0.95));
+            _drawDiamondSparkle(canvas, starPos, starSize, starPaint);
+          }
+        }
       }
     }
+  }
+
+  void _drawDiamondSparkle(Canvas canvas, Offset center, double size, Paint paint) {
+    final path = Path();
+    path.moveTo(center.dx, center.dy - size);
+    path.quadraticBezierTo(center.dx, center.dy, center.dx + size, center.dy);
+    path.quadraticBezierTo(center.dx, center.dy, center.dx, center.dy + size);
+    path.quadraticBezierTo(center.dx, center.dy, center.dx - size, center.dy);
+    path.quadraticBezierTo(center.dx, center.dy, center.dx, center.dy - size);
+    canvas.drawPath(path, paint);
+    // Center brilliant core
+    canvas.drawCircle(center, size * 0.28, paint);
   }
 
   @override

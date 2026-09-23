@@ -159,8 +159,9 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
     int blank = _tiles.indexOf(0);
 
     int shuffleSteps = 6;
-    if (_currentLevel == 1) shuffleSteps = 6;
-    else if (_currentLevel == 2) shuffleSteps = 12;
+    if (_currentLevel == 1) {
+      shuffleSteps = 6;
+    } else if (_currentLevel == 2) shuffleSteps = 12;
     else if (_currentLevel == 3) shuffleSteps = 22;
     else shuffleSteps = 35;
 

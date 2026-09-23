@@ -3,7 +3,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'core/theme/kids_theme.dart';
 import 'core/data/player_data_manager.dart';
-import 'lobby/lobby_screen.dart';
 import 'lobby/splash_screen.dart';
 import 'package:flutter/services.dart';
 

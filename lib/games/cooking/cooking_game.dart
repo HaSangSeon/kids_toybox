@@ -30,7 +30,7 @@ enum _Phase { pick, stir, cooking, result }
 class _FallingItem {
   final String emoji;
   double progress; // 0→1
-  _FallingItem(this.emoji, {this.progress = 0.0});
+  _FallingItem(this.emoji) : progress = 0.0;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -387,7 +387,7 @@ class _ColorMixingGameState extends State<CookingGame>
             Positioned.fill(
               child: AnimatedBuilder(
                 animation: _bgPatternCtrl,
-                builder: (_, __) {
+                builder: (_, _) {
                   return CustomPaint(
                     painter: _KitchenBackgroundPainter(animValue: _bgPatternCtrl.value),
                   );
@@ -474,7 +474,7 @@ class _ColorMixingGameState extends State<CookingGame>
             : '재료 ${_pot.length}개 선택! (요리 시작 가능!)';
         bgColor = Colors.orange.shade50;
       case _Phase.stir:
-        text = '🥄 냄비를 톡톡 눌러서 섞어봐요! (${_stirCount}/$_stirNeeded)';
+        text = '🥄 냄비를 톡톡 눌러서 섞어봐요! ($_stirCount/$_stirNeeded)';
         bgColor = Colors.amber.shade50;
       case _Phase.cooking:
         text = '🔥 부글부글 요리하는 중... 잠깐만 기다려요!';
@@ -526,7 +526,7 @@ class _ColorMixingGameState extends State<CookingGame>
   Widget _buildPot() {
     return AnimatedBuilder(
       animation: Listenable.merge([_bubbleCtrl, _steamCtrl]),
-      builder: (_, __) {
+      builder: (_, _) {
         return SizedBox(
           width: 250,
           height: 260,
@@ -571,7 +571,7 @@ class _ColorMixingGameState extends State<CookingGame>
       onTap: _onStirTap,
       child: AnimatedBuilder(
         animation: _stirVisualCtrl,
-        builder: (_, __) {
+        builder: (_, _) {
           final wobble = sin(_stirVisualCtrl.value * pi * 2) * 8;
           return Transform.translate(
             offset: Offset(wobble, 0),
@@ -618,7 +618,7 @@ class _ColorMixingGameState extends State<CookingGame>
   Widget _buildCookingOverlay() {
     return AnimatedBuilder(
       animation: _cookCtrl,
-      builder: (_, __) {
+      builder: (_, _) {
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -658,7 +658,7 @@ class _ColorMixingGameState extends State<CookingGame>
 
     return AnimatedBuilder(
       animation: _resultScale,
-      builder: (_, __) {
+      builder: (_, _) {
         return Center(
           child: Transform.scale(
             scale: 0.4 + _resultScale.value * 0.6,

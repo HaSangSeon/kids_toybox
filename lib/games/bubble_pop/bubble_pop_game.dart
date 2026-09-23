@@ -239,9 +239,13 @@ class _BubblePopGameState extends State<BubblePopGame>
 
     setState(() {
       // 파티클 & 팝업 업데이트
-      for (final p in _particles) p.update(dt);
+      for (final p in _particles) {
+        p.update(dt);
+      }
       _particles.removeWhere((p) => p.opacity <= 0);
-      for (final p in _popups) p.update(dt);
+      for (final p in _popups) {
+        p.update(dt);
+      }
       _popups.removeWhere((p) => p.opacity <= 0);
 
       // 웨이브 클리어 연출 대기 중
@@ -417,7 +421,7 @@ class _BubblePopGameState extends State<BubblePopGame>
         radius: isTarget
             ? 3.5 + _random.nextDouble() * 8
             : 2.5 + _random.nextDouble() * 5,
-        color: bubble.color.withOpacity(isTarget ? 0.95 : 0.6),
+        color: bubble.color.withValues(alpha: isTarget ? 0.95 : 0.6),
       ));
     }
 
@@ -537,10 +541,10 @@ class _BubblePopGameState extends State<BubblePopGame>
             child: Container(
               width: 44, height: 44,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.85),
+                color: Colors.white.withValues(alpha: 0.85),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: Colors.white, width: 2),
-                boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 3))],
+                boxShadow: [BoxShadow(color: Colors.blue.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 3))],
               ),
               child: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF5C6BC0), size: 20),
             ),
@@ -575,7 +579,7 @@ class _BubblePopGameState extends State<BubblePopGame>
                 border: Border.all(color: Colors.white, width: 2),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.purple.withOpacity(0.35),
+                    color: Colors.purple.withValues(alpha: 0.35),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -612,7 +616,7 @@ class _BubblePopGameState extends State<BubblePopGame>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.85),
+                  color: Colors.white.withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -623,7 +627,7 @@ class _BubblePopGameState extends State<BubblePopGame>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.85),
+                  color: Colors.white.withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -639,7 +643,7 @@ class _BubblePopGameState extends State<BubblePopGame>
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 10,
-              backgroundColor: Colors.white.withOpacity(0.4),
+              backgroundColor: Colors.white.withValues(alpha: 0.4),
               valueColor: AlwaysStoppedAnimation<Color>(
                 Color.lerp(const Color(0xFF7C4DFF), const Color(0xFFFF6B9D), progress)!,
               ),
@@ -679,7 +683,7 @@ class _BubblePopGameState extends State<BubblePopGame>
 
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withOpacity(0.55),
+        color: Colors.black.withValues(alpha: 0.55),
         alignment: Alignment.center,
         child: SingleChildScrollView(
           child: Container(
@@ -691,7 +695,7 @@ class _BubblePopGameState extends State<BubblePopGame>
               borderRadius: BorderRadius.circular(28),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.purple.withOpacity(0.3),
+                  color: Colors.purple.withValues(alpha: 0.3),
                   blurRadius: 20,
                   offset: const Offset(0, 6),
                 ),
@@ -737,7 +741,7 @@ class _BubblePopGameState extends State<BubblePopGame>
                           decoration: BoxDecoration(
                             gradient: isSelected
                                 ? LinearGradient(
-                                    colors: [lvl['color'] as Color, (lvl['color'] as Color).withOpacity(0.8)],
+                                    colors: [lvl['color'] as Color, (lvl['color'] as Color).withValues(alpha: 0.8)],
                                   )
                                 : null,
                             color: isSelected ? null : Colors.grey.shade100,
@@ -749,7 +753,7 @@ class _BubblePopGameState extends State<BubblePopGame>
                             boxShadow: isSelected
                                 ? [
                                     BoxShadow(
-                                      color: (lvl['color'] as Color).withOpacity(0.4),
+                                      color: (lvl['color'] as Color).withValues(alpha: 0.4),
                                       blurRadius: 8,
                                       offset: const Offset(0, 3),
                                     ),
@@ -775,7 +779,7 @@ class _BubblePopGameState extends State<BubblePopGame>
                                       lvl['desc'] as String,
                                       style: GoogleFonts.jua(
                                         fontSize: 12,
-                                        color: isSelected ? Colors.white.withOpacity(0.9) : Colors.grey.shade600,
+                                        color: isSelected ? Colors.white.withValues(alpha: 0.9) : Colors.grey.shade600,
                                       ),
                                     ),
                                   ],
@@ -803,7 +807,7 @@ class _BubblePopGameState extends State<BubblePopGame>
   Widget _buildWaveClearOverlay() {
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withOpacity(0.4),
+        color: Colors.black.withValues(alpha: 0.4),
         child: Center(
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 24),
@@ -812,7 +816,7 @@ class _BubblePopGameState extends State<BubblePopGame>
               color: Colors.white,
               borderRadius: BorderRadius.circular(28),
               boxShadow: [
-                BoxShadow(color: const Color(0xFF7C4DFF).withOpacity(0.3), blurRadius: 16),
+                BoxShadow(color: const Color(0xFF7C4DFF).withValues(alpha: 0.3), blurRadius: 16),
               ],
             ),
             child: Column(
@@ -877,9 +881,9 @@ class _BubblePopGameState extends State<BubblePopGame>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.94),
+            color: Colors.white.withValues(alpha: 0.94),
             borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.2), blurRadius: 14)],
+            boxShadow: [BoxShadow(color: Colors.blue.withValues(alpha: 0.2), blurRadius: 14)],
             border: Border.all(color: Colors.blue.shade100, width: 3),
           ),
           child: Column(
@@ -936,24 +940,24 @@ class _BubbleWidget extends StatelessWidget {
           center: const Alignment(-0.3, -0.4),
           radius: 0.85,
           colors: [
-            Colors.white.withOpacity(0.55),
-            bubble.color.withOpacity(0.35),
-            bubble.color.withOpacity(0.55),
+            Colors.white.withValues(alpha: 0.55),
+            bubble.color.withValues(alpha: 0.35),
+            bubble.color.withValues(alpha: 0.55),
           ],
           stops: const [0.0, 0.5, 1.0],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.7),
+          color: Colors.white.withValues(alpha: 0.7),
           width: 2.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: bubble.color.withOpacity(0.45),
+            color: bubble.color.withValues(alpha: 0.45),
             blurRadius: bubble.size * 0.4,
             spreadRadius: bubble.size * 0.05,
           ),
           BoxShadow(
-            color: Colors.white.withOpacity(shimmerOpacity),
+            color: Colors.white.withValues(alpha: shimmerOpacity),
             blurRadius: bubble.size * 0.25,
           ),
         ],
@@ -975,7 +979,7 @@ class _BubbleWidget extends StatelessWidget {
               width: bubble.size * 0.28,
               height: bubble.size * 0.18,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.65),
+                color: Colors.white.withValues(alpha: 0.65),
                 borderRadius: BorderRadius.circular(bubble.size),
               ),
             ),
@@ -988,7 +992,7 @@ class _BubbleWidget extends StatelessWidget {
               width: bubble.size * 0.10,
               height: bubble.size * 0.10,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.45),
+                color: Colors.white.withValues(alpha: 0.45),
                 shape: BoxShape.circle,
               ),
             ),
@@ -1052,7 +1056,7 @@ class _SkyBgPainter extends CustomPainter {
       canvas.drawCircle(
         Offset(bx, by),
         br * (0.7 + pulse * 0.4),
-        Paint()..color = bColor.withOpacity(0.08 + pulse * 0.10),
+        Paint()..color = bColor.withValues(alpha: 0.08 + pulse * 0.10),
       );
     }
 
@@ -1092,7 +1096,7 @@ class _SkyBgPainter extends CustomPainter {
       final r = radius - i * 12;
       if (r <= 0) continue;
       final paint = Paint()
-        ..color = colors[i].withOpacity(0.20)
+        ..color = colors[i].withValues(alpha: 0.20)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 10;
       canvas.drawArc(
@@ -1105,7 +1109,7 @@ class _SkyBgPainter extends CustomPainter {
   }
 
   void _drawCloud(Canvas canvas, Offset center, double scale) {
-    final paint = Paint()..color = Colors.white.withOpacity(0.88);
+    final paint = Paint()..color = Colors.white.withValues(alpha: 0.88);
     final offsets = [
       Offset.zero,
       Offset(-28 * scale, 10 * scale),
@@ -1180,7 +1184,7 @@ class _ParticlePainter extends CustomPainter {
       canvas.drawCircle(
         Offset(p.x, p.y),
         p.radius,
-        Paint()..color = p.color.withOpacity(p.opacity.clamp(0.0, 1.0)),
+        Paint()..color = p.color.withValues(alpha: p.opacity.clamp(0.0, 1.0)),
       );
     }
     for (final p in popups) {
@@ -1188,7 +1192,7 @@ class _ParticlePainter extends CustomPainter {
         text: TextSpan(
           text: p.text,
           style: TextStyle(
-            color: Colors.white.withOpacity(p.opacity.clamp(0.0, 1.0)),
+            color: Colors.white.withValues(alpha: p.opacity.clamp(0.0, 1.0)),
             fontSize: 22,
             fontWeight: FontWeight.bold,
             shadows: const [Shadow(color: Colors.black38, blurRadius: 4)],

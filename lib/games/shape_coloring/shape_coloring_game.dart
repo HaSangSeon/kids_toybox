@@ -135,8 +135,11 @@ Path getShapePath(ShapeType shape, Size size) {
         final r = (i % 2 == 0) ? rx : rx * 0.72;
         final currX = cx + r * cos(angle);
         final currY = cy + r * sin(angle);
-        if (i == 0) path.moveTo(currX, currY);
-        else path.lineTo(currX, currY);
+        if (i == 0) {
+          path.moveTo(currX, currY);
+        } else {
+          path.lineTo(currX, currY);
+        }
       }
       path.close();
       path.addOval(Rect.fromLTWH(dx + w * 0.22, dy + h * 0.22, w * 0.56, h * 0.56)); // 안쪽 얼굴
@@ -242,8 +245,11 @@ Path getShapePath(ShapeType shape, Size size) {
         final r = rx * (0.65 + 0.32 * cos(petals * angle).abs());
         final currX = cx + r * cos(angle);
         final currY = cy + r * sin(angle);
-        if (i == 0) path.moveTo(currX, currY);
-        else path.lineTo(currX, currY);
+        if (i == 0) {
+          path.moveTo(currX, currY);
+        } else {
+          path.lineTo(currX, currY);
+        }
       }
       path.close();
       path.addOval(Rect.fromLTWH(dx + w * 0.32, dy + h * 0.32, w * 0.36, h * 0.36)); // 꽃심
@@ -260,8 +266,11 @@ Path getShapePath(ShapeType shape, Size size) {
         final r = (i % 2 == 0) ? rx : rx * 0.45;
         final currX = cx + r * sin(i * angle);
         final currY = cy - r * cos(i * angle);
-        if (i == 0) path.moveTo(currX, currY);
-        else path.lineTo(currX, currY);
+        if (i == 0) {
+          path.moveTo(currX, currY);
+        } else {
+          path.lineTo(currX, currY);
+        }
       }
       path.close();
       break;
@@ -419,7 +428,7 @@ class DrawingEngine extends ChangeNotifier {
       shapeStrokes.forEach((key, strokesList) {
         strokesMap[key.name] = strokesList.map((s) => {
           'points': s.points.map((p) => {'x': p.dx, 'y': p.dy}).toList(),
-          'color': s.color.value,
+          'color': s.color.toARGB32(),
           'strokeWidth': s.strokeWidth,
           'isRainbow': s.isRainbow,
         }).toList();

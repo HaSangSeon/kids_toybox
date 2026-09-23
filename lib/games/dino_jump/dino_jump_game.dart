@@ -156,7 +156,7 @@ class _DinoJumpGameState extends State<DinoJumpGame>
       _pressHeldTime = 0.0;
       _dinoScaleX = 1.2;
       _dinoScaleY = 0.7;
-      AudioManager.instance.playJump();
+      AudioManager.instance.playDinoJump(_currentSkin);
       HapticFeedback.lightImpact();
     } else if (_canDoubleJump) {
       // 공중에서 2단 점프 (더 약한 힘)
@@ -166,7 +166,7 @@ class _DinoJumpGameState extends State<DinoJumpGame>
       _pressHeldTime = 0.0;
       _dinoScaleX = 1.15;
       _dinoScaleY = 0.85;
-      AudioManager.instance.playJump();
+      AudioManager.instance.playDinoJump(_currentSkin);
       HapticFeedback.mediumImpact();
       // 2단 점프 파티클 (공중 폭발)
       for (int i = 0; i < 6; i++) {
@@ -325,7 +325,7 @@ class _DinoJumpGameState extends State<DinoJumpGame>
           if (_score > _bestScore) {
             _bestScore = _score;
           }
-          AudioManager.instance.playChime();
+          AudioManager.instance.playDinoCoin();
           HapticFeedback.selectionClick();
         }
       }
@@ -362,19 +362,19 @@ class _DinoJumpGameState extends State<DinoJumpGame>
           if (obs.emoji == '⭐') {
             toRemove.add(obs);
             _score += 50;
-            AudioManager.instance.playChime();
+            AudioManager.instance.playDinoCoin();
             HapticFeedback.mediumImpact();
             continue;
           } else if (obs.emoji == '🛡️') {
             toRemove.add(obs);
             _shieldTimer = 5.0;
-            AudioManager.instance.playBoing();
+            AudioManager.instance.playDinoShield();
             HapticFeedback.heavyImpact();
             continue;
           } else if (obs.emoji == '🪽') {
             toRemove.add(obs);
             _wingTimer = 4.0;
-            AudioManager.instance.playLightningPop();
+            AudioManager.instance.playDinoWing();
             HapticFeedback.heavyImpact();
             continue;
           }
@@ -383,7 +383,7 @@ class _DinoJumpGameState extends State<DinoJumpGame>
             // Destroy obstacle with shield!
             toRemove.add(obs);
             _score += 20;
-            AudioManager.instance.playCrash();
+            AudioManager.instance.playDinoCrash();
             HapticFeedback.mediumImpact();
           } else if (_wingTimer > 0) {
             // Fly over safely!
@@ -407,7 +407,7 @@ class _DinoJumpGameState extends State<DinoJumpGame>
       _isGameOver = true;
       _isPlaying = false;
     });
-    AudioManager.instance.playGameOver();
+    AudioManager.instance.playDinoGameOver();
     HapticFeedback.heavyImpact();
   }
 
@@ -553,7 +553,7 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                         child: LinearProgressIndicator(
                           value: _jumpChargeDisplay,
                           minHeight: 6,
-                          backgroundColor: Colors.white.withOpacity(0.4),
+                          backgroundColor: Colors.white.withValues(alpha: 0.4),
                           valueColor: AlwaysStoppedAnimation<Color>(
                             Color.lerp(
                               const Color(0xFF69F0AE),
@@ -757,7 +757,7 @@ class _DinoJumpGameState extends State<DinoJumpGame>
             if (!_isPlaying && !_isGameOver)
               Positioned.fill(
                 child: Container(
-                  color: Colors.black.withOpacity(0.40),
+                  color: Colors.black.withValues(alpha: 0.40),
                   child: Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -779,7 +779,7 @@ class _DinoJumpGameState extends State<DinoJumpGame>
                           margin: const EdgeInsets.symmetric(horizontal: 24),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.96),
+                            color: Colors.white.withValues(alpha: 0.96),
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(color: Colors.orangeAccent, width: 3),
                             boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))],
@@ -1182,7 +1182,7 @@ class _PrehistoricBackgroundPainter extends CustomPainter {
 
     // 2. Glowing Sun
     final sunCenter = Offset(w * 0.78, h * 0.15);
-    canvas.drawCircle(sunCenter, 44, Paint()..color = const Color(0xFFFFE082).withOpacity(0.4));
+    canvas.drawCircle(sunCenter, 44, Paint()..color = const Color(0xFFFFE082).withValues(alpha: 0.4));
     canvas.drawCircle(sunCenter, 34, Paint()..color = const Color(0xFFFFD54F));
 
     // 3. Clouds (Layer 1 Parallax - Very Slow)
@@ -1231,7 +1231,7 @@ class _PrehistoricBackgroundPainter extends CustomPainter {
   }
 
   void _drawCloud(Canvas canvas, Offset center, double scale) {
-    final paint = Paint()..color = Colors.white.withOpacity(0.85);
+    final paint = Paint()..color = Colors.white.withValues(alpha: 0.85);
     final radii = [24.0, 16.0, 18.0, 14.0];
     final offsets = [
       Offset.zero,
@@ -1282,7 +1282,7 @@ class _PrehistoricBackgroundPainter extends CustomPainter {
       canvas.drawCircle(
         Offset(base.dx, peakY - 20 - (time * 15.0) % 30.0),
         puffRadius * 0.7,
-        Paint()..color = const Color(0xFFCFD8DC).withOpacity(0.4),
+        Paint()..color = const Color(0xFFCFD8DC).withValues(alpha: 0.4),
       );
     }
   }
@@ -1344,7 +1344,7 @@ class _DustParticlePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     for (final p in particles) {
-      final paint = Paint()..color = const Color(0xFFD7CCC8).withOpacity(p.opacity);
+      final paint = Paint()..color = const Color(0xFFD7CCC8).withValues(alpha: p.opacity);
       canvas.drawCircle(Offset(p.x, p.y), p.size, paint);
     }
   }

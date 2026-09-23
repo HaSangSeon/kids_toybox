@@ -310,6 +310,40 @@ class AudioManager {
   Future<void> playCarWashRinse() => playEffect('audio/car_rinse.wav');
   Future<void> playCarWashDry() => playEffect('audio/car_towel_squeak.wav');
   Future<void> playCarWashSticker() => playEffect('audio/snap.wav');
+  Future<void> playCarWashStageComplete() => playEffect('audio/stage_complete.wav');
+  Future<void> playCarWashHighwayDrive() => playEffect('audio/highway_booster.wav');
+
+  // Car Builder
+  Future<void> playCarBuilderSnap() => playEffect('audio/car_snap.wav');
+
+  // Pet Hospital
+  Future<void> playPetSpray() => playEffect('audio/spray.wav');
+  Future<void> playPetBandaid() => playEffect('audio/bandaid.wav');
+  Future<void> playPetIce() => playEffect('audio/ice_clink.wav');
+  Future<void> playPetGulp() => playEffect('audio/gulp.wav');
+  Future<void> playPetHeal() => playEffect('audio/heal_sparkle.wav');
+
+  // Dino Jump
+  Future<void> playDinoJump(String emoji) {
+    String filename = switch (emoji) {
+      '🦖' => 'jump_trex.wav',
+      '🦕' => 'jump_brachio.wav',
+      '🐎' => 'jump_horse.wav',
+      '🐕' => 'jump_dog.wav',
+      '🐇' => 'jump_rabbit.wav',
+      '🦘' => 'jump_kangaroo.wav',
+      '🐆' => 'jump_leopard.wav',
+      '🐉' => 'jump_dragon.wav',
+      '🐢' => 'jump_turtle.wav',
+      _ => 'jump_dog.wav',
+    };
+    return playEffect('audio/$filename');
+  }
+  Future<void> playDinoCoin() => playEffect('audio/dino_coin.wav');
+  Future<void> playDinoShield() => playEffect('audio/dino_shield.wav');
+  Future<void> playDinoWing() => playEffect('audio/dino_wing.wav');
+  Future<void> playDinoCrash() => playEffect('audio/dino_crash.wav');
+  Future<void> playDinoGameOver() => playEffect('audio/dino_gameover.wav');
 
   Future<void> _playAnimalSound(String path, {double rate = 1.0}) async {
     if (!_soundEnabled) return;

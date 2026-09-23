@@ -143,7 +143,9 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
     _ticker.dispose();
     _gameTimer?.cancel();
     _spawnTimer?.cancel();
-    for (final m in _moles) m.cancelRetract();
+    for (final m in _moles) {
+      m.cancelRetract();
+    }
     super.dispose();
   }
 
@@ -561,7 +563,7 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
                                 ),
                                 Text(
                                   _levelDescription(cfg),
-                                  style: GoogleFonts.jua(fontSize: 14, color: Colors.white.withOpacity(0.85)),
+                                  style: GoogleFonts.jua(fontSize: 14, color: Colors.white.withValues(alpha: 0.85)),
                                 ),
                               ],
                             ),
@@ -734,7 +736,7 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
                           const Icon(Icons.timer_rounded, color: Colors.white, size: 15),
                           const SizedBox(width: 3),
                           Text(
-                            '${_timeLeft}초',
+                            '$_timeLeft초',
                             style: GoogleFonts.jua(fontSize: 15, color: Colors.white),
                           ),
                         ],
@@ -896,7 +898,7 @@ class _WhackAMoleGameState extends State<WhackAMoleGame>
                 tween: Tween(begin: -0.9, end: -0.45),
                 duration: const Duration(milliseconds: 120),
                 curve: Curves.easeOutBack,
-                builder: (_, angle, __) => Transform.rotate(
+                builder: (_, angle, _) => Transform.rotate(
                   angle: angle,
                   child: Text(_hammerSkins[_selectedHammerIdx], style: const TextStyle(fontSize: 62)),
                 ),
@@ -1127,7 +1129,7 @@ class _MolePopWidgetState extends State<_MolePopWidget>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _ctrl,
-      builder: (_, __) => Transform.translate(
+      builder: (_, _) => Transform.translate(
         offset: Offset(0, _bounce.value),
         child: Transform.rotate(
           angle: _rotation.value,

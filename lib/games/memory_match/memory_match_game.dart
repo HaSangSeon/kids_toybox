@@ -133,9 +133,9 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
   final Random _random = Random();
 
   int _currentLevel = 1;
-  List<MemoryCardData> _cards = [];
+  final List<MemoryCardData> _cards = [];
 
-  List<int> _flippedIndices = [];
+  final List<int> _flippedIndices = [];
   bool _isProcessing = false;
   bool _isMemorizing = false;
   bool _isHintActive = false;
@@ -249,7 +249,9 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
   void _onCardTap(int index) async {
     if (_isProcessing || _isMemorizing || _isHintActive ||
         _cards[index].isFaceUp || _cards[index].isMatched ||
-        _flyingIndices.contains(index)) return;
+        _flyingIndices.contains(index)) {
+      return;
+    }
 
     setState(() {
       _cards[index] = _cards[index].copyWith(isFaceUp: true);
@@ -334,8 +336,9 @@ class _MemoryMatchGameState extends State<MemoryMatchGame> with TickerProviderSt
   void _triggerComboAnimation(int combo) {
     if (combo >= 2) {
       setState(() {
-        if (combo == 2) _comboMessage = '2연속 성공! 🔥';
-        else if (combo == 3) _comboMessage = '3연속 대박! ⚡';
+        if (combo == 2) {
+          _comboMessage = '2연속 성공! 🔥';
+        } else if (combo == 3) _comboMessage = '3연속 대박! ⚡';
         else _comboMessage = '$combo연속 최고! 🚀';
       });
       Future.delayed(const Duration(milliseconds: 1200), () {

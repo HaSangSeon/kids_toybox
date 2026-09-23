@@ -64,8 +64,7 @@ class _Sparkle {
     required this.vy,
     required this.size,
     required this.color,
-    this.life = 1.0,
-  });
+  }) : life = 1.0;
 }
 
 // ──────────────────────────────────────────────
@@ -465,7 +464,7 @@ class _XylophoneGameState extends State<XylophoneGame>
           ..._bgDecos.map((n) {
             return AnimatedBuilder(
               animation: _bgController,
-              builder: (_, __) {
+              builder: (_, _) {
                 final offset = (n['speed'] as double) * _bgController.value;
                 final dy = 14 * sin(offset * pi * 2);
                 final dx = 6 * cos(offset * pi * 2);
@@ -595,7 +594,7 @@ class _XylophoneGameState extends State<XylophoneGame>
 
           AnimatedBuilder(
             animation: _titleController,
-            builder: (_, __) {
+            builder: (_, _) {
               final scale = 1.0 + _titleController.value * 0.04;
               return Transform.scale(
                 scale: scale,
@@ -807,7 +806,7 @@ class _XylophoneGameState extends State<XylophoneGame>
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: _songs.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (_, i) {
                   final s = _songs[i];
                   final sel = _activeSongIndex == i;
@@ -990,7 +989,7 @@ class _XylophoneGameState extends State<XylophoneGame>
                       padding: const EdgeInsets.symmetric(horizontal: 2.5),
                       child: AnimatedBuilder(
                         animation: _glowControllers[i],
-                        builder: (_, __) {
+                        builder: (_, _) {
                           final glow = _glowControllers[i].value;
                           return ScaleTransition(
                             scale: _scaleAnims[i],
@@ -1137,7 +1136,7 @@ class _XylophoneGameState extends State<XylophoneGame>
                                       TweenAnimationBuilder<double>(
                                         tween: Tween(begin: 0.0, end: 1.0),
                                         duration: const Duration(milliseconds: 500),
-                                        builder: (_, v, __) => Container(
+                                        builder: (_, v, _) => Container(
                                           decoration: BoxDecoration(
                                             borderRadius: const BorderRadius.vertical(
                                               top: Radius.circular(14),

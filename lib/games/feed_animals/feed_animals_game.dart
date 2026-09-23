@@ -523,7 +523,7 @@ class _FeedAnimalsGameState extends State<FeedAnimalsGame>
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.88),
+        color: Colors.white.withValues(alpha: 0.88),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: KidsTheme.borderDark, width: 3),
         boxShadow: const [
@@ -997,7 +997,7 @@ class _NatureBackgroundPainter extends CustomPainter {
 
   void _drawSun(Canvas canvas, Offset center, double pulse) {
     final rayPaint = Paint()
-      ..color = const Color(0xFFFFD54F).withOpacity(0.5)
+      ..color = const Color(0xFFFFD54F).withValues(alpha: 0.5)
       ..strokeWidth = 3
       ..strokeCap = StrokeCap.round;
     for (int i = 0; i < 8; i++) {
@@ -1014,7 +1014,7 @@ class _NatureBackgroundPainter extends CustomPainter {
   }
 
   void _drawCloud(Canvas canvas, Offset center, double scale) {
-    final paint = Paint()..color = Colors.white.withOpacity(0.92);
+    final paint = Paint()..color = Colors.white.withValues(alpha: 0.92);
     final radii = [22.0, 16.0, 18.0, 14.0];
     final offsets = [
       Offset.zero,
@@ -1096,7 +1096,7 @@ class _NatureBackgroundPainter extends CustomPainter {
           base.dx, base.dy - 36 * s, base.dx + 18 * s, base.dy - 14 * s)
       ..close();
     canvas.drawPath(capPath, Paint()..color = const Color(0xFFE53935));
-    final spotPaint = Paint()..color = Colors.white.withOpacity(0.85);
+    final spotPaint = Paint()..color = Colors.white.withValues(alpha: 0.85);
     canvas.drawCircle(base.translate(-5 * s, -22 * s), 3.5 * s, spotPaint);
     canvas.drawCircle(base.translate(5 * s, -25 * s), 2.5 * s, spotPaint);
     canvas.drawCircle(base.translate(0, -19 * s), 2 * s, spotPaint);

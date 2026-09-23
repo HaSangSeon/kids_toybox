@@ -563,7 +563,7 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
   void _onDisinfectWound(_WoundItem wound) {
     if (wound.healProgress >= 1.0) return;
 
-    AudioManager.instance.playEffect('audio/car_soap_foam.wav', rate: 1.4);
+    AudioManager.instance.playPetSpray();
     HapticFeedback.mediumImpact();
 
     setState(() {
@@ -591,7 +591,7 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
   void _applyBandaidToWound(_WoundItem wound) {
     if (wound.isBandaidApplied) return;
 
-    AudioManager.instance.playEffect('audio/item_heart.wav', rate: 1.25);
+    AudioManager.instance.playPetBandaid();
     HapticFeedback.mediumImpact();
 
     setState(() {
@@ -619,7 +619,7 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
   void _applyIcePack() {
     if (_isIcePackApplied) return;
 
-    AudioManager.instance.playEffect('audio/chime.wav', rate: 1.3);
+    AudioManager.instance.playPetIce();
     HapticFeedback.lightImpact();
 
     setState(() {
@@ -635,7 +635,7 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
   void _feedSyrup() {
     if (_isSyrupFed) return;
 
-    AudioManager.instance.playEffect('audio/munch.wav', rate: 1.25);
+    AudioManager.instance.playPetGulp();
     HapticFeedback.mediumImpact();
 
     setState(() {
@@ -657,12 +657,7 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
   }
 
   void _completeHospitalTreatment() {
-    // Quiet, gentle, joyful fairy chime instead of loud fanfare
-    AudioManager.instance.playEffect('audio/chime.wav', rate: 1.25);
-    Future.delayed(const Duration(milliseconds: 250), () {
-      if (!mounted) return;
-      AudioManager.instance.playEffect('audio/item_star.wav', rate: 1.2);
-    });
+    AudioManager.instance.playPetHeal();
 
     HapticFeedback.heavyImpact();
     _jumpCtrl.repeat(reverse: true);
@@ -685,7 +680,7 @@ class _PetHospitalGameState extends State<PetHospitalGame> with TickerProviderSt
 
   void _feedVictoryTreat() {
     if (_isTreatFed) return;
-    AudioManager.instance.playEffect('audio/item_star.wav', rate: 1.2);
+    AudioManager.instance.playPetGulp();
     HapticFeedback.heavyImpact();
 
     setState(() {

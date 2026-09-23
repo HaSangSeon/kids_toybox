@@ -467,7 +467,7 @@ class _LobbyScreenState extends State<LobbyScreen>
           RepaintBoundary(
             child: AnimatedBuilder(
               animation: Listenable.merge([_cloudController, _starController]),
-              builder: (_, __) {
+              builder: (_, _) {
                 return CustomPaint(
                   painter: _StarPainter(_starController.value, _stars),
                   child: CustomPaint(
@@ -725,14 +725,14 @@ class _LobbyScreenState extends State<LobbyScreen>
           children: [
             Expanded(
               child: _buildTabButton(
-                title: '👶 3~5세 게임',
+                title: '🌱 톡톡 쉬운 놀이',
                 age: 3,
                 activeColor: KidsTheme.green,
               ),
             ),
             Expanded(
               child: _buildTabButton(
-                title: '👦 6세 이상 게임',
+                title: '⚡ 척척 도전 놀이',
                 age: 6,
                 activeColor: KidsTheme.orange,
               ),
@@ -757,7 +757,7 @@ class _LobbyScreenState extends State<LobbyScreen>
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
         decoration: BoxDecoration(
           color: isActive ? activeColor : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
@@ -772,11 +772,14 @@ class _LobbyScreenState extends State<LobbyScreen>
               : null,
         ),
         child: Center(
-          child: Text(
-            title,
-            style: GoogleFonts.jua(
-              fontSize: 16,
-              color: isActive ? Colors.white : KidsTheme.textLight,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              title,
+              style: GoogleFonts.jua(
+                fontSize: 16,
+                color: isActive ? Colors.white : KidsTheme.textLight,
+              ),
             ),
           ),
         ),
@@ -938,6 +941,7 @@ class _LobbyScreenState extends State<LobbyScreen>
       ),
       _GameData(
         title: '자동차 조립소',
+        minAge: 6,
         emoji: '🔧',
         customIcon: Stack(
           clipBehavior: Clip.none,
@@ -976,6 +980,7 @@ class _LobbyScreenState extends State<LobbyScreen>
       // ── [줄 2] 아이들이 좋아하는 역할놀이 & 프리미엄 요리사
       _GameData(
         title: '꼬마 동물 병원',
+        minAge: 6,
         emoji: '🏥',
         customIcon: Stack(
           clipBehavior: Clip.none,
@@ -1003,6 +1008,7 @@ class _LobbyScreenState extends State<LobbyScreen>
       ),
       _GameData(
         title: '요리사 놀이',
+        minAge: 6,
         emoji: '🍳',
         gradientColors: KidsTheme.gameGradients['amber']!,
         isPremium: true,
@@ -1066,7 +1072,6 @@ class _LobbyScreenState extends State<LobbyScreen>
       ),
       _GameData(
         title: '두더지 잡기',
-        minAge: 6,
         emoji: '🐹',
         gradientColors: KidsTheme.gameGradients['brown']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WhackAMoleGame())); },
@@ -1338,11 +1343,10 @@ class _GameData {
     this.customIcon,
     required this.gradientColors,
     required this.onTap,
-    this.onTrophyTap,
     this.isNew = false,
     this.isPremium = false,
     this.minAge = 3,
-  });
+  }) : onTrophyTap = null;
 }
 
 // ── Privacy Policy Item Widget ──────────────────────────────────────────────

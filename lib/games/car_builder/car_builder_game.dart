@@ -308,7 +308,7 @@ class _CarBuilderGameState extends State<CarBuilderGame>
   void _onChassisSelected(_ChassisPreset newChassis) {
     if (newChassis.id == _selectedChassis.id) return;
 
-    AudioManager.instance.playSnap();
+    AudioManager.instance.playCarBuilderSnap();
     HapticFeedback.lightImpact();
     _triggerCarBounce();
 
@@ -401,7 +401,7 @@ class _CarBuilderGameState extends State<CarBuilderGame>
     final relX = (localPos.dx / canvasSize.width).clamp(0.05, 0.95);
     final relY = (localPos.dy / canvasSize.height).clamp(0.05, 0.95);
 
-    AudioManager.instance.playSnap();
+    AudioManager.instance.playCarBuilderSnap();
     HapticFeedback.heavyImpact();
     _spawnSparklesAt(dropGlobalPos);
     _triggerCarBounce();
@@ -468,8 +468,7 @@ class _CarBuilderGameState extends State<CarBuilderGame>
         'ambulance' => 'ambulance',
         _ => 'car',
       };
-      AudioManager.instance.playVehicleSound(vehicleSound);
-      AudioManager.instance.playEngine();
+      AudioManager.instance.playCarWashHighwayDrive();
       HapticFeedback.mediumImpact();
     });
   }
@@ -492,14 +491,21 @@ class _CarBuilderGameState extends State<CarBuilderGame>
   void _honkInDrive() {
     HapticFeedback.mediumImpact();
     final hasSiren = _placedParts.any((p) => p.template.isSiren);
-    final hasBooster = _placedParts.any((p) => p.template.isBooster);
 
     if (hasSiren) {
       AudioManager.instance.playVehicleSound('police');
-    } else if (hasBooster) {
-      AudioManager.instance.playVehicleSound('monster');
     } else {
-      AudioManager.instance.playVehicleSound('car');
+      final vehicleSound = switch (_selectedChassis.id) {
+        'police' => 'police',
+        'ambulance' => 'ambulance',
+        'bus' => 'bus',
+        'monster' => 'monster',
+        'truck' => 'suv',
+        'sports' => 'racing',
+        'rocket' => 'racing',
+        _ => 'car',
+      };
+      AudioManager.instance.playVehicleSound(vehicleSound);
     }
   }
 
@@ -829,7 +835,7 @@ class _CarBuilderGameState extends State<CarBuilderGame>
                         // 차체 터치 시 빵빵 사운드 + 통통 바운스
                         _triggerCarBounce();
                         HapticFeedback.mediumImpact();
-                        AudioManager.instance.playSnap();
+                        AudioManager.instance.playCarBuilderSnap();
                       },
                       child: SizedBox(
                         width: 290,
@@ -880,7 +886,7 @@ class _CarBuilderGameState extends State<CarBuilderGame>
                               child: GestureDetector(
                                 behavior: HitTestBehavior.opaque,
                                 onTap: () {
-                                  AudioManager.instance.playSnap();
+                                  AudioManager.instance.playCarBuilderSnap();
                                   HapticFeedback.lightImpact();
                                   setState(() {
                                     _selectedPlacedPartId = isSelected ? null : placed.id;
@@ -1362,7 +1368,7 @@ class _CarBuilderGameState extends State<CarBuilderGame>
       _PartCategory.stickers => const Offset(0.48, 0.54),
     };
 
-    AudioManager.instance.playSnap();
+    AudioManager.instance.playCarBuilderSnap();
     HapticFeedback.mediumImpact();
     _triggerCarBounce();
 

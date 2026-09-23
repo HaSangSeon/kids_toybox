@@ -364,9 +364,9 @@ child: Column(
                                   colors: [Color(0xFFFF6B9D), Color(0xFFFF8E53)],
                                 ),
                                 borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: Colors.white.withOpacity(0.6), width: 2),
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 2),
                                 boxShadow: [BoxShadow(
-                                  color: const Color(0xFFFF6B9D).withOpacity(0.5),
+                                  color: const Color(0xFFFF6B9D).withValues(alpha: 0.5),
                                   blurRadius: 8, offset: const Offset(0, 3),
                                 )],
                               ),
@@ -390,16 +390,16 @@ child: Column(
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                 decoration: BoxDecoration(
                                   color: isDark
-                                      ? Colors.white.withOpacity(0.18)
-                                      : Colors.white.withOpacity(0.90),
+                                      ? Colors.white.withValues(alpha: 0.18)
+                                      : Colors.white.withValues(alpha: 0.90),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
-                                    color: Colors.white.withOpacity(0.8),
+                                    color: Colors.white.withValues(alpha: 0.8),
                                     width: 2,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
+                                      color: Colors.black.withValues(alpha: 0.1),
                                       blurRadius: 8,
                                       offset: const Offset(0, 3),
                                     ),
