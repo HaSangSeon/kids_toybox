@@ -7,3 +7,5 @@
 - **Responsive Design (Phones/Tablets):** When building UI components, dialogs, or popups, ALWAYS consider various screen sizes (small phones to large tablets). Use `SingleChildScrollView`, `Flexible`/`Expanded`, and `BoxConstraints` to prevent RenderFlex overflow issues.
 
 - **No Easter Egg in Release Builds:** NEVER include or enable the long-press title easter egg (or any debug unlock backdoor) in Release builds (`kReleaseMode` / production / phone builds). It must strictly be disabled (`kDebugMode` only).
+
+- **Premium Lock Enforcement (AAB/Production):** When building for production (AAB) or running on physical devices, all locked (premium) games MUST correctly route to the in-app purchase flow. Emulator bypasses must NEVER interfere with physical device lock enforcement.

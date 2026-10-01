@@ -716,8 +716,10 @@ child: Column(
           ),
           const SizedBox(height: 8),
           // 아이템 카드들
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
             children: _targets.map((target) {
               final isFound = _items.any((i) => i.emoji == target && i.isFound);
               return _buildTargetCard(target, isFound, isDark);

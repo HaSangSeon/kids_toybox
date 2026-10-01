@@ -918,77 +918,80 @@ child: Column(
           // ── 1행: 브러시 모드 선택 ──
           SizedBox(
             height: 52,
-            child: Row(
-              children: [
-                _ModeBtn(
-                  emoji: '✏️',
-                  label: '일반',
-                  isSelected: _brushMode == BrushMode.normal,
-                  onTap: () => setState(() => _brushMode = BrushMode.normal),
-                ),
-                const SizedBox(width: 8),
-                _ModeBtn(
-                  emoji: '🌈',
-                  label: '무지개',
-                  isSelected: _brushMode == BrushMode.rainbow,
-                  onTap: () => setState(() => _brushMode = BrushMode.rainbow),
-                ),
-                const SizedBox(width: 8),
-                _ModeBtn(
-                  emoji: '🔵',
-                  label: '스탬프',
-                  isSelected: _brushMode == BrushMode.stamp,
-                  onTap: () => setState(() => _brushMode = BrushMode.stamp),
-                ),
-                const SizedBox(width: 8),
-                _ModeBtn(
-                  emoji: '🧹',
-                  label: '지우개',
-                  isSelected: _brushMode == BrushMode.eraser,
-                  onTap: () => setState(() => _brushMode = BrushMode.eraser),
-                ),
-                const Spacer(),
-                // 굵기 선택
-                ..._widthOptions.asMap().entries.map((e) {
-                  final i = e.key;
-                  final isSelected = _widthIndex == i;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() => _widthIndex = i);
-                      _strokeWidth = _widthOptions[i];
-                      AudioManager.instance.playClick();
-                    },
-                    child: Container(
-                      width: 38, height: 38,
-                      margin: const EdgeInsets.only(left: 6),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFF8338EC).withValues(alpha: 0.15)
-                            : Colors.white.withValues(alpha: 0.7),
-                        shape: BoxShape.circle,
-                        border: Border.all(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _ModeBtn(
+                    emoji: '✏️',
+                    label: '일반',
+                    isSelected: _brushMode == BrushMode.normal,
+                    onTap: () => setState(() => _brushMode = BrushMode.normal),
+                  ),
+                  const SizedBox(width: 8),
+                  _ModeBtn(
+                    emoji: '🌈',
+                    label: '무지개',
+                    isSelected: _brushMode == BrushMode.rainbow,
+                    onTap: () => setState(() => _brushMode = BrushMode.rainbow),
+                  ),
+                  const SizedBox(width: 8),
+                  _ModeBtn(
+                    emoji: '🔵',
+                    label: '스탬프',
+                    isSelected: _brushMode == BrushMode.stamp,
+                    onTap: () => setState(() => _brushMode = BrushMode.stamp),
+                  ),
+                  const SizedBox(width: 8),
+                  _ModeBtn(
+                    emoji: '🧹',
+                    label: '지우개',
+                    isSelected: _brushMode == BrushMode.eraser,
+                    onTap: () => setState(() => _brushMode = BrushMode.eraser),
+                  ),
+                  const SizedBox(width: 16), // Replaced Spacer() with SizedBox
+                  // 굵기 선택
+                  ..._widthOptions.asMap().entries.map((e) {
+                    final i = e.key;
+                    final isSelected = _widthIndex == i;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() => _widthIndex = i);
+                        _strokeWidth = _widthOptions[i];
+                        AudioManager.instance.playClick();
+                      },
+                      child: Container(
+                        width: 38, height: 38,
+                        margin: const EdgeInsets.only(left: 6),
+                        decoration: BoxDecoration(
                           color: isSelected
-                              ? const Color(0xFF8338EC)
-                              : Colors.grey.shade300,
-                          width: 2,
-                        ),
-                      ),
-                      child: Center(
-                        child: Container(
-                          width: (4 + i * 4.5).clamp(4, 22),
-                          height: (4 + i * 4.5).clamp(4, 22),
-                          decoration: BoxDecoration(
+                              ? const Color(0xFF8338EC).withValues(alpha: 0.15)
+                              : Colors.white.withValues(alpha: 0.7),
+                          shape: BoxShape.circle,
+                          border: Border.all(
                             color: isSelected
                                 ? const Color(0xFF8338EC)
-                                : Colors.grey.shade400,
-                            shape: BoxShape.circle,
+                                : Colors.grey.shade300,
+                            width: 2,
+                          ),
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: (4 + i * 4.5).clamp(4, 22),
+                            height: (4 + i * 4.5).clamp(4, 22),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFF8338EC)
+                                  : Colors.grey.shade400,
+                              shape: BoxShape.circle,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  );
-                }),
-              ],
+                    );
+                  }),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 8),

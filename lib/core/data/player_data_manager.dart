@@ -23,21 +23,18 @@ class PlayerDataManager {
     _playerDataBox = await Hive.openBox('player_data_box');
     
     // Check if running on an emulator/simulator
-    // ⚠️ Release 빌드에서는 에뮬레이터 자동 해금을 완전히 비활성화:
-    // 루팅/커스텀 ROM 기기에서 isPhysicalDevice가 false를 반환하는 경우를 방지.
-    if (!kReleaseMode) {
-      try {
-        final deviceInfo = DeviceInfoPlugin();
-        if (Platform.isAndroid) {
-          final androidInfo = await deviceInfo.androidInfo;
-          _isEmulator = !androidInfo.isPhysicalDevice;
-        } else if (Platform.isIOS) {
-          final iosInfo = await deviceInfo.iosInfo;
-          _isEmulator = !iosInfo.isPhysicalDevice;
-        }
-      } catch (e) {
-        debugPrint('Error checking device info: $e');
+    // 에뮬레이터 테스트를 위해 릴리즈 빌드에서도 isPhysicalDevice 확인을 허용합니다.
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        final androidInfo = await deviceInfo.androidInfo;
+        _isEmulator = !androidInfo.isPhysicalDevice;
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfo.iosInfo;
+        _isEmulator = !iosInfo.isPhysicalDevice;
       }
+    } catch (e) {
+      debugPrint('Error checking device info: $e');
     }
 
     // Load initial star coins
@@ -52,19 +49,15 @@ class PlayerDataManager {
     final String savedEquipped = _playerDataBox.get('equippedToy', defaultValue: '🐱');
     equippedToyNotifier.value = savedEquipped;
 
-    // Load premium status (에뮬레이터 환경에서는 테스트 편의를 위해 항상 자동 잠금 해제)
-    if (_isEmulator) {
-      isPremiumUnlockedNotifier.value = true;
-    } else {
-      final bool savedPremium = _playerDataBox.get('isPremiumUnlocked', defaultValue: false);
-      isPremiumUnlockedNotifier.value = savedPremium;
-    }
+    // Load premium status
+    final bool savedPremium = _playerDataBox.get('isPremiumUnlocked', defaultValue: false);
+    isPremiumUnlockedNotifier.value = savedPremium;
   }
 
   int get starCoins => starCoinsNotifier.value;
   List<String> get unlockedToys => unlockedToysNotifier.value;
   String get equippedToy => equippedToyNotifier.value;
-  bool get isPremiumUnlocked => _isEmulator || isPremiumUnlockedNotifier.value;
+  bool get isPremiumUnlocked => isPremiumUnlockedNotifier.value;
 
   void addStarCoin([int amount = 1]) {
     final int newAmount = starCoins + amount;

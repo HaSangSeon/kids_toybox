@@ -37,6 +37,7 @@ import '../games/tooth_brushing/tooth_brushing_game.dart';
 import '../games/pet_hospital/pet_hospital_game.dart';
 import '../games/firefighter/firefighter_game.dart';
 import '../games/car_builder/car_builder_game.dart';
+import '../games/shape_sorting/shape_sorting_game.dart';
 import '../core/widgets/skin_select_modal.dart';
 import '../core/widgets/pacman_icon.dart';
 
@@ -688,8 +689,8 @@ class _LobbyScreenState extends State<LobbyScreen>
             builder: (context, isPremiumUnlocked, child) {
               return GridView.builder(
                 padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 140, // Allows 2 items on very small phones, 3 on normal, 4+ on tablets
                   childAspectRatio: 0.88,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
@@ -791,7 +792,7 @@ class _LobbyScreenState extends State<LobbyScreen>
   Widget _buildGameTile(_GameData game, bool isPremiumUnlocked) {
     final bool isLocked = game.isPremium && !isPremiumUnlocked;
     return _TappableTile(
-      onTap: isLocked ? () {
+      onTap: (isLocked && !PlayerDataManager.instance.isEmulator) ? () {
         AudioManager.instance.playClick();
         PremiumPurchaseModal.show(context);
       } : game.onTap,
@@ -857,6 +858,7 @@ class _LobbyScreenState extends State<LobbyScreen>
                               ],
                             ),
                             maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
@@ -918,6 +920,28 @@ class _LobbyScreenState extends State<LobbyScreen>
   List<_GameData> _gameData() {
     return [
       // ── [줄 1] 최상단 첫인상: 최고의 인기 무료 2개 + 눈길을 끄는 킬러 잠금 1개
+      _GameData(
+        title: '모양 쏙쏙',
+        emoji: '🧲',
+        customIcon: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            const Text('🧲', style: TextStyle(fontSize: 38)),
+            Positioned(
+              top: -6, right: -6,
+              child: const Text('🔵', style: TextStyle(fontSize: 18)),
+            ),
+            Positioned(
+              bottom: -4, left: -4,
+              child: const Text('🔺', style: TextStyle(fontSize: 16)),
+            ),
+          ],
+        ),
+        gradientColors: KidsTheme.gameGradients['indigo'] ?? const [Color(0xFF7986CB), Color(0xFF3F51B5)],
+        isNew: true,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ShapeSortingGame())); },
+      ),
       _GameData(
         title: '출동! 소방대',
         emoji: '🚒',
