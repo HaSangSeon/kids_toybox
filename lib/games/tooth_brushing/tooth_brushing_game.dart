@@ -46,6 +46,8 @@ class _ToothBrushingGameState extends State<ToothBrushingGame> with TickerProvid
   _Snack? _flyingSnack;
   bool _isEating = false;
   String? _customDialogue;
+  bool _isBrushingFinished = false;
+  bool _isRinsingFinished = false;
 
   @override
   void initState() {
@@ -139,6 +141,8 @@ class _ToothBrushingGameState extends State<ToothBrushingGame> with TickerProvid
       _step = BrushStep.eating;
       _customDialogue = null;
       _isEating = false;
+      _isBrushingFinished = false;
+      _isRinsingFinished = false;
       _flyingSnack = null;
       _initTeeth();
     });
@@ -280,7 +284,20 @@ class _ToothBrushingGameState extends State<ToothBrushingGame> with TickerProvid
     }
 
     // Check completion for brushing
-    if (_totalCleanliness >= 0.96) {
+    if (_totalCleanliness >= 0.96 && !_isBrushingFinished) {
+      _isBrushingFinished = true;
+      AudioManager.instance.playEffect('audio/chime.wav', rate: 1.2);
+      setState(() {
+        _customDialogue = '우와! 깨끗해졌어!\\n이제 손을 떼봐요!';
+      });
+    }
+  }
+
+  void _onBrushPanEnd() {
+    setState(() {
+      _brushTouchPos = null;
+    });
+    if (_isBrushingFinished) {
       _finishBrushing();
     }
   }
@@ -303,11 +320,18 @@ class _ToothBrushingGameState extends State<ToothBrushingGame> with TickerProvid
   }
 
   void _finishBrushing() {
-    AudioManager.instance.playEffect('audio/chime.wav', rate: 1.2);
     HapticFeedback.heavyImpact();
     setState(() {
-      _step = BrushStep.rinsing;
-      _brushTouchPos = null;
+      _customDialogue = '이제 물로 헹구자!';
+    });
+    
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) {
+        setState(() {
+          _step = BrushStep.rinsing;
+          _customDialogue = null;
+        });
+      }
     });
   }
 
@@ -337,7 +361,16 @@ class _ToothBrushingGameState extends State<ToothBrushingGame> with TickerProvid
     AudioManager.instance.playEffect('audio/car_water_spray.wav', rate: 1.15);
     HapticFeedback.lightImpact();
 
-    if (_rinseProgress >= 0.95 && _foams.isEmpty) {
+    if (_rinseProgress >= 0.95 && _foams.isEmpty && !_isRinsingFinished) {
+      _isRinsingFinished = true;
+      setState(() {
+        _customDialogue = '반짝반짝해!\\n이제 손을 떼봐요!';
+      });
+    }
+  }
+
+  void _onRinsePanEnd() {
+    if (_isRinsingFinished) {
       _completeGame();
     }
   }
@@ -751,7 +784,11 @@ class _ToothBrushingGameState extends State<ToothBrushingGame> with TickerProvid
                           child: GestureDetector(
                             onPanStart: (details) => _onBrushPan(details.localPosition, const Size(280, 280)),
                             onPanUpdate: (details) => _onBrushPan(details.localPosition, const Size(280, 280)),
+                            onPanEnd: (_) => _onBrushPanEnd(),
+                            onPanCancel: () => _onBrushPanEnd(),
                             onTapDown: (details) => _onBrushPan(details.localPosition, const Size(280, 280)),
+                            onTapUp: (_) => _onBrushPanEnd(),
+                            onTapCancel: () => _onBrushPanEnd(),
                             behavior: HitTestBehavior.opaque,
                             child: CustomPaint(
                               size: const Size(280, 280),
@@ -796,7 +833,11 @@ class _ToothBrushingGameState extends State<ToothBrushingGame> with TickerProvid
                         Positioned.fill(
                           child: GestureDetector(
                             onPanUpdate: (details) => _onRinseSpray(details.localPosition, const Size(280, 280)),
+                            onPanEnd: (_) => _onRinsePanEnd(),
+                            onPanCancel: () => _onRinsePanEnd(),
                             onTapDown: (details) => _onRinseSpray(details.localPosition, const Size(280, 280)),
+                            onTapUp: (_) => _onRinsePanEnd(),
+                            onTapCancel: () => _onRinsePanEnd(),
                             behavior: HitTestBehavior.opaque,
                             child: CustomPaint(
                               size: const Size(280, 280),

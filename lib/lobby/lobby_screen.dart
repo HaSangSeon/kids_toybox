@@ -792,7 +792,7 @@ class _LobbyScreenState extends State<LobbyScreen>
   Widget _buildGameTile(_GameData game, bool isPremiumUnlocked) {
     final bool isLocked = game.isPremium && !isPremiumUnlocked;
     return _TappableTile(
-      onTap: (isLocked && !PlayerDataManager.instance.isEmulator) ? () {
+      onTap: (isLocked && (const bool.fromEnvironment('IS_PROD', defaultValue: false) || !PlayerDataManager.instance.isEmulator)) ? () {
         AudioManager.instance.playClick();
         PremiumPurchaseModal.show(context);
       } : game.onTap,
