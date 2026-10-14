@@ -37,6 +37,18 @@ class _AnimalFriend {
 
 const List<_AnimalFriend> _kAnimals = [
   _AnimalFriend(
+    id: 'dog',
+    name: '귀염둥이 댕댕이',
+    emoji: '🐶',
+    primaryColor: Color(0xFFFF9800),
+    secondaryColor: Color(0xFFE65100),
+    faceColor: Color(0xFFFFE0B2),
+    mouthColor: Color(0xFFFF8A80),
+    favoriteSnack: '🍪 달콤 쿠키',
+    cheerMessage: '멍멍! 내 이빨이 보석처럼 반짝반짝! 고마워! 🐶✨',
+    soundPath: 'audio/animal_dog.wav',
+  ),
+  _AnimalFriend(
     id: 'croco',
     name: '아기 악어 크롱이',
     emoji: '🐊',

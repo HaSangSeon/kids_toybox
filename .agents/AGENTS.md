@@ -8,4 +8,4 @@
 
 - **No Easter Egg in Release Builds:** NEVER include or enable the long-press title easter egg (or any debug unlock backdoor) in Release builds (`kReleaseMode` / production / phone builds). It must strictly be disabled (`kDebugMode` only).
 
-- **Premium Lock Enforcement (AAB/Production):** When building for production (AAB) or running on physical devices, all locked (premium) games MUST correctly route to the in-app purchase flow. Emulator bypasses must NEVER interfere with physical device lock enforcement.
+- **100% Completely Free (No In-App Purchases):** This app is 100% free with no in-app purchases or billing permissions/SDKs. All games must remain fully unlocked and free for all users. Do not add any billing packages or payment backdoors.

@@ -2,8 +2,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme/kids_theme.dart';
-import 'premium_purchase_modal.dart';
-import '../core/data/player_data_manager.dart';
 
 import '../core/audio/audio_manager.dart';
 import '../games/balloon_pop/balloon_pop_game.dart';
@@ -265,8 +263,8 @@ class _LobbyScreenState extends State<LobbyScreen>
                             icon: Icons.block_rounded,
                             iconColor: KidsTheme.orange,
                             bgColor: const Color(0xFFFFF3E0),
-                            title: '광고 없음',
-                            body: '외부 광고 네트워크를 포함하지 않습니다. 일부 신규 콘텐츠는 부모 확인 절차를 거친 안전한 인앱 결제로만 제공됩니다.',
+                            title: '완전 무료 & 광고 없음',
+                            body: '외부 광고 네트워크 및 인앱 결제를 일절 포함하지 않습니다. 모든 미니 게임과 콘텐츠는 100% 완전 무료로 안심하고 즐길 수 있습니다.',
                           ),
                           const SizedBox(height: 10),
                           _PrivacyPolicyItem(
@@ -684,21 +682,16 @@ class _LobbyScreenState extends State<LobbyScreen>
       children: [
         _buildAgeTabs(),
         Expanded(
-          child: ValueListenableBuilder<bool>(
-            valueListenable: PlayerDataManager.instance.isPremiumUnlockedNotifier,
-            builder: (context, isPremiumUnlocked, child) {
-              return GridView.builder(
-                padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 140, // Allows 2 items on very small phones, 3 on normal, 4+ on tablets
-                  childAspectRatio: 0.88,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                ),
-                itemCount: games.length,
-                itemBuilder: (context, i) => _buildGameTile(games[i], isPremiumUnlocked),
-              );
-            },
+          child: GridView.builder(
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 140, // Allows 2 items on very small phones, 3 on normal, 4+ on tablets
+              childAspectRatio: 0.88,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+            ),
+            itemCount: games.length,
+            itemBuilder: (context, i) => _buildGameTile(games[i]),
           ),
         ),
       ],
@@ -789,137 +782,104 @@ class _LobbyScreenState extends State<LobbyScreen>
   }
 
   // ── Game Tile ─────────────────────────────────────────────────────────────
-  Widget _buildGameTile(_GameData game, bool isPremiumUnlocked) {
-    final bool isLocked = game.isPremium && !isPremiumUnlocked;
+  Widget _buildGameTile(_GameData game) {
     return _TappableTile(
-      onTap: (isLocked && (const bool.fromEnvironment('IS_PROD', defaultValue: false) || !PlayerDataManager.instance.isEmulator)) ? () {
-        AudioManager.instance.playClick();
-        PremiumPurchaseModal.show(context);
-      } : game.onTap,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Opacity(
-            opacity: isLocked ? 0.65 : 1.0,
-            child: Container(
-              decoration: KidsTheme.gradientDecoration(
-                colors: game.gradientColors,
-                borderRadius: 22,
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: -16,
-                    right: -16,
-                    child: Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.20),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: -10,
-                    left: -10,
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.15),
-                      ),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: Padding(
-                      padding: const EdgeInsets.all(6.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          game.customIcon ?? (game.emoji == '🟡' ? const PacmanIcon(size: 40) : Text(game.emoji, style: const TextStyle(fontSize: 38, fontFamilyFallback: ['Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji']))),
-                          const SizedBox(height: 4),
-                          Text(
-                            game.title,
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.jua(
-                              fontSize: 14,
-                              color: Colors.white,
-                              height: 1.2,
-                              shadows: const [
-                                Shadow(
-                                  color: Colors.black26,
-                                  offset: Offset(0, 1.5),
-                                  blurRadius: 2,
-                                )
-                              ],
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  if (game.isNew)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.redAccent,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          'NEW',
-                          style: GoogleFonts.jua(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+      onTap: game.onTap,
+      child: Container(
+        decoration: KidsTheme.gradientDecoration(
+          colors: game.gradientColors,
+          borderRadius: 22,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            Positioned(
+              top: -16,
+              right: -16,
+              child: Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.20),
+                ),
               ),
             ),
-          ),
-          // Lock Overlay Badge (Always 100% sharp and visible)
-          if (isLocked)
             Positioned(
-              top: 6,
-              right: 6,
+              bottom: -10,
+              left: -10,
               child: Container(
-                padding: const EdgeInsets.all(6),
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.6),
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
+                  color: Colors.white.withValues(alpha: 0.15),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Padding(
+                padding: const EdgeInsets.all(6.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    game.customIcon ?? (game.emoji == '🟡' ? const PacmanIcon(size: 40) : Text(game.emoji, style: const TextStyle(fontSize: 38, fontFamilyFallback: ['Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji']))),
+                    const SizedBox(height: 4),
+                    Text(
+                      game.title,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.jua(
+                        fontSize: 14,
+                        color: Colors.white,
+                        height: 1.2,
+                        shadows: const [
+                          Shadow(
+                            color: Colors.black26,
+                            offset: Offset(0, 1.5),
+                            blurRadius: 2,
+                          )
+                        ],
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
-                child: const Text('🔒', style: TextStyle(fontSize: 15)),
               ),
             ),
-        ],
+            if (game.isNew)
+              Positioned(
+                top: 8,
+                left: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'NEW',
+                    style: GoogleFonts.jua(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
 
   // ── Game Data ─────────────────────────────────────────────────────────────
-  // 결제 유도와 재미의 균형을 위해 무료 게임과 잠금(프리미엄) 게임을 2:1 비율로 교차 배치합니다.
+  // 모든 미니 게임이 100% 완전 무료로 제공됩니다.
   List<_GameData> _gameData() {
     return [
-      // ── [줄 1] 최상단 첫인상: 최고의 인기 무료 2개 + 눈길을 끄는 킬러 잠금 1개
+      // ── [줄 1] 최상단 첫인상
       _GameData(
         title: '모양 쏙쏙',
         emoji: '🧲',
@@ -998,10 +958,9 @@ class _LobbyScreenState extends State<LobbyScreen>
           AudioManager.instance.playClick();
           Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MiniRacingGame()));
         },
-        isPremium: true,
       ),
 
-      // ── [줄 2] 아이들이 좋아하는 역할놀이 & 프리미엄 요리사
+      // ── [줄 2] 역할놀이 & 요리사
       _GameData(
         title: '꼬마 동물 병원',
         minAge: 6,
@@ -1035,11 +994,10 @@ class _LobbyScreenState extends State<LobbyScreen>
         minAge: 6,
         emoji: '🍳',
         gradientColors: KidsTheme.gameGradients['amber']!,
-        isPremium: true,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CookingGame())); },
       ),
 
-      // ── [줄 3] 신나는 세차장 & 액션 공룡 & 잠금 비눗방울
+      // ── [줄 3] 신나는 세차장 & 액션 공룡 & 비눗방울
       _GameData(
         title: '삐까번쩍 세차장',
         emoji: '🚗',
@@ -1083,10 +1041,9 @@ class _LobbyScreenState extends State<LobbyScreen>
         emoji: '🫧',
         gradientColors: KidsTheme.gameGradients['blue']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BubblePopGame())); },
-        isPremium: true,
       ),
 
-      // ── [줄 4] 아케이드 액션 & 잠금 낚시 놀이
+      // ── [줄 4] 아케이드 액션 & 낚시 놀이
       _GameData(
         title: '과일 쓱싹',
         minAge: 6,
@@ -1115,10 +1072,9 @@ class _LobbyScreenState extends State<LobbyScreen>
             },
           );
         },
-        isPremium: true,
       ),
 
-      // ── [줄 5] 퍼즐 & 미술 & 잠금 실로폰
+      // ── [줄 5] 퍼즐 & 미술 & 실로폰
       _GameData(
         title: '직소 퍼즐',
         minAge: 6,
@@ -1137,10 +1093,9 @@ class _LobbyScreenState extends State<LobbyScreen>
         emoji: '🎹',
         gradientColors: KidsTheme.gameGradients['pink']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const XylophoneGame())); },
-        isPremium: true,
       ),
 
-      // ── [줄 6] 관찰력 게임 & 잠금 먹보 미로
+      // ── [줄 6] 관찰력 게임 & 먹보 미로
       _GameData(
         title: '숨은 그림',
         minAge: 6,
@@ -1171,10 +1126,9 @@ class _LobbyScreenState extends State<LobbyScreen>
             },
           );
         },
-        isPremium: true,
       ),
 
-      // ── [줄 7] 탈출 & 레트로 & 잠금 틀린 그림
+      // ── [줄 7] 탈출 & 레트로 & 틀린 그림
       _GameData(
         title: '미로 찾기',
         minAge: 6,
@@ -1195,10 +1149,9 @@ class _LobbyScreenState extends State<LobbyScreen>
         emoji: '🕵️',
         gradientColors: KidsTheme.gameGradients['purple']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SpotDifferenceGame())); },
-        isPremium: true,
       ),
 
-      // ── [줄 8] 창의 블럭 & 슬라이드 & 잠금 지렁이
+      // ── [줄 8] 창의 블럭 & 슬라이드 & 지렁이
       _GameData(
         title: '블럭 조립',
         minAge: 6,
@@ -1229,10 +1182,9 @@ class _LobbyScreenState extends State<LobbyScreen>
             },
           );
         },
-        isPremium: true,
       ),
 
-      // ── [줄 9] 학습 & 그리기 & 잠금 따라 쓰기
+      // ── [줄 9] 학습 & 그리기 & 따라 쓰기
       _GameData(
         title: '모양 색칠',
         emoji: '🖌️',
@@ -1250,7 +1202,6 @@ class _LobbyScreenState extends State<LobbyScreen>
         emoji: '🖍️',
         gradientColors: KidsTheme.gameGradients['yellow']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TracingGame())); },
-        isPremium: true,
       ),
 
       // ── [줄 10] 감성 놀이 & 생활 습관 치카치카
@@ -1284,7 +1235,6 @@ class _LobbyScreenState extends State<LobbyScreen>
           ],
         ),
         gradientColors: KidsTheme.gameGradients['teal'] ?? const [Color(0xFF26A69A), Color(0xFF00897B)],
-        isPremium: true,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ToothBrushingGame())); },
       ),
 
@@ -1295,7 +1245,6 @@ class _LobbyScreenState extends State<LobbyScreen>
         emoji: '🏗️',
         gradientColors: KidsTheme.gameGradients['purple']!,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TowerBuilderGame())); },
-        isPremium: true,
       ),
     ];
   }
@@ -1358,7 +1307,6 @@ class _GameData {
   final VoidCallback onTap;
   final VoidCallback? onTrophyTap;
   final bool isNew;
-  final bool isPremium;
   final int minAge;
 
   _GameData({
@@ -1368,7 +1316,6 @@ class _GameData {
     required this.gradientColors,
     required this.onTap,
     this.isNew = false,
-    this.isPremium = false,
     this.minAge = 3,
   }) : onTrophyTap = null;
 }

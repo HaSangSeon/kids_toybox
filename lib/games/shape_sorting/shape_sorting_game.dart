@@ -1,17 +1,17 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:confetti/confetti.dart';
+import 'package:rive/rive.dart' hide LinearGradient, RadialGradient;
 import '../../core/audio/audio_manager.dart';
 import '../../core/theme/kids_theme.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shape Sorting Game — 모양 쏙쏙! (4~5세 톡톡 쉬운 놀이)
-// 원목 교구 느낌의 프리미엄 3D 모양 맞추기 게임
+// Rive 시바 친구와 함께하는 프리미엄 3D 원목 모양 맞추기 놀이
 // ─────────────────────────────────────────────────────────────────────────────
-
-
 
 part 'models/shape_sorting_models.dart';
 part 'widgets/shape_sorting_widgets.dart';
@@ -31,10 +31,15 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
   late AnimationController _floatController;
   late Animation<double> _floatAnim;
   late AnimationController _bgAnimController;
+  late AnimationController _shakeController;
+  late Animation<double> _shakeAnim;
 
   // ── Game State ──
-  int _level = 1; // 1 ~ 5 단계
+  int _level = 1; // 1 ~ 20 단계
+  int _totalStars = 0;
+  int _rewardChestTapCount = 0;
   bool _showingLevelComplete = false;
+  ShapeThemeCategory _selectedTheme = ShapeThemeCategory.all;
 
   // 라운드 데이터
   late List<_ShapeInfo> _roundShapes;
@@ -42,51 +47,53 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
   final Set<ShapeType> _filledShapes = {};
   ShapeType? _justSnappedShape;
 
+  // 시바 친구 인터랙션
+  String _shibaSpeech = '알맞은 모양을 쏙쏙 넣어봐 멍! 🧩';
+  bool _isShibaCelebrating = false;
+  Timer? _shibaCelebrationTimer;
+
   final List<_SparkleParticle> _particles = [];
   final Random _rng = Random();
 
   // 도형 마스터 목록 (다양한 테마: 기본, 동물, 식물, 탈것, 건물)
   static const List<_ShapeInfo> _allShapes = [
     // --- 기본 도형 ---
-    _ShapeInfo(type: ShapeType.triangle, label: '세모', emoji: '🔺', color: Color(0xFFFF5252), shadowColor: Color(0xFFD32F2F)),
-    _ShapeInfo(type: ShapeType.square, label: '네모', emoji: '🟧', color: Color(0xFFFF9800), shadowColor: Color(0xFFF57C00)),
-    _ShapeInfo(type: ShapeType.circle, label: '동그라미', emoji: '🔵', color: Color(0xFF29B6F6), shadowColor: Color(0xFF0288D1)),
-    _ShapeInfo(type: ShapeType.star, label: '별', emoji: '⭐', color: Color(0xFFFFCA28), shadowColor: Color(0xFFFFA000)),
-    _ShapeInfo(type: ShapeType.heart, label: '하트', emoji: '❤️', color: Color(0xFFFF4081), shadowColor: Color(0xFFC2185B)),
-    _ShapeInfo(type: ShapeType.diamond, label: '마름모', emoji: '💎', color: Color(0xFFAB47BC), shadowColor: Color(0xFF7B1FA2)),
-    _ShapeInfo(type: ShapeType.hexagon, label: '육각형', emoji: '⬡', color: Color(0xFF26A69A), shadowColor: Color(0xFF00796B)),
-    _ShapeInfo(type: ShapeType.pentagon, label: '오각형', emoji: '⬠', color: Color(0xFF5C6BC0), shadowColor: Color(0xFF3949AB)),
-    _ShapeInfo(type: ShapeType.cross, label: '십자', emoji: '➕', color: Color(0xFF66BB6A), shadowColor: Color(0xFF388E3C)),
-    _ShapeInfo(type: ShapeType.moon, label: '달', emoji: '🌙', color: Color(0xFF8E24AA), shadowColor: Color(0xFF6A1B9A)),
-    
+    _ShapeInfo(type: ShapeType.triangle, label: '세모', emoji: '🔺', color: Color(0xFFFF5252), shadowColor: Color(0xFFD32F2F), category: ShapeThemeCategory.shapes),
+    _ShapeInfo(type: ShapeType.square, label: '네모', emoji: '🟧', color: Color(0xFFFF9800), shadowColor: Color(0xFFF57C00), category: ShapeThemeCategory.shapes),
+    _ShapeInfo(type: ShapeType.circle, label: '동그라미', emoji: '🔵', color: Color(0xFF29B6F6), shadowColor: Color(0xFF0288D1), category: ShapeThemeCategory.shapes),
+    _ShapeInfo(type: ShapeType.star, label: '별', emoji: '⭐', color: Color(0xFFFFCA28), shadowColor: Color(0xFFFFA000), category: ShapeThemeCategory.shapes),
+    _ShapeInfo(type: ShapeType.heart, label: '하트', emoji: '❤️', color: Color(0xFFFF4081), shadowColor: Color(0xFFC2185B), category: ShapeThemeCategory.shapes),
+    _ShapeInfo(type: ShapeType.diamond, label: '마름모', emoji: '💎', color: Color(0xFFAB47BC), shadowColor: Color(0xFF7B1FA2), category: ShapeThemeCategory.shapes),
+    _ShapeInfo(type: ShapeType.hexagon, label: '육각형', emoji: '⬡', color: Color(0xFF26A69A), shadowColor: Color(0xFF00796B), category: ShapeThemeCategory.shapes),
+    _ShapeInfo(type: ShapeType.pentagon, label: '오각형', emoji: '⬠', color: Color(0xFF5C6BC0), shadowColor: Color(0xFF3949AB), category: ShapeThemeCategory.shapes),
+    _ShapeInfo(type: ShapeType.cross, label: '십자', emoji: '➕', color: Color(0xFF66BB6A), shadowColor: Color(0xFF388E3C), category: ShapeThemeCategory.shapes),
+    _ShapeInfo(type: ShapeType.moon, label: '달', emoji: '🌙', color: Color(0xFF8E24AA), shadowColor: Color(0xFF6A1B9A), category: ShapeThemeCategory.shapes),
+
     // --- 동물 ---
-    _ShapeInfo(type: ShapeType.bear, label: '곰', emoji: '🐻', color: Color(0xFF8D6E63), shadowColor: Color(0xFF5D4037)),
-    _ShapeInfo(type: ShapeType.rabbit, label: '토끼', emoji: '🐰', color: Color(0xFFF48FB1), shadowColor: Color(0xFFC2185B)),
-    _ShapeInfo(type: ShapeType.cat, label: '고양이', emoji: '🐱', color: Color(0xFFFFB74D), shadowColor: Color(0xFFF57C00)),
-    _ShapeInfo(type: ShapeType.fish, label: '물고기', emoji: '🐟', color: Color(0xFF4DD0E1), shadowColor: Color(0xFF0097A7)),
-    _ShapeInfo(type: ShapeType.bird, label: '새', emoji: '🐦', color: Color(0xFFBA68C8), shadowColor: Color(0xFF7B1FA2)),
+    _ShapeInfo(type: ShapeType.bear, label: '곰', emoji: '🐻', color: Color(0xFF8D6E63), shadowColor: Color(0xFF5D4037), category: ShapeThemeCategory.animals),
+    _ShapeInfo(type: ShapeType.rabbit, label: '토끼', emoji: '🐰', color: Color(0xFFF48FB1), shadowColor: Color(0xFFC2185B), category: ShapeThemeCategory.animals),
+    _ShapeInfo(type: ShapeType.cat, label: '고양이', emoji: '🐱', color: Color(0xFFFFB74D), shadowColor: Color(0xFFF57C00), category: ShapeThemeCategory.animals),
+    _ShapeInfo(type: ShapeType.fish, label: '물고기', emoji: '🐟', color: Color(0xFF4DD0E1), shadowColor: Color(0xFF0097A7), category: ShapeThemeCategory.animals),
+    _ShapeInfo(type: ShapeType.bird, label: '새', emoji: '🐦', color: Color(0xFFBA68C8), shadowColor: Color(0xFF7B1FA2), category: ShapeThemeCategory.animals),
 
     // --- 자연 & 식물 ---
-    _ShapeInfo(type: ShapeType.flower, label: '꽃', emoji: '🌸', color: Color(0xFFFF8A80), shadowColor: Color(0xFFD50000)),
-    _ShapeInfo(type: ShapeType.tree, label: '나무', emoji: '🌳', color: Color(0xFF81C784), shadowColor: Color(0xFF388E3C)),
-    _ShapeInfo(type: ShapeType.cloud, label: '구름', emoji: '☁️', color: Color(0xFFE0E0E0), shadowColor: Color(0xFF9E9E9E)),
+    _ShapeInfo(type: ShapeType.flower, label: '꽃', emoji: '🌸', color: Color(0xFFFF8A80), shadowColor: Color(0xFFD50000), category: ShapeThemeCategory.nature),
+    _ShapeInfo(type: ShapeType.tree, label: '나무', emoji: '🌳', color: Color(0xFF81C784), shadowColor: Color(0xFF388E3C), category: ShapeThemeCategory.nature),
+    _ShapeInfo(type: ShapeType.cloud, label: '구름', emoji: '☁️', color: Color(0xFFE0E0E0), shadowColor: Color(0xFF9E9E9E), category: ShapeThemeCategory.nature),
 
     // --- 탈것 ---
-    _ShapeInfo(type: ShapeType.car, label: '자동차', emoji: '🚗', color: Color(0xFFE53935), shadowColor: Color(0xFFB71C1C)),
-    _ShapeInfo(type: ShapeType.boat, label: '배', emoji: '⛵', color: Color(0xFF64B5F6), shadowColor: Color(0xFF1976D2)),
+    _ShapeInfo(type: ShapeType.car, label: '자동차', emoji: '🚗', color: Color(0xFFE53935), shadowColor: Color(0xFFB71C1C), category: ShapeThemeCategory.vehicles),
+    _ShapeInfo(type: ShapeType.boat, label: '배', emoji: '⛵', color: Color(0xFF64B5F6), shadowColor: Color(0xFF1976D2), category: ShapeThemeCategory.vehicles),
 
     // --- 건물 ---
-    _ShapeInfo(type: ShapeType.house, label: '집', emoji: '🏠', color: Color(0xFFFFCC80), shadowColor: Color(0xFFEF6C00)),
-    _ShapeInfo(type: ShapeType.castle, label: '성', emoji: '🏰', color: Color(0xFFBCAAA4), shadowColor: Color(0xFF795548)),
+    _ShapeInfo(type: ShapeType.house, label: '집', emoji: '🏠', color: Color(0xFFFFCC80), shadowColor: Color(0xFFEF6C00), category: ShapeThemeCategory.vehicles),
+    _ShapeInfo(type: ShapeType.castle, label: '성', emoji: '🏰', color: Color(0xFFBCAAA4), shadowColor: Color(0xFF795548), category: ShapeThemeCategory.vehicles),
   ];
 
-  /// 단계별 도형 개수
+  /// 단계별 도형 개수 (최대 6개)
   int get _shapeCountForLevel {
-    // 레벨에 따라 도형 개수가 점진적으로 증가하며, 화면 레이아웃을 위해 최대 6개로 제한
     int count = _level + 1;
-    if (count > 6) {
-      return 6;
-    }
+    if (count > 6) return 6;
     return count;
   }
 
@@ -111,14 +118,25 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
       duration: const Duration(seconds: 10),
     )..repeat();
 
+    // 상자 흔들기 셰이크 애니메이션
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _shakeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _shakeController, curve: Curves.easeInOut),
+    );
+
     _startNewRound();
   }
 
   @override
   void dispose() {
+    _shibaCelebrationTimer?.cancel();
     _confettiController.dispose();
     _floatController.dispose();
     _bgAnimController.dispose();
+    _shakeController.dispose();
     super.dispose();
   }
 
@@ -127,8 +145,17 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
   void _startNewRound() {
     final count = _shapeCountForLevel;
 
-    // 도형 풀에서 랜덤으로 N개 선택
-    final shuffled = List<_ShapeInfo>.from(_allShapes)..shuffle(_rng);
+    // 선택된 테마에 맞는 도형 풀 필터링
+    List<_ShapeInfo> candidateShapes = _selectedTheme == ShapeThemeCategory.all
+        ? List<_ShapeInfo>.from(_allShapes)
+        : _allShapes.where((s) => s.category == _selectedTheme).toList();
+
+    if (candidateShapes.length < count) {
+      // 테마별 후보가 적으면 전체에서 채움
+      candidateShapes = List<_ShapeInfo>.from(_allShapes);
+    }
+
+    final shuffled = List<_ShapeInfo>.from(candidateShapes)..shuffle(_rng);
     _roundShapes = shuffled.take(count).toList();
 
     // 트레이에는 섞인 순서로 배치
@@ -137,8 +164,43 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
     _filledShapes.clear();
     _justSnappedShape = null;
     _showingLevelComplete = false;
+    _rewardChestTapCount = 0;
+    _shibaSpeech = '알맞은 모양을 쏙쏙 넣어봐 멍! 🧩';
 
     setState(() {});
+  }
+
+  /// 우르르 쏟기 (Toy Box Shake & Dump)
+  void _shakeAndPour() {
+    if (_filledShapes.isEmpty) {
+      AudioManager.instance.playCardFlip();
+      _setShibaSpeech('아직 맞춘 모양이 없어 멍! 먼저 맞춰봐~ 🧩', celebrate: false);
+      return;
+    }
+
+    AudioManager.instance.playCardFlip();
+    AudioManager.instance.playThud();
+    HapticFeedback.heavyImpact();
+
+    _shakeController.forward(from: 0.0);
+
+    setState(() {
+      _remainingPieces = _roundShapes.map((s) => s.type).toList()..shuffle(_rng);
+      _filledShapes.clear();
+      _justSnappedShape = null;
+    });
+
+    _setShibaSpeech('우르르~ 쏟았다! 다시 쏙쏙 맞춰봐 멍! 🎲', celebrate: true);
+  }
+
+  /// 원터치 쏙 맞추기 (Tap to Snap)
+  void _onPieceTapped(ShapeType tappedType) {
+    if (!_remainingPieces.contains(tappedType)) return;
+
+    // 해당 도형이 보드에 있고 아직 채워지지 않았으면 즉시 쏙!
+    if (_roundShapes.any((s) => s.type == tappedType) && !_filledShapes.contains(tappedType)) {
+      _onShapeDropped(tappedType, tappedType, Offset.zero);
+    }
   }
 
   void _onShapeDropped(ShapeType droppedType, ShapeType targetType, Offset dropPos) {
@@ -147,32 +209,60 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
       AudioManager.instance.playCardMatch();
       HapticFeedback.mediumImpact();
 
+      final shapeInfo = _getShapeInfo(targetType);
+
+      // 동물이나 탈것일 경우 실감나는 효과음 추가 재생
+      AudioManager.instance.playEmojiSound(shapeInfo.emoji);
+
       setState(() {
         _filledShapes.add(targetType);
         _remainingPieces.remove(droppedType);
         _justSnappedShape = targetType;
       });
 
-      _spawnSparkles(dropPos, _getShapeInfo(targetType).color);
+      _setShibaSpeech('${shapeInfo.label} 쏙! 참 잘했어 멍! 💖', celebrate: true);
+      _spawnSparkles(dropPos, shapeInfo.color);
 
       // 전체 완료 체크
       if (_filledShapes.length == _roundShapes.length) {
-        Future.delayed(const Duration(milliseconds: 600), _onRoundComplete);
+        Future.delayed(const Duration(milliseconds: 650), _onRoundComplete);
       }
     } else {
       // 오답 튕김
       AudioManager.instance.playCardMismatch();
       HapticFeedback.lightImpact();
+      _setShibaSpeech('어라? 다른 구멍인가 봐 멍! 다시 해봐~ 🐾', celebrate: false);
+    }
+  }
+
+  void _setShibaSpeech(String speech, {required bool celebrate}) {
+    _shibaCelebrationTimer?.cancel();
+    setState(() {
+      _shibaSpeech = speech;
+      if (celebrate) _isShibaCelebrating = true;
+    });
+
+    if (celebrate) {
+      _shibaCelebrationTimer = Timer(const Duration(milliseconds: 2500), () {
+        if (mounted) {
+          setState(() {
+            _isShibaCelebrating = false;
+          });
+        }
+      });
     }
   }
 
   void _spawnSparkles(Offset center, Color color) {
+    final cx = center == Offset.zero ? 200.0 : center.dx;
+    final cy = center == Offset.zero ? 300.0 : center.dy;
+
     for (int i = 0; i < 16; i++) {
       final angle = _rng.nextDouble() * 2 * pi;
       final speed = 2.0 + _rng.nextDouble() * 4.0;
       _particles.add(_SparkleParticle(
-        x: center.dx,
-        y: center.dy,
+        x: cx,
+        y: cy,
         vx: cos(angle) * speed,
         vy: sin(angle) * speed,
         size: 5 + _rng.nextDouble() * 5,
@@ -187,13 +277,16 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
     AudioManager.instance.playFeedAnimalsSuccess();
     HapticFeedback.heavyImpact();
 
+    _totalStars += 3;
+
     setState(() {
       _showingLevelComplete = true;
     });
+
+    _setShibaSpeech('우와! 전부 다 맞췄다 멍! 최고야! 🏆', celebrate: true);
   }
 
   void _nextRound() {
-    // 레벨 제한 없이 무한히 상승하여 다양한 조합을 계속 즐길 수 있도록 함
     _level++;
     _startNewRound();
   }
@@ -219,7 +312,7 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
           ),
           child: Stack(
             children: [
-              // 아기자기한 감성 플레이룸 배경 (가랜드, 구름, 반짝이 별, 파스텔 힐)
+              // 아기자기한 감성 플레이룸 배경
               Positioned.fill(
                 child: AnimatedBuilder(
                   animation: _bgAnimController,
@@ -238,22 +331,42 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
                 child: Column(
                   children: [
                     _buildHeader(context),
-                    const SizedBox(height: 6),
-                    _buildInstructionBanner(),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 4),
 
-                    // 메인 퍼즐 보드 (화면 중앙에 안정적으로 배치)
+                    // 시바 친구 컴패니언 셸프 & 말풍선 & 우르르 쏟기 버튼
+                    _buildMascotShelf(),
+                    const SizedBox(height: 6),
+
+                    // 테마 선택 칩 바
+                    _buildThemeChipsBar(),
+                    const SizedBox(height: 8),
+
+                    // 메인 퍼즐 보드 (흔들기 애니메이션 적용)
                     Expanded(
                       child: Center(
-                        child: _buildPuzzleBoard(),
+                        child: AnimatedBuilder(
+                          animation: _shakeAnim,
+                          builder: (context, child) {
+                            final shakeOffset = sin(_shakeAnim.value * pi * 4) * 8.0;
+                            final shakeAngle = sin(_shakeAnim.value * pi * 4) * 0.04;
+                            return Transform.translate(
+                              offset: Offset(shakeOffset, 0),
+                              child: Transform.rotate(
+                                angle: shakeAngle,
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: _buildPuzzleBoard(),
+                        ),
                       ),
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
 
-                    // 하단 원목 도형 트레이 (크기와 비율이 딱 맞는 터치 친화적 디자인)
+                    // 하단 원목 도형 트레이 (터치 또는 드래그 지원)
                     _buildPieceTray(),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),
@@ -290,18 +403,18 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
 
   Widget _buildHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       child: Row(
         children: [
-          // 뒤로가기 버튼 (깔끔하고 고급스러운 글래스모피즘 원형 버튼)
+          // 뒤로가기 버튼
           GestureDetector(
             onTap: () {
               AudioManager.instance.playClick();
               Navigator.of(context).pop();
             },
             child: Container(
-              width: 46,
-              height: 46,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.95),
                 shape: BoxShape.circle,
@@ -312,42 +425,32 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
                     offset: Offset(0, 4),
                     blurRadius: 10,
                   ),
-                  BoxShadow(
-                    color: Colors.white,
-                    offset: Offset(0, -1),
-                    blurRadius: 2,
-                  ),
                 ],
               ),
               child: const Center(
                 child: Icon(
                   Icons.arrow_back_ios_new_rounded,
                   color: Color(0xFFFF5252),
-                  size: 20,
+                  size: 18,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
 
-          // 중앙 타이틀 (깔끔하고 아기자기한 프리미엄 캡슐 배지)
+          // 중앙 타이틀
           Expanded(
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+              padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 12),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.95),
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(22),
                 border: Border.all(color: Colors.white, width: 2),
                 boxShadow: const [
                   BoxShadow(
                     color: Color(0x12000000),
-                    offset: Offset(0, 4),
-                    blurRadius: 12,
-                  ),
-                  BoxShadow(
-                    color: Colors.white,
-                    offset: Offset(0, -1),
-                    blurRadius: 3,
+                    offset: Offset(0, 3),
+                    blurRadius: 8,
                   ),
                 ],
               ),
@@ -355,46 +458,14 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // 미니 컬러 도형 아이콘 조합
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFF5252),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 3),
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFCA28),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(width: 3),
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF29B6F6),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 8),
+                  const Text('🧩', style: TextStyle(fontSize: 16)),
+                  const SizedBox(width: 6),
                   Text(
                     '모양 쏙쏙',
                     style: GoogleFonts.jua(
-                      fontSize: 19,
+                      fontSize: 17,
                       color: const Color(0xFF37474F),
                       fontWeight: FontWeight.bold,
-                      letterSpacing: 0.3,
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -418,46 +489,41 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
 
-          // 단계 선택 버튼 (고급스러운 골든 앰버 캡슐 배지)
+          // 단계 선택 버튼
           GestureDetector(
             onTap: () {
               AudioManager.instance.playClick();
               _showDifficultyDialog();
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFFFFB74D), Color(0xFFFF9800)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(22),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.white, width: 2),
                 boxShadow: const [
                   BoxShadow(
                     color: Color(0x33FF9800),
                     offset: Offset(0, 4),
-                    blurRadius: 10,
-                  ),
-                  BoxShadow(
-                    color: Colors.white,
-                    offset: Offset(0, -1),
-                    blurRadius: 2,
+                    blurRadius: 8,
                   ),
                 ],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('⭐', style: TextStyle(fontSize: 15)),
+                  const Text('⭐', style: TextStyle(fontSize: 14)),
                   const SizedBox(width: 4),
                   Text(
                     '$_level단계',
                     style: GoogleFonts.jua(
-                      fontSize: 15,
+                      fontSize: 14,
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
@@ -466,7 +532,7 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
                   const Icon(
                     Icons.keyboard_arrow_down_rounded,
                     color: Colors.white,
-                    size: 18,
+                    size: 16,
                   ),
                 ],
               ),
@@ -477,42 +543,162 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
     );
   }
 
-  // ── Instruction Banner ─────────────────────────────────────────────────
+  // ── 시바 친구 마스코트 셸프 & 말풍선 & 우르르 쏟기 ───────────────────────
 
-  Widget _buildInstructionBanner() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.94),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFFFD54F).withValues(alpha: 0.8),
-          width: 1.5,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x108D6E63),
-            offset: Offset(0, 3),
-            blurRadius: 8,
-          ),
-        ],
-      ),
+  Widget _buildMascotShelf() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('🧩', style: TextStyle(fontSize: 16)),
-          const SizedBox(width: 6),
-          Text(
-            '알맞은 모양을 쏙 넣어봐요!',
-            style: GoogleFonts.jua(
-              fontSize: 14,
-              color: const Color(0xFF5D4037),
-              fontWeight: FontWeight.bold,
+          // Rive 시바 마스코트 아바타
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF3E0),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFFFB74D), width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.amber.withValues(alpha: 0.35),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: RiveAnimation.asset(
+                'assets/rive/dog.riv',
+                artboard: 'Shiba',
+                animations: [_isShibaCelebrating ? 'WinEndState' : 'Anim_shiba'],
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // 시바의 실시간 말풍선
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFFFD54F), width: 1.5),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x108D6E63),
+                    offset: Offset(0, 2),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+              child: Text(
+                _shibaSpeech,
+                style: GoogleFonts.jua(
+                  fontSize: 13,
+                  color: const Color(0xFF5D4037),
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // 우르르 쏟기 버튼
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: _shakeAndPour,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF81D4FA), Color(0xFF29B6F6)],
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.withValues(alpha: 0.25),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('🎲', style: TextStyle(fontSize: 14)),
+                    const SizedBox(width: 3),
+                    Text(
+                      '쏟기',
+                      style: GoogleFonts.jua(fontSize: 13, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ── 테마 선택 칩 바 ──────────────────────────────────────────────────
+
+  Widget _buildThemeChipsBar() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: ShapeThemeCategory.values.map((theme) {
+          final isSelected = _selectedTheme == theme;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () {
+                if (_selectedTheme == theme) return;
+                AudioManager.instance.playClick();
+                setState(() {
+                  _selectedTheme = theme;
+                });
+                _startNewRound();
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFFFF9800) : Colors.white.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isSelected ? Colors.white : const Color(0xFFFFE082),
+                    width: isSelected ? 2 : 1.2,
+                  ),
+                  boxShadow: [
+                    if (isSelected)
+                      BoxShadow(
+                        color: Colors.orange.withValues(alpha: 0.35),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                  ],
+                ),
+                child: Text(
+                  theme.label,
+                  style: GoogleFonts.jua(
+                    fontSize: 12,
+                    color: isSelected ? Colors.white : const Color(0xFF6D4C41),
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -524,11 +710,9 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
       builder: (context, constraints) {
         final count = _roundShapes.length;
 
-        // 아이템 개수에 따른 그리드 레이아웃 최적화
         final int crossAxisCount = count <= 3 ? count : (count == 4 ? 2 : 3);
-        final double maxBoardW = min(constraints.maxWidth - 32, 420.0);
+        final double maxBoardW = min(constraints.maxWidth - 28, 420.0);
 
-        // 카드 크기 계산 (아이템 개수에 따라 쾌적하게 비례 조절)
         final double spacing = 12.0;
         final double totalHSpacing = spacing * (crossAxisCount + 1);
         final double cardWidth = ((maxBoardW - 32) - totalHSpacing) / crossAxisCount;
@@ -536,13 +720,13 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
 
         return Container(
           width: maxBoardW,
-          margin: const EdgeInsets.symmetric(horizontal: 16),
+          margin: const EdgeInsets.symmetric(horizontal: 14),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFFDF7), // 부드럽고 따뜻한 원목 크림 톤
+            color: const Color(0xFFFFFDF7),
             borderRadius: BorderRadius.circular(32),
             border: Border.all(
-              color: const Color(0xFFFFE082), // 따뜻한 버터 옐로우 원목 테두리
+              color: const Color(0xFFFFE082),
               width: 5,
             ),
             boxShadow: const [
@@ -561,13 +745,11 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              // 4 귀퉁이 원목 고정 핀 데코
               const Positioned(top: -4, left: -4, child: _WoodPeg()),
               const Positioned(top: -4, right: -4, child: _WoodPeg()),
               const Positioned(bottom: -4, left: -4, child: _WoodPeg()),
               const Positioned(bottom: -4, right: -4, child: _WoodPeg()),
 
-              // 슬롯 카드들 Wrap
               Center(
                 child: Wrap(
                   alignment: WrapAlignment.center,
@@ -636,7 +818,6 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 도형 구멍 또는 채워진 도형
               SizedBox(
                 width: size * 0.72,
                 height: size * 0.72,
@@ -668,7 +849,6 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
 
               const SizedBox(height: 6),
 
-              // 이름 라벨 태그
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
@@ -695,16 +875,23 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
     );
   }
 
-  // ── Piece Tray (하단 도형 진열대) ─────────────────────────────────────────
+  // ── Piece Tray (하단 도형 진열대: 탭 또는 드래그 가능) ─────────────────────
 
   Widget _buildPieceTray() {
     if (_remainingPieces.isEmpty) {
-      return const SizedBox(height: 85);
+      return Container(
+        height: 80,
+        alignment: Alignment.center,
+        child: Text(
+          '우와! 모든 모양이 쏙 들어갔어요! 💖',
+          style: GoogleFonts.jua(fontSize: 16, color: const Color(0xFF6D4C41)),
+        ),
+      );
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
@@ -717,37 +904,71 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
           ),
         ],
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: _remainingPieces.map((type) {
-            final info = _getShapeInfo(type);
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: _buildDraggableBlock(info),
-            );
-          }).toList(),
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '👇 터치하거나 끌어다 쏙 넣어보세요!',
+                style: GoogleFonts.jua(fontSize: 12, color: Colors.brown.shade400),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: _remainingPieces.map((type) {
+                final info = _getShapeInfo(type);
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: _buildDraggableBlock(info),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  /// 드래그 가능한 3D 원목 블록
+  /// 드래그 및 원터치 쏙 지원 3D 원목 블록
   Widget _buildDraggableBlock(_ShapeInfo info) {
     const double blockSize = 76.0;
 
-    return Draggable<ShapeType>(
-      data: info.type,
-      onDragStarted: () {
-        AudioManager.instance.playCardFlip();
-        HapticFeedback.lightImpact();
-      },
-      feedback: Material(
-        color: Colors.transparent,
-        child: Transform.scale(
-          scale: 1.18,
+    return GestureDetector(
+      onTap: () => _onPieceTapped(info.type),
+      child: Draggable<ShapeType>(
+        data: info.type,
+        onDragStarted: () {
+          AudioManager.instance.playCardFlip();
+          HapticFeedback.lightImpact();
+          _setShibaSpeech('거기가 맞을까? 쏙 넣어봐 멍! 🌟', celebrate: false);
+        },
+        feedback: Material(
+          color: Colors.transparent,
+          child: Transform.scale(
+            scale: 1.18,
+            child: SizedBox(
+              width: blockSize,
+              height: blockSize,
+              child: CustomPaint(
+                painter: _ChunkyBlockPainter(
+                  type: info.type,
+                  color: info.color,
+                  shadowColor: info.shadowColor,
+                  isDragging: true,
+                ),
+              ),
+            ),
+          ),
+        ),
+        childWhenDragging: Opacity(
+          opacity: 0.25,
           child: SizedBox(
             width: blockSize,
             height: blockSize,
@@ -756,42 +977,27 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
                 type: info.type,
                 color: info.color,
                 shadowColor: info.shadowColor,
-                isDragging: true,
               ),
             ),
           ),
         ),
-      ),
-      childWhenDragging: Opacity(
-        opacity: 0.25,
-        child: SizedBox(
-          width: blockSize,
-          height: blockSize,
-          child: CustomPaint(
-            painter: _ChunkyBlockPainter(
-              type: info.type,
-              color: info.color,
-              shadowColor: info.shadowColor,
-            ),
-          ),
-        ),
-      ),
-      child: AnimatedBuilder(
-        animation: _floatAnim,
-        builder: (context, child) {
-          return Transform.translate(
-            offset: Offset(0, _floatAnim.value),
-            child: child,
-          );
-        },
-        child: SizedBox(
-          width: blockSize,
-          height: blockSize,
-          child: CustomPaint(
-            painter: _ChunkyBlockPainter(
-              type: info.type,
-              color: info.color,
-              shadowColor: info.shadowColor,
+        child: AnimatedBuilder(
+          animation: _floatAnim,
+          builder: (context, child) {
+            return Transform.translate(
+              offset: Offset(0, _floatAnim.value),
+              child: child,
+            );
+          },
+          child: SizedBox(
+            width: blockSize,
+            height: blockSize,
+            child: CustomPaint(
+              painter: _ChunkyBlockPainter(
+                type: info.type,
+                color: info.color,
+                shadowColor: info.shadowColor,
+              ),
             ),
           ),
         ),
@@ -799,21 +1005,25 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
     );
   }
 
-  // ── Completion Overlay ───────────────────────────────────────────────────
+  // ── Completion Overlay (Rive Rating & Rewards 적용) ──────────────────────
 
   Widget _buildCompletionOverlay() {
     return Container(
-      color: Colors.black.withValues(alpha: 0.45),
+      color: Colors.black.withValues(alpha: 0.55),
       child: Center(
         child: SingleChildScrollView(
           child: Container(
-            margin: const EdgeInsets.all(28),
-            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
-            constraints: const BoxConstraints(maxWidth: 340),
+            margin: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+            constraints: const BoxConstraints(maxWidth: 350),
             decoration: BoxDecoration(
-              color: Colors.white,
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFFFFDE7), Colors.white],
+              ),
               borderRadius: BorderRadius.circular(32),
-              border: Border.all(color: const Color(0xFFFFD54F), width: 3.5),
+              border: Border.all(color: const Color(0xFFFFD54F), width: 4),
               boxShadow: const [
                 BoxShadow(
                   color: Color(0x338D6E63),
@@ -825,33 +1035,92 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('🎉 🥳 🎉', style: TextStyle(fontSize: 44)),
-                const SizedBox(height: 10),
+                // Rive 5-Star Rating 세레머니
+                const SizedBox(
+                  width: 140,
+                  height: 55,
+                  child: RiveAnimation.asset(
+                    'assets/rive/rating.riv',
+                    animations: ['5_stars'],
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(height: 6),
+
                 Text(
                   '참 잘했어요!',
                   style: GoogleFonts.jua(
-                    fontSize: 30,
+                    fontSize: 28,
                     color: KidsTheme.textDark,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Text(
                   '모든 모양을 쏙쏙 맞췄어요! ❤️',
-                  style: GoogleFonts.jua(fontSize: 16, color: KidsTheme.textLight),
+                  style: GoogleFonts.jua(fontSize: 15, color: KidsTheme.textLight),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
 
                 // 완성된 도형 아이콘들
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
+                  spacing: 6,
+                  runSpacing: 4,
                   children: _roundShapes.map((s) {
-                    return Text(s.emoji, style: const TextStyle(fontSize: 28));
+                    return Text(s.emoji, style: const TextStyle(fontSize: 26));
                   }).toList(),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 14),
+
+                // 보물상자 터치 보너스 인터랙션 (Rive rewards.riv)
+                GestureDetector(
+                  onTap: () {
+                    AudioManager.instance.playRacingItemStar();
+                    HapticFeedback.heavyImpact();
+                    setState(() {
+                      _rewardChestTapCount++;
+                      _totalStars += 1;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF8E1),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: Colors.amber, width: 1.5),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 44,
+                          height: 44,
+                          child: RiveAnimation.asset(
+                            'assets/rive/rewards.riv',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '보물상자 톡톡! 🎁',
+                              style: GoogleFonts.jua(fontSize: 13, color: const Color(0xFFD97706)),
+                            ),
+                            Text(
+                              '+${3 + _rewardChestTapCount} ⭐ (총 $_totalStars개)',
+                              style: GoogleFonts.jua(fontSize: 12, color: Colors.brown),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
 
                 // 다음 단계 버튼
                 GestureDetector(
@@ -860,7 +1129,7 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
                     _nextRound();
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [Color(0xFF66BB6A), Color(0xFF43A047)],
@@ -882,7 +1151,7 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
                       children: [
                         Text(
                           '다음 단계 도전! 🚀',
-                          style: GoogleFonts.jua(fontSize: 19, color: Colors.white),
+                          style: GoogleFonts.jua(fontSize: 18, color: Colors.white),
                         ),
                       ],
                     ),
@@ -923,7 +1192,6 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // 헤더: 타이틀 + 닫기 버튼
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -972,7 +1240,6 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
                   ),
                   const SizedBox(height: 14),
 
-                  // 현재 레벨이 20보다 큰 경우 안내 배지
                   if (_level > 20) ...[
                     Container(
                       margin: const EdgeInsets.only(bottom: 10),
@@ -991,7 +1258,6 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
                     ),
                   ],
 
-                  // 5x4 단계 그리드 (1~20단계 깔끔한 배치)
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -1073,7 +1339,6 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
                   ),
                   const SizedBox(height: 12),
 
-                  // 하단 안내 설명 카드 (조잡한 반복 텍스트 대신 명확한 1줄 가이드)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
@@ -1108,8 +1373,3 @@ class _ShapeSortingGameState extends State<ShapeSortingGame>
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Custom Painters
-// ─────────────────────────────────────────────────────────────────────────────
-

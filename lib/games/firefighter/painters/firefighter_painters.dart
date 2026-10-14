@@ -1617,3 +1617,24 @@ class _FireHosePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _FireHosePainter oldDelegate) => true;
 }
+
+
+class _BoosterParticlesPainter extends CustomPainter {
+  final List<_BoosterParticle> particles;
+
+  _BoosterParticlesPainter(this.particles);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final p in particles) {
+      final paint = Paint()
+        ..color = p.color.withValues(alpha: p.life.clamp(0.0, 1.0))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.0);
+      canvas.drawCircle(p.pos, p.radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BoosterParticlesPainter oldDelegate) => true;
+}
+

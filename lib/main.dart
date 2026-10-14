@@ -9,7 +9,6 @@ import 'package:flutter/services.dart';
 
 
 import 'dart:async';
-import 'core/services/revenuecat_service.dart';
 
 void main() {
   GoogleFonts.config.allowRuntimeFetching = false;
@@ -28,7 +27,6 @@ void main() {
     await Hive.initFlutter();
     await Hive.openBox('high_scores_box');
     await PlayerDataManager.instance.init();
-    unawaited(RevenueCatService.instance.init());
     runApp(const KidsToyBoxApp());
   }, (error, stack) {
     if (error.toString().contains('fonts.gstatic.com')) {

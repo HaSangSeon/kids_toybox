@@ -298,7 +298,18 @@ class _ConfettiParticle {
   });
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// MAIN GAME WIDGET
-// ═══════════════════════════════════════════════════════════════════════════════
+class _BoosterParticle {
+  Offset pos;
+  Offset vel;
+  double radius;
+  double life;
+  Color color;
 
+  _BoosterParticle({
+    required this.pos,
+    required this.vel,
+    required this.radius,
+    required this.life,
+    required this.color,
+  });
+}
