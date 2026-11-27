@@ -261,17 +261,21 @@ extension _CarWashStageExtension on _CarWashGameState {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      currentInfo.$1,
-                      style: GoogleFonts.jua(
-                        fontSize: 13,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        shadows: const [
-                          Shadow(color: Colors.black45, offset: Offset(0, 1), blurRadius: 2),
-                        ],
+                    Flexible(
+                      child: Text(
+                        currentInfo.$1,
+                        style: GoogleFonts.jua(
+                          fontSize: 13,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          shadows: const [
+                            Shadow(color: Colors.black45, offset: Offset(0, 1), blurRadius: 2),
+                          ],
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
@@ -513,12 +517,13 @@ extension _CarWashStageExtension on _CarWashGameState {
         height: barHeight,
         child: Container(
           color: Colors.black.withValues(alpha: 0.35),
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
-                height: 48,
+                height: 40,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   itemCount: _car.stickers.length,
@@ -532,8 +537,8 @@ extension _CarWashStageExtension on _CarWashGameState {
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: selected ? 48 : 40,
-                        height: selected ? 48 : 40,
+                        width: selected ? 40 : 36,
+                        height: selected ? 40 : 36,
                         decoration: BoxDecoration(
                           color: selected ? Colors.white : Colors.white.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
@@ -546,21 +551,23 @@ extension _CarWashStageExtension on _CarWashGameState {
                           ] : [],
                         ),
                         child: Center(
-                          child: Text(_car.stickers[i], style: TextStyle(fontSize: selected ? 24 : 20)),
+                          child: Text(_car.stickers[i], style: TextStyle(fontSize: selected ? 20 : 18)),
                         ),
                       ),
                     );
                   },
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _startDriveOut,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF43E97B),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    minimumSize: const Size(0, 36),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
                     elevation: 6,
                     shadowColor: const Color(0xFF43E97B),
@@ -568,11 +575,11 @@ extension _CarWashStageExtension on _CarWashGameState {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('🚗', style: TextStyle(fontSize: 22)),
+                      const Text('🚗', style: TextStyle(fontSize: 19)),
                       const SizedBox(width: 8),
-                      Text('출발! 빵빵~!', style: GoogleFonts.jua(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold)),
+                      Text('출발! 빵빵~!', style: GoogleFonts.jua(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
                       const SizedBox(width: 8),
-                      const Text('💨', style: TextStyle(fontSize: 20)),
+                      const Text('💨', style: TextStyle(fontSize: 18)),
                     ],
                   ),
                 ),

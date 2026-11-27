@@ -61,9 +61,12 @@ extension _PetHospitalToolTraysExtension on _PetHospitalGameState {
           children: [
             const Text('✂️', style: TextStyle(fontSize: 26)),
             const SizedBox(width: 8),
-            Text(
-              '환자의 몸에 박힌 가시를 톡 눌러 뽑아주세요!',
-              style: GoogleFonts.jua(fontSize: 14.5, color: const Color(0xFF00838F), fontWeight: FontWeight.bold),
+            Flexible(
+              child: Text(
+                '환자의 몸에 박힌 가시를 톡 눌러 뽑아주세요!',
+                style: GoogleFonts.jua(fontSize: 14.5, color: const Color(0xFF00838F), fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         );
@@ -74,9 +77,12 @@ extension _PetHospitalToolTraysExtension on _PetHospitalGameState {
           children: [
             const Text('🧴', style: TextStyle(fontSize: 26)),
             const SizedBox(width: 8),
-            Text(
-              '빨간 상처 부위를 톡톡 눌러서 소독해요!',
-              style: GoogleFonts.jua(fontSize: 14.5, color: const Color(0xFF00838F), fontWeight: FontWeight.bold),
+            Flexible(
+              child: Text(
+                '빨간 상처 부위를 톡톡 눌러서 소독해요!',
+                style: GoogleFonts.jua(fontSize: 14.5, color: const Color(0xFF00838F), fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         );

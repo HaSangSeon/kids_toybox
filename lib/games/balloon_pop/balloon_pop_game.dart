@@ -28,7 +28,7 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
 
   bool _wasCleared = false;
   bool _wasGameOver = false;
-  bool _showStageSelect = true; // Open stage selection on game start!
+  bool _showStageSelect = false; // 3~4세 유아가 진입 즉시 풍선을 터뜨릴 수 있도록 바로 시작!
   Duration _lastElapsed = Duration.zero;
 
   @override
@@ -92,26 +92,25 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
     super.dispose();
   }
 
-  void _handleTap(TapDownDetails details, Size size) {
-    if (_engine.isStageCleared || _engine.isGameOver) return;
+  void _handleTouchAt(Offset localPosition, Size size, {bool allowMultiPop = false}) {
+    if (_engine.isStageCleared || _engine.isGameOver || _showStageSelect) return;
 
-    final tapX = details.localPosition.dx / size.width;
-    final tapY = details.localPosition.dy / size.height;
+    final tapX = localPosition.dx / size.width;
+    final tapY = localPosition.dy / size.height;
 
-    // Check hit backward so top balloons are popped first
+    // Check hit backward so top balloons are popped first (generous 1.25x hitbox for 3-4yo fingers)
     for (int i = _engine.balloons.length - 1; i >= 0; i--) {
       final balloon = _engine.balloons[i];
       if (balloon.isPopped) continue;
 
       final bX = balloon.currentX;
       final bY = balloon.y;
-      final radiusX = (balloon.size / 2) / size.width;
-      final radiusY = ((balloon.size * 1.3) / 2) / size.height;
+      final radiusX = ((balloon.size * 1.25) / 2) / size.width;
+      final radiusY = ((balloon.size * 1.45) / 2) / size.height;
 
-      // Simple bounding box hit detection
       if ((tapX - bX).abs() < radiusX && (tapY - bY).abs() < radiusY) {
         _engine.popBalloon(balloon);
-        break; // Only pop one balloon per tap
+        if (!allowMultiPop) break;
       }
     }
   }
@@ -129,13 +128,16 @@ class _BalloonPopGameState extends State<BalloonPopGame> with TickerProviderStat
         ),
         child: Stack(
           children: [
-            // Game Area using CustomPaint for blazing fast rendering
+            // Game Area using CustomPaint for blazing fast rendering (supports both tap and finger swipe!)
             LayoutBuilder(
               builder: (context, constraints) {
+                final areaSize = Size(constraints.maxWidth, constraints.maxHeight);
                 return GestureDetector(
-                  onTapDown: (details) => _handleTap(details, Size(constraints.maxWidth, constraints.maxHeight)),
+                  onTapDown: (details) => _handleTouchAt(details.localPosition, areaSize),
+                  onPanStart: (details) => _handleTouchAt(details.localPosition, areaSize, allowMultiPop: true),
+                  onPanUpdate: (details) => _handleTouchAt(details.localPosition, areaSize, allowMultiPop: true),
                   child: CustomPaint(
-                    size: Size(constraints.maxWidth, constraints.maxHeight),
+                    size: areaSize,
                     painter: _GamePainter(engine: _engine),
                   ),
                 );

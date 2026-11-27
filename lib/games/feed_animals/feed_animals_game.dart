@@ -159,7 +159,7 @@ class _FeedAnimalsGameState extends State<FeedAnimalsGame>
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         backgroundColor: Colors.white,
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -425,7 +425,7 @@ class _FeedAnimalsGameState extends State<FeedAnimalsGame>
           return Dialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
             backgroundColor: Colors.white,
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,

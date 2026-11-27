@@ -94,9 +94,10 @@ class _ParentalGateModalState extends State<ParentalGateModal> {
           borderRadius: 28,
         ),
         padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             // Header with Cancel Button
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -216,6 +217,7 @@ class _ParentalGateModalState extends State<ParentalGateModal> {
               ],
             ),
           ],
+        ),
         ),
       ),
     );

@@ -36,6 +36,10 @@ import '../games/pet_hospital/pet_hospital_game.dart';
 import '../games/firefighter/firefighter_game.dart';
 import '../games/car_builder/car_builder_game.dart';
 import '../games/shape_sorting/shape_sorting_game.dart';
+import '../games/egg_surprise/egg_surprise_game.dart';
+import '../games/claw_machine/claw_machine_game.dart';
+import '../games/cotton_candy/cotton_candy_game.dart';
+import '../games/ice_cream_tower/ice_cream_tower_game.dart';
 import '../core/widgets/skin_select_modal.dart';
 import '../core/widgets/pacman_icon.dart';
 
@@ -617,7 +621,7 @@ class _LobbyScreenState extends State<LobbyScreen>
                           ],
                         ),
                         child: Text(
-                          '✨ 미니 게임 천국 (v1.0.9) ✨',
+                          '✨ 미니 게임 천국 (v1.0.17) ✨',
                           style: GoogleFonts.jua(
                             fontSize: 11,
                             color: Colors.white,
@@ -881,6 +885,73 @@ class _LobbyScreenState extends State<LobbyScreen>
     return [
       // ── [줄 1] 최상단 첫인상
       _GameData(
+        title: '무지개 솜사탕',
+        emoji: '🍭',
+        customIcon: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            const Text('☁️', style: TextStyle(fontSize: 38)),
+            Positioned(
+              top: -6, right: -6,
+              child: const Text('🍭', style: TextStyle(fontSize: 19)),
+            ),
+            Positioned(
+              bottom: -4, left: -4,
+              child: const Text('🌈', style: TextStyle(fontSize: 17)),
+            ),
+          ],
+        ),
+        gradientColors: KidsTheme.gameGradients['pink'] ?? const [Color(0xFFFF80AB), Color(0xFFEC407A)],
+        isNew: true,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CottonCandyGame())); },
+      ),
+      _GameData(
+        title: '아이스크림 타워',
+        minAge: 6,
+        emoji: '🍦',
+        customIcon: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            const Text('🍦', style: TextStyle(fontSize: 38)),
+            Positioned(
+              top: -6, right: -6,
+              child: const Text('🍒', style: TextStyle(fontSize: 18)),
+            ),
+            Positioned(
+              bottom: -4, left: -4,
+              child: const Text('🍓', style: TextStyle(fontSize: 17)),
+            ),
+          ],
+        ),
+        gradientColors: KidsTheme.gameGradients['teal'] ?? const [Color(0xFF26A69A), Color(0xFF00796B)],
+        isNew: true,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const IceCreamTowerGame())); },
+      ),
+      _GameData(
+        title: '톡톡 알 깨기',
+        emoji: '🥚',
+        customIcon: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            const Text('🥚', style: TextStyle(fontSize: 38)),
+            Positioned(
+              top: -6, right: -6,
+              child: const Text('🦖', style: TextStyle(fontSize: 18)),
+            ),
+            Positioned(
+              bottom: -4, left: -4,
+              child: const Text('🐣', style: TextStyle(fontSize: 18)),
+            ),
+          ],
+        ),
+        gradientColors: KidsTheme.gameGradients['amber'] ?? const [Color(0xFFFFB74D), Color(0xFFFF8F00)],
+        isNew: true,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EggSurpriseGame())); },
+      ),
+      _GameData(
         title: '모양 쏙쏙',
         emoji: '🧲',
         customIcon: Stack(
@@ -901,6 +972,29 @@ class _LobbyScreenState extends State<LobbyScreen>
         gradientColors: KidsTheme.gameGradients['indigo'] ?? const [Color(0xFF7986CB), Color(0xFF3F51B5)],
         isNew: true,
         onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ShapeSortingGame())); },
+      ),
+      _GameData(
+        title: '인형 뽑기',
+        minAge: 6,
+        emoji: '🕹️',
+        customIcon: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            const Text('🕹️', style: TextStyle(fontSize: 38)),
+            Positioned(
+              top: -6, right: -6,
+              child: const Text('🧸', style: TextStyle(fontSize: 19)),
+            ),
+            Positioned(
+              bottom: -4, left: -4,
+              child: const Text('🎁', style: TextStyle(fontSize: 17)),
+            ),
+          ],
+        ),
+        gradientColors: KidsTheme.gameGradients['purple'] ?? const [Color(0xFFAB47BC), Color(0xFF7B1FA2)],
+        isNew: true,
+        onTap: () { AudioManager.instance.playClick(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ClawMachineGame())); },
       ),
       _GameData(
         title: '출동! 소방대',

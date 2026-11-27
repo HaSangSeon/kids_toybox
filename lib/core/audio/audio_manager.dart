@@ -90,10 +90,74 @@ class AudioManager {
     if (!_soundEnabled) return;
     try {
       await _voicePlayer.stop();
+      await _voicePlayer.setVolume(1.0);
       await _voicePlayer.play(AssetSource(path));
     } catch (e) {
       debugPrint("Voice play failed: $path. Error: $e");
     }
+  }
+
+  // 🧩 모양 쏙쏙 (Shape Sorting) 전용 음성 & 입체 효과음
+  static const List<String> _scaleNotes = [
+    'audio/note_c4.wav',
+    'audio/note_d4.wav',
+    'audio/note_e4.wav',
+    'audio/note_f4.wav',
+    'audio/note_g4.wav',
+    'audio/note_a4.wav',
+    'audio/note_b4.wav',
+    'audio/note_c5.wav',
+  ];
+
+  /// 모양을 집거나 빈 구멍(힌트)을 터치했을 때 아기자기한 한국어 모양 이름 음성 재생
+  Future<void> playShapeNameVoice(String shapeName) async {
+    if (!_soundEnabled) return;
+    await playVoice('audio/voice_shape_$shapeName.wav');
+  }
+
+  /// 모양 가이드/칭찬/안내 한국어 음성 재생 (intro, cheer1, cheer2, cheer3, wrong, clear, pour)
+  Future<void> playShapeGuideVoice(String key) async {
+    if (!_soundEnabled) return;
+    await playVoice('audio/voice_shape_$key.wav');
+  }
+
+  /// 모양이 구멍에 쏙! 들어갔을 때: 실로폰 음계 + 원목 스냅음 + 테마별 효과음 + 한국어 음성
+  Future<void> playShapeMatchRich({
+    required String shapeName,
+    required int stepIndex,
+  }) async {
+    if (!_soundEnabled) return;
+
+    // 1. 원목 조각 스냅 사운드 + 단계별 도레미파솔라시도 실로폰 음계
+    await playEffect('audio/jigsaw_snap_correct.wav', rate: 1.05);
+    final notePath = _scaleNotes[stepIndex.clamp(0, _scaleNotes.length - 1)];
+    Future.delayed(const Duration(milliseconds: 70), () {
+      playSuccessSound(notePath, rate: 1.0);
+    });
+
+    // 2. 도형/동물/탈것 테마별 리얼 효과음 (_animalPlayer 사용으로 끊김 방지)
+    final String themeSfx = switch (shapeName) {
+      'bear' => 'audio/animal_bear.wav',
+      'rabbit' => 'audio/animal_rabbit.wav',
+      'cat' => 'audio/animal_cat.wav',
+      'bird' => 'audio/animal_parrot.wav',
+      'fish' => 'audio/bubble_boguel.wav',
+      'car' => 'audio/sound_car.wav',
+      'boat' => 'audio/splash.wav',
+      'star' || 'moon' => 'audio/item_star.wav',
+      'heart' || 'flower' => 'audio/item_heart.wav',
+      'diamond' || 'castle' => 'audio/item_diamond.wav',
+      'cloud' || 'tree' || 'house' => 'audio/bubble_pop.wav',
+      _ => 'audio/chime.wav',
+    };
+    Future.delayed(const Duration(milliseconds: 110), () {
+      _playAnimalSound(themeSfx, rate: shapeName == 'bird' ? 1.25 : 1.08);
+    });
+
+    // 3. 한국어 음성 ("동그라미, 쏙!", "토끼, 쏙!" 등)
+    Future.delayed(const Duration(milliseconds: 140), () {
+      playVoice('audio/voice_snap_$shapeName.wav');
+    });
   }
 
   // Pre-configured sounds for convenience
@@ -116,7 +180,7 @@ class AudioManager {
   Future<void> playScribble() => playEffect('audio/scribble.wav');
   Future<void> playSnap() => playEffect('audio/snap.wav');
   Future<void> playSqueak() => playEffect('audio/squeak.wav');
-  Future<void> playBrush() => playEffect('audio/brush_stroke.wav');
+  Future<void> playBrush() => playEffect('audio/scribble.wav');
   Future<void> playMunch() => playEffect('audio/munch.wav');
   Future<void> playBoing() => playEffect('audio/boing.wav');
   Future<void> playChime() => playEffect('audio/chime.wav');
@@ -605,6 +669,332 @@ class AudioManager {
     if (!_soundEnabled) return;
     // Soft, gentle pleasant chime without loud fanfare
     await playEffect('audio/chime.wav', rate: 1.1);
+  }
+
+  // 🥚 톡톡 깜짝 알 깨기 (Egg Surprise) 전용 리얼 사운드 & 음성
+  int _petStrokeCounter = 0;
+
+  /// 알을 두드릴 때: 실제 속이 빈 알 껍질을 톡톡 노크하고 빠직! 금이 가는 리얼 효과음
+  Future<void> playEggTap({required int tapStep}) async {
+    if (!_soundEnabled) return;
+    final step = tapStep.clamp(1, 4);
+    await playEffect('audio/egg_crack_step$step.wav', rate: 1.0);
+    // 내부에서 아기 동물이 꼼지락거리는 작은 반응음 레이어링
+    Future.delayed(const Duration(milliseconds: 120), () {
+      playSuccessSound('audio/bubble_pop.wav', rate: (0.95 + step * 0.1));
+    });
+  }
+
+  Future<void> playEggCrackVoice(int tapStep) async {
+    if (!_soundEnabled) return;
+    if (tapStep == 2) {
+      await playVoice('audio/voice_egg_tap1.wav');
+    } else if (tapStep == 4) {
+      await playVoice('audio/voice_egg_tap2.wav');
+    }
+  }
+
+  /// 알이 우지끈 빠직! 깨지며 아기 동물이 실제 울음소리와 함께 탄생하는 입체 사운드
+  Future<void> playEggHatchComplete(String creatureId) async {
+    if (!_soundEnabled) return;
+    await playEffect('audio/egg_hatch_break.wav', rate: 1.0);
+    Future.delayed(const Duration(milliseconds: 140), () {
+      playSuccessSound('audio/jigsaw_success.wav', rate: 1.05);
+    });
+    final String creatureSfx = _getCreatureRealSoundPath(creatureId);
+    Future.delayed(const Duration(milliseconds: 220), () {
+      _playAnimalSound(creatureSfx, rate: 1.02);
+    });
+    Future.delayed(const Duration(milliseconds: 340), () {
+      playVoice('audio/voice_egg_hatch_$creatureId.wav');
+    });
+  }
+
+  String _getCreatureRealSoundPath(String creatureId) {
+    return switch (creatureId) {
+      'trex' => 'audio/jump_trex.wav',
+      'brachio' => 'audio/jump_brachio.wav',
+      'dragon' => 'audio/jump_dragon.wav',
+      'unicorn' => 'audio/heal_sparkle.wav',
+      'chick' => 'audio/animal_chick.wav',
+      'penguin' => 'audio/animal_penguin.wav',
+      'turtle' => 'audio/jump_turtle.wav',
+      'rabbit' => 'audio/animal_rabbit.wav',
+      'bear' => 'audio/animal_bear.wav',
+      'dog' => 'audio/animal_dog.wav',
+      'cat' => 'audio/animal_cat.wav',
+      'octopus' => 'audio/bubble_boguel.wav',
+      _ => 'audio/chime.wav',
+    };
+  }
+
+  /// 손가락으로 문질문질 쓰다듬을 때: 리얼한 털/솜결 마찰음(슥삭~) + 동물 애교 울음소리 + 한국어 음성
+  Future<void> playEggRealPetStroke({
+    required String creatureId,
+    required bool isHatched,
+    bool speakVoice = false,
+  }) async {
+    if (!_soundEnabled) return;
+    _petStrokeCounter++;
+    final pitch = (_petStrokeCounter % 2 == 0) ? 1.08 : 0.94;
+
+    // 1. 슥삭~ 포근한 쓰다듬기 마찰 사운드
+    await playEffect('audio/egg_pet_stroke.wav', rate: pitch);
+
+    if (isHatched) {
+      // 2. 쓰다듬을 때마다 아기 동물의 실제 울음소리/애교 소리 재생
+      if (_petStrokeCounter % 2 == 1) {
+        final creatureSfx = _getCreatureRealSoundPath(creatureId);
+        Future.delayed(const Duration(milliseconds: 70), () {
+          _playAnimalSound(creatureSfx, rate: 1.12);
+        });
+      }
+      // 3. 일정 간격 또는 버튼 터치 시 따뜻한 한국어 애교 음성 재생
+      if (speakVoice) {
+        final voiceIdx = ((_petStrokeCounter ~/ 2) % 3) + 1;
+        Future.delayed(const Duration(milliseconds: 120), () {
+          playVoice('audio/voice_egg_pet$voiceIdx.wav');
+        });
+      }
+    } else if (speakVoice) {
+      Future.delayed(const Duration(milliseconds: 90), () {
+        playVoice('audio/voice_egg_warm.wav');
+      });
+    }
+  }
+
+  // 🕹️ 두근두근 인형 뽑기 크레인 (Claw Machine) 전용 아케이드 사운드 & 음성
+  Future<void> playClawMove() => playEffect('audio/claw_servo_move.wav', rate: 1.0);
+
+  Future<void> playClawDescend() async {
+    if (!_soundEnabled) return;
+    await playEffect('audio/claw_descend_whir.wav', rate: 1.0);
+    await playVoice('audio/voice_claw_drop.wav');
+  }
+
+  Future<void> playClawGrabSuccess(String prizeId) async {
+    if (!_soundEnabled) return;
+    await playEffect('audio/claw_clamp_grab.wav', rate: 1.0);
+    // 인형별 귀여운 고유 효과음도 살짝 재생
+    final String dollSfx = switch (prizeId) {
+      'bear' => 'audio/animal_bear.wav',
+      'unicorn' => 'audio/heal_sparkle.wav',
+      'trex' => 'audio/jump_trex.wav',
+      'rabbit' => 'audio/animal_rabbit.wav',
+      'robot' || 'alien' => 'audio/item_star.wav',
+      'penguin' => 'audio/animal_penguin.wav',
+      'puppy' => 'audio/animal_dog.wav',
+      'kitty' => 'audio/animal_cat.wav',
+      'octopus' => 'audio/bubble_boguel.wav',
+      'capsule' => 'audio/item_diamond.wav',
+      _ => 'audio/chime.wav',
+    };
+    Future.delayed(const Duration(milliseconds: 110), () {
+      _playAnimalSound(dollSfx, rate: 1.12);
+    });
+    await playVoice('audio/voice_claw_grab.wav');
+  }
+
+  Future<void> playClawShuffleBounce() async {
+    if (!_soundEnabled) return;
+    await playEffect('audio/claw_air_shuffle.wav', rate: 1.0);
+    Future.delayed(const Duration(milliseconds: 120), () {
+      playVoice('audio/voice_claw_shuffle.wav');
+    });
+  }
+
+  Future<void> playClawDollVoice(String dollId) async {
+    if (!_soundEnabled) return;
+    await playEffect('audio/claw_servo_move.wav', rate: 1.2);
+    await playVoice('audio/voice_claw_doll_$dollId.wav');
+  }
+
+  Future<void> playClawPrizeDrop({
+    required String prizeId,
+    required bool isMission,
+    required bool isCapsule,
+  }) async {
+    if (!_soundEnabled) return;
+    await playSuccessSound('audio/claw_chute_fanfare.wav', rate: 1.0);
+    Future.delayed(const Duration(milliseconds: 140), () {
+      _playAnimalSound(
+        isCapsule ? 'audio/item_diamond.wav' : 'audio/item_star.wav',
+        rate: 1.1,
+      );
+    });
+    Future.delayed(const Duration(milliseconds: 220), () {
+      if (isCapsule) {
+        playVoice('audio/voice_claw_capsule.wav');
+      } else if (isMission) {
+        playVoice('audio/voice_claw_mission.wav');
+      } else {
+        playVoice('audio/voice_claw_doll_$prizeId.wav');
+      }
+    });
+  }
+
+  Future<void> playClawMiss() async {
+    if (!_soundEnabled) return;
+    await playEffect('audio/boing.wav', rate: 1.05);
+    await playVoice('audio/voice_claw_miss.wav');
+  }
+
+  // 🍭 빙글빙글 무지개 솜사탕 가게 (Cotton Candy) 전용 사운드 & 음성
+  int _cottonSpinCounter = 0;
+
+  Future<void> playCottonSugarPour({bool speak = true}) async {
+    if (!_soundEnabled) return;
+    await playEffect('audio/cotton_sugar_pour.wav', rate: 1.0);
+    if (speak) {
+      Future.delayed(const Duration(milliseconds: 120), () {
+        playVoice('audio/voice_cotton_sugar.wav');
+      });
+    }
+  }
+
+  Future<void> playCottonSpinStroke({bool speak = false}) async {
+    if (!_soundEnabled) return;
+    _cottonSpinCounter++;
+    final rate = 0.96 + (_cottonSpinCounter % 4) * 0.05;
+    await playEffect('audio/cotton_spin_whir.wav', rate: rate);
+    if (speak) {
+      playVoice('audio/voice_cotton_spin.wav');
+    }
+  }
+
+  Future<void> playCottonFluffReady() async {
+    if (!_soundEnabled) return;
+    await playSuccessSound('audio/trace_success.wav', rate: 1.1);
+    Future.delayed(const Duration(milliseconds: 160), () {
+      playVoice('audio/voice_cotton_ready.wav');
+    });
+  }
+
+  Future<void> playCottonCustomerBite({
+    required String animalId,
+    required bool isFinalBite,
+  }) async {
+    if (!_soundEnabled) return;
+    await playEffect('audio/cotton_munch_bite.wav', rate: 1.05);
+    final animalSfx = _getCreatureRealSoundPath(animalId);
+    Future.delayed(const Duration(milliseconds: 110), () {
+      _playAnimalSound(animalSfx, rate: 1.12);
+    });
+    if (isFinalBite) {
+      Future.delayed(const Duration(milliseconds: 180), () {
+        playSuccessSound('audio/jigsaw_success.wav', rate: 1.05);
+        playVoice('audio/voice_cotton_serve.wav');
+      });
+    }
+  }
+
+  // 🍦 차곡차곡 아이스크림 타워 (Ice Cream Tower) 전용 사운드 & 음성
+  int _iceConeMoveTick = 0;
+
+  Future<void> playIceCreamDispenserPop() async {
+    if (!_soundEnabled) return;
+    await playEffect('audio/icecream_dispenser_pop.wav', rate: 1.0);
+  }
+
+  Future<void> playIceCreamConeMove() async {
+    if (!_soundEnabled) return;
+    _iceConeMoveTick++;
+    final rate = (_iceConeMoveTick % 2 == 0) ? 1.08 : 0.96;
+    await playEffect('audio/icecream_cone_swish.wav', rate: rate);
+  }
+
+  Future<void> playIceCreamScoopCatch({
+    required String flavorId,
+    required int stackCount,
+    bool isTopping = false,
+    bool isExactOrder = true,
+    bool isPerfectCenter = false,
+    bool isRainbowBonus = false,
+    String? customerAnimalId,
+  }) async {
+    if (!_soundEnabled) return;
+    final pitch = (0.95 + stackCount * 0.06).clamp(0.95, 1.48);
+
+    // 1. 쫀득하고 시원한 스쿱 착지 사운드
+    await playEffect('audio/icecream_scoop_splat.wav', rate: pitch);
+
+    // 2. 도레미파솔라시도 실로폰 음계 또는 레인보우/퍼펙트 하프 사운드
+    final notePath =
+        _scaleNotes[(stackCount - 1).clamp(0, _scaleNotes.length - 1)];
+    Future.delayed(const Duration(milliseconds: 55), () {
+      if (isRainbowBonus) {
+        playSuccessSound('audio/icecream_rainbow_magic.wav', rate: 1.0);
+      } else {
+        playSuccessSound(notePath, rate: isPerfectCenter ? 1.12 : 1.0);
+      }
+    });
+
+    // 3. 손님 동물의 신나는 리액션 효과음 또는 퍼펙트 반짝이 사운드
+    Future.delayed(const Duration(milliseconds: 110), () {
+      if (isPerfectCenter) {
+        _playAnimalSound('audio/item_star.wav', rate: 1.25);
+      } else if (customerAnimalId != null) {
+        final sfx = _getCreatureRealSoundPath(customerAnimalId);
+        _playAnimalSound(sfx, rate: 1.15);
+      }
+    });
+
+    // 4. 한국어 음성 피드백 (맛 이름 / 퍼펙트 / 레인보우 / 토핑)
+    Future.delayed(const Duration(milliseconds: 135), () {
+      if (isTopping) {
+        playVoice('audio/voice_ice_topping.wav');
+      } else if (isRainbowBonus) {
+        playVoice('audio/voice_ice_rainbow.wav');
+      } else if (!isExactOrder) {
+        playVoice('audio/voice_ice_wrong.wav');
+      } else if (isPerfectCenter && stackCount > 1) {
+        playVoice('audio/voice_ice_perfect.wav');
+      } else {
+        playVoice('audio/voice_ice_$flavorId.wav');
+      }
+    });
+  }
+
+  Future<void> playIceCreamSyrupDrizzle({bool speak = false}) async {
+    if (!_soundEnabled) return;
+    await playEffect('audio/icecream_syrup_drizzle.wav', rate: 1.0);
+    if (speak) {
+      Future.delayed(const Duration(milliseconds: 120), () {
+        playVoice('audio/voice_ice_syrup.wav');
+      });
+    }
+  }
+
+  Future<void> playIceCreamBellFinish() async {
+    if (!_soundEnabled) return;
+    await playSuccessSound('audio/icecream_bell_ding.wav', rate: 1.0);
+    Future.delayed(const Duration(milliseconds: 220), () {
+      playVoice('audio/voice_ice_bell.wav');
+    });
+  }
+
+  Future<void> playIceCreamCustomerBite({
+    required String animalId,
+    required bool isFinalBite,
+  }) async {
+    if (!_soundEnabled) return;
+    await playEffect('audio/cotton_munch_bite.wav', rate: 1.08);
+    final animalSfx = _getCreatureRealSoundPath(animalId);
+    Future.delayed(const Duration(milliseconds: 110), () {
+      _playAnimalSound(animalSfx, rate: 1.14);
+    });
+    if (isFinalBite) {
+      Future.delayed(const Duration(milliseconds: 180), () {
+        playSuccessSound('audio/jigsaw_success.wav', rate: 1.05);
+        playVoice('audio/voice_ice_yummy.wav');
+      });
+    }
+  }
+
+  Future<void> playIceCreamObstacleHit() async {
+    if (!_soundEnabled) return;
+    await playEffect('audio/ice_clink.wav', rate: 1.05);
+    await playVoice('audio/voice_ice_oops.wav');
   }
 
   // Dispose players

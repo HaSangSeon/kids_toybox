@@ -49,6 +49,18 @@ const List<_AnimalFriend> _kAnimals = [
     soundPath: 'audio/animal_dog.wav',
   ),
   _AnimalFriend(
+    id: 'cat',
+    name: '새침데기 야옹이',
+    emoji: '🐱',
+    primaryColor: Color(0xFFFF7043),
+    secondaryColor: Color(0xFFD84315),
+    faceColor: Color(0xFFFFCCBC),
+    mouthColor: Color(0xFFFF8A80),
+    favoriteSnack: '🐟 고소한 생선과자',
+    cheerMessage: '야옹~ 이빨이 눈부시게 깨끗해졌다냥! 🐱✨',
+    soundPath: 'audio/animal_cat.wav',
+  ),
+  _AnimalFriend(
     id: 'croco',
     name: '아기 악어 크롱이',
     emoji: '🐊',

@@ -286,16 +286,18 @@ extension _ToothBrushingStageExtension on _ToothBrushingGameState {
             ),
             const SizedBox(height: 8),
 
-            // 2. FIXED CENTER MASCOT (280x280 Canvas ALWAYS at the exact same screen location)
+            // 2. RESPONSIVE CENTER MASCOT (Fits any phone/tablet height without pushing bottom tray)
             Expanded(
               child: Center(
-                child: SizedBox(
-                  width: 280,
-                  height: 280,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.center,
-                    children: [
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  child: SizedBox(
+                    width: 280,
+                    height: 280,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      alignment: Alignment.center,
+                      children: [
                       // Base Animal Head
                       _buildAnimalHeadWidget(
                         showDirty: _step == BrushStep.selectPaste || _step == BrushStep.brushing || (_step == BrushStep.eating && _customDialogue != null),
@@ -418,14 +420,16 @@ extension _ToothBrushingStageExtension on _ToothBrushingGameState {
                     ],
                   ),
                 ),
+                ),
               ),
             ),
 
-            // 3. FIXED HEIGHT BOTTOM CONTROL TRAY (Exact 190px, never causes jumping)
+            // 3. RESPONSIVE BOTTOM CONTROL TRAY (Never overflows on any device size)
             Container(
-              height: 190,
-              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              padding: const EdgeInsets.all(12),
+              width: double.infinity,
+              constraints: const BoxConstraints(minHeight: 156, maxHeight: 210),
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.96),
                 borderRadius: BorderRadius.circular(28),

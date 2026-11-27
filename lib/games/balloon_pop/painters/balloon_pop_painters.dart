@@ -158,42 +158,59 @@ class _GamePainter extends CustomPainter {
     stringPath.cubicTo(cx - 10, knotY + width * 0.3, cx + 10, knotY + width * 0.5, cx, cy + height / 2);
     canvas.drawPath(stringPath, stringPaint);
 
-    // Draw indicators inside balloon
-    if (type == BalloonType.fast) {
-      final lightningPaint = Paint()..color = Colors.white..style = PaintingStyle.fill;
-      final lp = Path();
-      final double lx = cx;
-      final double ly = cy - 3;
-      lp.moveTo(lx + 2, ly - 12);
-      lp.lineTo(lx - 8, ly + 2);
-      lp.lineTo(lx - 2, ly + 2);
-      lp.lineTo(lx - 4, ly + 12);
-      lp.lineTo(lx + 8, ly - 2);
-      lp.lineTo(lx + 2, ly - 2);
-      lp.close();
-      canvas.drawPath(lp, lightningPaint);
-      canvas.drawPath(lp, Paint()..color = const Color(0xFFFFA000)..style = PaintingStyle.stroke..strokeWidth = 1.5);
+    // Draw indicators / cute faces inside balloon
+    final double bodyCenterY = top + (width * 1.1) * 0.52;
+    if (type == BalloonType.normal) {
+      // 3~4세 아이들이 좋아하는 방긋 웃는 풍선 얼굴 (눈 + 발그레 볼터치 + 미소)
+      final eyePaint = Paint()
+        ..color = KidsTheme.borderDark
+        ..style = PaintingStyle.fill;
+      final cheekPaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.45)
+        ..style = PaintingStyle.fill;
+      final eyeOffset = width * 0.16;
+      final eyeR = (width * 0.055).clamp(2.5, 5.0);
+
+      canvas.drawCircle(Offset(cx - eyeOffset, bodyCenterY - 4), eyeR, eyePaint);
+      canvas.drawCircle(Offset(cx + eyeOffset, bodyCenterY - 4), eyeR, eyePaint);
+      canvas.drawCircle(Offset(cx - eyeOffset * 1.35, bodyCenterY + 3), eyeR * 1.3, cheekPaint);
+      canvas.drawCircle(Offset(cx + eyeOffset * 1.35, bodyCenterY + 3), eyeR * 1.3, cheekPaint);
+
+      final smilePath = Path()
+        ..moveTo(cx - width * 0.10, bodyCenterY + 2)
+        ..quadraticBezierTo(cx, bodyCenterY + width * 0.12, cx + width * 0.10, bodyCenterY + 2);
+      canvas.drawPath(
+        smilePath,
+        Paint()
+          ..color = KidsTheme.borderDark
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.2
+          ..strokeCap = StrokeCap.round,
+      );
+    } else if (type == BalloonType.fast) {
+      final textPainter = TextPainter(
+        text: const TextSpan(text: '⭐', style: TextStyle(fontSize: 24)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      textPainter.paint(canvas, Offset(cx - textPainter.width / 2, bodyCenterY - textPainter.height / 2));
     } else if (type == BalloonType.bomb) {
       final textPainter = TextPainter(
-        text: const TextSpan(text: '💣', style: TextStyle(fontSize: 22)),
+        text: const TextSpan(text: '🌈', style: TextStyle(fontSize: 25)),
         textDirection: TextDirection.ltr,
-      );
-      textPainter.layout();
-      textPainter.paint(canvas, Offset(cx - textPainter.width / 2, cy - textPainter.height / 2));
+      )..layout();
+      textPainter.paint(canvas, Offset(cx - textPainter.width / 2, bodyCenterY - textPainter.height / 2));
     } else if (type == BalloonType.freeze) {
       final textPainter = TextPainter(
-        text: const TextSpan(text: '❄️', style: TextStyle(fontSize: 22)),
+        text: const TextSpan(text: '❄️', style: TextStyle(fontSize: 24)),
         textDirection: TextDirection.ltr,
-      );
-      textPainter.layout();
-      textPainter.paint(canvas, Offset(cx - textPainter.width / 2, cy - textPainter.height / 2));
+      )..layout();
+      textPainter.paint(canvas, Offset(cx - textPainter.width / 2, bodyCenterY - textPainter.height / 2));
     } else if (type == BalloonType.spiky) {
       final textPainter = TextPainter(
-        text: const TextSpan(text: '🌟', style: TextStyle(fontSize: 22)),
+        text: const TextSpan(text: '🎁', style: TextStyle(fontSize: 24)),
         textDirection: TextDirection.ltr,
-      );
-      textPainter.layout();
-      textPainter.paint(canvas, Offset(cx - textPainter.width / 2, cy - textPainter.height / 2));
+      )..layout();
+      textPainter.paint(canvas, Offset(cx - textPainter.width / 2, bodyCenterY - textPainter.height / 2));
     }
   }
 

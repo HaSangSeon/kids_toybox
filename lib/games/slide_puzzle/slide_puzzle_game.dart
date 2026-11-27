@@ -577,7 +577,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
           return Dialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
             backgroundColor: Colors.white,
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -746,44 +746,61 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
               ),
             ),
             const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: [Colors.amber.shade400, Colors.orange.shade500]),
-                    borderRadius: BorderRadius.circular(12),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [Colors.amber.shade400, Colors.orange.shade500]),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('🎯', style: TextStyle(fontSize: 13)),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            '완성 목표 그림',
+                            style: GoogleFonts.jua(fontSize: 13, color: Colors.white),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Row(
+                  const SizedBox(height: 8),
+                  Text(
+                    theme.name,
+                    style: GoogleFonts.jua(fontSize: 20, color: theme.bg.last),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$_currentLevel단계 (${_gridSize}x$_gridSize 퍼즐)',
+                    style: GoogleFonts.jua(fontSize: 13, color: Colors.grey.shade700),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('🎯', style: TextStyle(fontSize: 13)),
-                      const SizedBox(width: 4),
-                      Text('완성 목표 그림', style: GoogleFonts.jua(fontSize: 13, color: Colors.white)),
+                      const Icon(Icons.touch_app_rounded, size: 14, color: Colors.deepOrange),
+                      const SizedBox(width: 3),
+                      Flexible(
+                        child: Text(
+                          '터치하여 확대',
+                          style: GoogleFonts.jua(fontSize: 12, color: Colors.deepOrange),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  theme.name,
-                  style: GoogleFonts.jua(fontSize: 20, color: theme.bg.last),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '$_currentLevel단계 (${_gridSize}x$_gridSize 퍼즐)',
-                  style: GoogleFonts.jua(fontSize: 13, color: Colors.grey.shade700),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.touch_app_rounded, size: 14, color: Colors.deepOrange),
-                    const SizedBox(width: 3),
-                    Text('터치하여 확대', style: GoogleFonts.jua(fontSize: 12, color: Colors.deepOrange)),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),

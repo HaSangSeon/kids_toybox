@@ -774,7 +774,7 @@ class _MazeEscapeGameState extends State<MazeEscapeGame>
           return Dialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
             backgroundColor: Colors.white,
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,

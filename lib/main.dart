@@ -44,6 +44,14 @@ class KidsToyBoxApp extends StatelessWidget {
       title: 'Kids Toy Box',
       debugShowCheckedModeBanner: false,
       theme: KidsTheme.lightTheme,
+      // 안드로이드 기기별 시스템 글자 크기(폰트 배율) 설정으로 인한 UI 깨짐/오버플로우 원천 방지
+      builder: (context, child) {
+        return MediaQuery.withClampedTextScaling(
+          minScaleFactor: 0.85,
+          maxScaleFactor: 1.0,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       home: SplashScreen(),
     );
   }

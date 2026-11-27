@@ -244,12 +244,15 @@ extension _PetHospitalStageExtension on _PetHospitalGameState {
                 children: [
                   const Text('🏥', style: TextStyle(fontSize: 24)),
                   const SizedBox(width: 8),
-                  Text(
-                    '어떤 동물 친구를 치료해줄까요?',
-                    style: GoogleFonts.jua(
-                      fontSize: 18,
-                      color: const Color(0xFF00838F),
-                      fontWeight: FontWeight.bold,
+                  Flexible(
+                    child: Text(
+                      '어떤 동물 친구를 치료해줄까요?',
+                      style: GoogleFonts.jua(
+                        fontSize: 18,
+                        color: const Color(0xFF00838F),
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],

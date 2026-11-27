@@ -99,6 +99,17 @@ class GameEngine extends ChangeNotifier {
   double freezeTimer = 0.0;
   double timeCounter = 0.0;
 
+  static const List<String> _surpriseGifts = [
+    '🧸', '🍓', '🍭', '🦄', '🚗', '🍩', '👑', '🦖', '🐰', '🍦', '🐥', '🌸',
+  ];
+
+  GameEngine() {
+    // 게임 시작 시 화면에 귀여운 풍선 4개가 바로 떠 있도록 초기 스폰
+    for (int i = 0; i < 4; i++) {
+      _spawnBalloon(initialY: 0.55 + i * 0.14);
+    }
+  }
+
   int get targetScore {
     if (stage == 1) return 200;
     if (stage == 2) return 350;
@@ -243,14 +254,14 @@ class GameEngine extends ChangeNotifier {
     }
   }
 
-  void _spawnBalloon() {
+  void _spawnBalloon({double initialY = 1.15}) {
     final double rand = random.nextDouble();
     BalloonType type = BalloonType.normal;
     // Stage 1 has fewer special balloons
-    final double bombChance = stage == 1 ? 0.05 : 0.09;
+    final double bombChance = stage == 1 ? 0.07 : 0.10;
     final double freezeChance = stage == 1 ? 0.05 : 0.08;
-    final double spikyChance = stage == 1 ? 0.04 : 0.09;
-    final double fastChance = min(0.30, 0.12 + (stage - 1) * 0.03);
+    final double spikyChance = stage == 1 ? 0.06 : 0.09;
+    final double fastChance = min(0.28, 0.10 + (stage - 1) * 0.03);
 
     if (rand < fastChance) {
       type = BalloonType.fast;
@@ -262,42 +273,42 @@ class GameEngine extends ChangeNotifier {
       type = BalloonType.spiky;
     }
 
-    // Difficulty metrics grow based on current stage
-    final double speedScale = 1.0 + (stage - 1) * 0.18;
-    final double baseSpeed = (random.nextDouble() * 0.0012 + 0.0012) * speedScale;
+    // Difficulty metrics grow based on current stage (3~4세가 누르기 좋게 큼직한 기본 크기)
+    final double speedScale = 1.0 + (stage - 1) * 0.16;
+    final double baseSpeed = (random.nextDouble() * 0.0011 + 0.0011) * speedScale;
 
-    final double sizeScale = max(0.6, 1.0 - (stage - 1) * 0.05);
-    final double baseSize = (random.nextDouble() * 30 + 65) * sizeScale;
+    final double sizeScale = max(0.68, 1.0 - (stage - 1) * 0.05);
+    final double baseSize = (random.nextDouble() * 30 + 74) * sizeScale;
 
     double finalSize = baseSize;
     double finalSpeed = baseSpeed;
     Color color = balloonColors[random.nextInt(balloonColors.length)];
 
     if (type == BalloonType.fast) {
-      finalSize = baseSize * 0.85;
-      finalSpeed = baseSpeed * 2.2;
+      finalSize = baseSize * 0.90;
+      finalSpeed = baseSpeed * 1.9;
       color = const Color(0xFFFFD54F); // Golden
     } else if (type == BalloonType.bomb) {
       finalSize = baseSize * 1.15;
-      color = const Color(0xFFFF5252); // Red bomb
+      color = const Color(0xFFFF5252); // Rainbow burst balloon
     } else if (type == BalloonType.freeze) {
-      finalSize = baseSize * 0.95;
+      finalSize = baseSize * 0.98;
       color = const Color(0xFF40C4FF); // Blue freeze
     } else if (type == BalloonType.spiky) {
-      finalSize = baseSize * 1.0;
-      color = const Color(0xFF7C4DFF); // Purple Spiky
+      finalSize = baseSize * 1.05;
+      color = const Color(0xFFAB47BC); // Gift balloon
     }
 
     balloons.add(
       Balloon(
         id: idCounter++,
-        startX: random.nextDouble() * 0.8 + 0.1, 
-        y: 1.2, 
+        startX: random.nextDouble() * 0.78 + 0.11,
+        y: initialY,
         color: color,
-        size: finalSize, 
-        speed: finalSpeed, 
-        swayAmount: random.nextDouble() * 0.08 + 0.04, 
-        swaySpeed: random.nextDouble() * 1.8 + 0.8,
+        size: finalSize,
+        speed: finalSpeed,
+        swayAmount: random.nextDouble() * 0.07 + 0.03,
+        swaySpeed: random.nextDouble() * 1.6 + 0.8,
         type: type,
       ),
     );
@@ -324,25 +335,27 @@ class GameEngine extends ChangeNotifier {
     Color particleColor = balloon.color;
     String floatText = "";
 
+    final String giftEmoji = _surpriseGifts[balloon.id % _surpriseGifts.length];
+
     switch (balloon.type) {
       case BalloonType.normal:
         AudioManager.instance.playPop();
         points = comboCount >= 5 ? 15 : 10;
-        floatText = comboCount >= 5 ? "+15 🔥 FEVER!" : (comboCount >= 2 ? "+10 ⚡x$comboCount" : "+10");
+        floatText = comboCount >= 3 ? "$giftEmoji ✨" : giftEmoji;
         break;
       case BalloonType.fast:
         AudioManager.instance.playLightningPop();
         points = 20;
-        floatText = "+20 ⚡";
+        floatText = "🌟 반짝!";
         particleColor = const Color(0xFFFFD54F);
         break;
       case BalloonType.bomb:
-        AudioManager.instance.playCrash(); // Bomb explosion sound
+        AudioManager.instance.playFireExtinguishPop(); // 신나는 무지개 연쇄 팡팡 사운드!
         points = 15;
-        floatText = "폭탄 💣";
+        floatText = "🌈 팡팡!";
         particleColor = const Color(0xFFFF9100);
-        
-        // Circular chain explosion (popping balloons within 0.25 coordinate radius)
+
+        // Circular chain explosion (popping balloons within 0.28 coordinate radius)
         final bx = balloon.currentX;
         final by = balloon.y;
         final toPop = <Balloon>[];
@@ -350,8 +363,8 @@ class GameEngine extends ChangeNotifier {
           if (other == balloon || other.isPopped) continue;
           final dx = other.currentX - bx;
           final dy = other.y - by;
-          final dist = sqrt(dx*dx + dy*dy);
-          if (dist < 0.25) {
+          final dist = sqrt(dx * dx + dy * dy);
+          if (dist < 0.28) {
             toPop.add(other);
           }
         }
@@ -360,16 +373,16 @@ class GameEngine extends ChangeNotifier {
         }
         break;
       case BalloonType.freeze:
-        AudioManager.instance.playBoing(); // freeze sound
+        AudioManager.instance.playBoing();
         points = 10;
-        floatText = "빙결 ❄️";
+        floatText = "❄️ 천천히~";
         particleColor = const Color(0xFF80DEEA);
         freezeTimer = 4.5;
         break;
       case BalloonType.spiky:
-        AudioManager.instance.playBoing();
+        AudioManager.instance.playChime();
         points = 15;
-        floatText = "반짝! 🌟";
+        floatText = "🎁 $giftEmoji";
         particleColor = const Color(0xFFFFD700);
         break;
     }
@@ -402,7 +415,7 @@ class GameEngine extends ChangeNotifier {
     // Check Stage Clear condition
     if (stageScore >= targetScore) {
       isStageCleared = true;
-      // AudioManager.instance.playSuccess(); // 사운드가 너무 시끄럽다는 피드백으로 제거
+      AudioManager.instance.playChime(); // 귀에 자극 없는 맑고 부드러운 클리어 차임벨
       HapticFeedback.heavyImpact();
       _saveHighScore();
     }
